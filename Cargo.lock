@@ -3,13 +3,6 @@
 version = 3
 
 [[package]]
-name = "mantra"
-version = "0.1.0"
-dependencies = [
- "peg",
-]
-
-[[package]]
 name = "peg"
 version = "0.8.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -52,6 +45,13 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "4424af4bf778aae2051a77b60283332f386554255d722233d09fbfc7e30da2fc"
 dependencies = [
  "proc-macro2",
+]
+
+[[package]]
+name = "saturnus"
+version = "0.1.0"
+dependencies = [
+ "peg",
 ]
 
 [[package]]

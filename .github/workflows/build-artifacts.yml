@@ -1,0 +1,24 @@
+name: Build artifacts
+
+on:
+  push:
+    branches: [ "nightly", "release" ]
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  build_matrix:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        profile: [dev, release]
+    runs-on: ${{ matrix.os }}
+    steps:
+    - uses: actions/checkout@v3
+    - name: Build artifacts
+      run: cargo build --profile ${{ matrix.profile }} --verbose
+    - name: Upload a Build Artifact
+      uses: actions/upload-artifact@v3.1.2
+      with:
+        path: target/debug/saturnus
