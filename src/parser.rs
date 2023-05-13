@@ -246,8 +246,15 @@ pub enum Number {
 }
 
 #[derive(Debug)]
+pub struct If {
+    pub condition: Expression,
+    pub branches: Vec<(Expression, Script)>,
+    pub else_branch: Option<Script>,
+}
+
+#[derive(Debug)]
 pub enum Statement {
-    If,
+    If(If),
     For,
     Loop,
     While,

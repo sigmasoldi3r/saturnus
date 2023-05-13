@@ -191,4 +191,12 @@ impl code::Visitor<code::Builder> for LuaEmitter {
     ) -> Result<code::Builder, code::VisitError> {
         todo!()
     }
+
+    fn visit_if(
+        &self,
+        context: code::Builder,
+        expr: &crate::parser::If,
+    ) -> Result<code::Builder, code::VisitError> {
+        todo!()
+    }
 }

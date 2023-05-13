@@ -1,8 +1,6 @@
-use std::f32::consts::E;
-
 use crate::parser::{
     Assignment, BinaryExpression, CallExpression, Class, Declaration, DotExpression, Expression,
-    Function, Lambda, Number, Return, Script, Tuple, UnaryExpression,
+    Function, If, Lambda, Number, Return, Script, Tuple, UnaryExpression,
 };
 
 #[derive(Debug)]
@@ -25,6 +23,7 @@ pub trait Visitor<T> {
     fn visit_unit(&self, context: T) -> Result<T, VisitError>;
     fn visit_binary(&self, context: T, expr: &BinaryExpression) -> Result<T, VisitError>;
     fn visit_unary(&self, context: T, expr: &UnaryExpression) -> Result<T, VisitError>;
+    fn visit_if(&self, context: T, expr: &If) -> Result<T, VisitError>;
 
     // Generically implementable matching patterns:
     fn visit_expression(&self, context: T, expression: &Expression) -> Result<T, VisitError> {
@@ -45,7 +44,7 @@ pub trait Visitor<T> {
             .statements
             .iter()
             .fold(Ok(context), |context, stmt| match stmt {
-                crate::parser::Statement::If => todo!(),
+                crate::parser::Statement::If(e) => self.visit_if(context?, e),
                 crate::parser::Statement::For => todo!(),
                 crate::parser::Statement::Loop => todo!(),
                 crate::parser::Statement::While => todo!(),
