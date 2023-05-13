@@ -10,10 +10,18 @@ peg::parser! {
         rule statement() -> Statement
             = e:class() { Statement::Class(e) }
             / e:func() { Statement::Function(e) }
+            / e:if_stmt() { Statement::If(e) }
             / e:declare_var() { Statement::Declaration(e) }
             / e:assignment() { Statement::Assignment(e) }
             / e:return_stmt() { Statement::Return(e) }
             / e:expression() _ EOS() { Statement::Expression(e) }
+
+        rule if_stmt() -> If
+            = "if" __ condition:expression() __ "then" body:script()
+              branches:("else" __ "if" __ c:expression() __ "then" s:script() { (c, s) })*
+              else_branch:("else" e:script() {e})?
+              "end"
+            { If { condition, body, branches, else_branch } }
 
         rule func() -> Function
             = decorators:decorator_list() FN() __ name:identifier() _ arguments:argument_list() body:script() END()
@@ -248,6 +256,7 @@ pub enum Number {
 #[derive(Debug)]
 pub struct If {
     pub condition: Expression,
+    pub body: Script,
     pub branches: Vec<(Expression, Script)>,
     pub else_branch: Option<Script>,
 }
