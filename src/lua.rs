@@ -185,7 +185,7 @@ impl code::Visitor<code::Builder> for LuaEmitter {
             Operator::LessEqual => ctx.put("<="),
             Operator::Equal => ctx.put("=="),
             Operator::NotEqual => ctx.put("~="),
-            _ => todo!("Operator not supported"),
+            _ => todo!("Binary operator not supported!"),
         };
         let ctx = self.visit_expression(ctx.put(" "), &expr.right)?;
         Ok(ctx)
@@ -196,7 +196,12 @@ impl code::Visitor<code::Builder> for LuaEmitter {
         ctx: code::Builder,
         expr: &crate::parser::UnaryExpression,
     ) -> Result<code::Builder, code::VisitError> {
-        todo!()
+        let ctx = match expr.operator {
+            Operator::Minus => ctx.put("-"),
+            _ => todo!("Unary operator not supported!"),
+        };
+        let ctx = self.visit_expression(ctx, &expr.expression)?;
+        Ok(ctx)
     }
 
     fn visit_if(

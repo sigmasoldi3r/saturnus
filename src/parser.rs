@@ -124,8 +124,8 @@ peg::parser! {
 
         // Literals
         rule number() -> Number
-            = value:$("-"? DIGIT()+ "." DIGIT()+) { Number::Float(value.parse().unwrap()) }
-            / value:$("-"? DIGIT()+) { Number::Integer(value.parse().unwrap()) }
+            = value:$(DIGIT()+ "." DIGIT()+) { Number::Float(value.parse().unwrap()) }
+            / value:$(DIGIT()+) { Number::Integer(value.parse().unwrap()) }
 
         rule string() -> String
             = "\"" value:$((!"\"" ANY())*) "\"" { value.into() }

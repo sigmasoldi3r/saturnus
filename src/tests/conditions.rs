@@ -1,4 +1,5 @@
 use super::compile;
+use spectral::prelude::*;
 
 #[test]
 fn simple_if_statement() {
@@ -10,8 +11,7 @@ fn simple_if_statement() {
       end
     ",
     );
-    assert_eq!(
-        out,
+    assert_that!(out).is_equal_to(
         "
 if some.complex() > thing then
   print(\"hello world!\");
@@ -19,6 +19,7 @@ if some.complex() > thing then
     return nil;
   end;
 end"
+        .to_string(),
     )
 }
 
@@ -33,14 +34,14 @@ fn if_with_else() {
   end
 ",
     );
-    assert_eq!(
-        out,
+    assert_that!(out).is_equal_to(
         "
 if some.thing then
   thing();
 else
   print(\"2 + 2 = \", 2 + 2);
 end"
+        .to_string(),
     )
 }
 
@@ -55,14 +56,14 @@ fn if_with_branches() {
   end
 ",
     );
-    assert_eq!(
-        out,
+    assert_that!(out).is_equal_to(
         "
 if some.thing then
   thing();
 elseif the_branch() then
   print(\"2 + 2 = \", 2 + 2);
 end"
+        .to_string(),
     )
 }
 
@@ -79,8 +80,7 @@ fn if_with_branches_and_else() {
   end
 ",
     );
-    assert_eq!(
-        out,
+    assert_that!(out).is_equal_to(
         "
 if some.thing then
   thing();
@@ -89,5 +89,6 @@ elseif another.thing then
 else
   print(\"2 + 2 = \", 2 + 2);
 end"
+        .to_string(),
     )
 }

@@ -1,3 +1,7 @@
+#[cfg(test)]
+#[macro_use]
+extern crate spectral;
+
 use crate::{code::Visitor, lua::LuaEmitter, parser::Script};
 
 mod code;
