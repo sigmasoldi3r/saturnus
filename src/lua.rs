@@ -145,7 +145,11 @@ impl code::Visitor<code::Builder> for LuaEmitter {
         ctx: code::Builder,
         expr: &crate::parser::Number,
     ) -> Result<code::Builder, code::VisitError> {
-        todo!()
+        let repr = match expr {
+            crate::parser::Number::Float(e) => e.to_string(),
+            crate::parser::Number::Integer(e) => e.to_string(),
+        };
+        Ok(ctx.put(repr))
     }
 
     fn visit_string(
@@ -167,12 +171,20 @@ impl code::Visitor<code::Builder> for LuaEmitter {
     ) -> Result<code::Builder, code::VisitError> {
         let ctx = self.visit_expression(ctx, &expr.left)?.put(" ");
         let ctx = match expr.operator {
+            // Basic math
             Operator::Plus => ctx.put("+"),
             Operator::Minus => ctx.put("-"),
             Operator::Product => ctx.put("*"),
             Operator::Quotient => ctx.put("/"),
             Operator::Remainder => ctx.put("%"),
             Operator::Power => ctx.put("**"),
+            // Comparison
+            Operator::Greater => ctx.put(">"),
+            Operator::GreaterEqual => ctx.put(">="),
+            Operator::Less => ctx.put("<"),
+            Operator::LessEqual => ctx.put("<="),
+            Operator::Equal => ctx.put("=="),
+            Operator::NotEqual => ctx.put("~="),
             _ => todo!("Operator not supported"),
         };
         let ctx = self.visit_expression(ctx.put(" "), &expr.right)?;

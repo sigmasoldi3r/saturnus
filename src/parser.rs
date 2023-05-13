@@ -44,7 +44,7 @@ peg::parser! {
             { Return { value } }
 
         // Expressions
-        rule expression() -> Expression = precedence! {
+        pub rule expression() -> Expression = precedence! {
             "-" _ expression:@ { UnaryExpression { expression, operator: Operator::Minus }.into() }
             "+" _ expression:@ { UnaryExpression { expression, operator: Operator::Plus }.into() }
             "#?" _ expression:@ { UnaryExpression { expression, operator: Operator::Count }.into() }
@@ -104,6 +104,7 @@ peg::parser! {
             e:lambda() { Expression::Lambda(Box::new(e)) }
             e:call_expr()  { Expression::Call(e) }
             e:dot_expr() { Expression::Reference(e) }
+            unit() { Expression::Unit }
             e:tuple_expr() { Expression::Tuple(e) }
             "(" _ e:expression() _ ")" { e }
         }
@@ -156,7 +157,7 @@ peg::parser! {
             = "(" _ expr:comma_expr() _ ")"
             { Tuple(expr) }
 
-        rule unit() -> Expression = "nil" { Expression::Unit }
+        rule unit() -> Expression = "()" { Expression::Unit }
 
         // Tokens
         rule IDENT() = ALPHA() (ALPHA() / DIGIT())*
@@ -374,11 +375,29 @@ pub enum Expression {
 }
 
 #[derive(Debug)]
+pub struct ParseFailure {
+    pub parse_error: Option<peg::error::ParseError<peg::str::LineCol>>,
+}
+
+#[derive(Debug)]
 pub struct Script {
     pub statements: Vec<Statement>,
 }
 impl Script {
-    pub fn parse(input: &str) -> Self {
-        matra_script::script(input).unwrap()
+    pub fn parse<I>(input: I) -> Result<Self, ParseFailure>
+    where
+        I: Into<String>,
+    {
+        matra_script::script(&input.into()).map_err(|parse_error| ParseFailure {
+            parse_error: Some(parse_error),
+        })
+    }
+    pub fn parse_expression<I>(input: I) -> Result<Expression, ParseFailure>
+    where
+        I: Into<String>,
+    {
+        matra_script::expression(&input.into()).map_err(|e| ParseFailure {
+            parse_error: Some(e),
+        })
     }
 }
