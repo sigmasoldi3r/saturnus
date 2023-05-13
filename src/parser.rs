@@ -117,6 +117,8 @@ peg::parser! {
             { Lambda { arguments, body: LambdaBody::Simple(expr) } }
             / FN() _ arguments:argument_list() body:script() END()
             { Lambda { arguments, body: LambdaBody::Complex(body) } }
+            / FN() _ arguments:argument_list() _ END()
+            { Lambda { arguments, body: LambdaBody::Complex(Script { statements: vec![] }) } }
 
         rule call_expr() -> CallExpression
             = target:dot_expr() _ arguments:tuple_expr()
