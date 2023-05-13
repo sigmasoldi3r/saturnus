@@ -37,8 +37,18 @@ impl code::Visitor<code::Builder> for LuaEmitter {
             .line()
             .put("local function ")
             .put(stmt.name.0.clone())
-            .put("()")
-            .push();
+            .put("(");
+        let ctx = if let Some(first) = stmt.arguments.first() {
+            ctx.put(first.name.0.clone())
+        } else {
+            ctx
+        };
+        let ctx = stmt
+            .arguments
+            .iter()
+            .skip(1)
+            .fold(ctx, |ctx, ident| ctx.put(", ").put(ident.name.0.clone()));
+        let ctx = ctx.put(")").push();
         let ctx = self.visit_script(ctx, &stmt.body)?;
         let ctx = ctx.pop().unwrap().line().put("end");
         Ok(ctx)

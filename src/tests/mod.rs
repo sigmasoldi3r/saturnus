@@ -5,6 +5,7 @@ use crate::{
 };
 
 mod conditions;
+mod functions;
 mod numbers;
 
 /// Fixture that streamlines the compilation, only for tests.

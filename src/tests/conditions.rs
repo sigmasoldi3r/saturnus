@@ -7,7 +7,6 @@ fn simple_if_statement() {
         "
       if some.complex() > thing then
         print(\"hello world!\");
-        let foo = fn() () end;
       end
     ",
     );
@@ -15,9 +14,6 @@ fn simple_if_statement() {
         "
 if some.complex() > thing then
   print(\"hello world!\");
-  local foo = function()
-    return nil;
-  end;
 end"
         .to_string(),
     )

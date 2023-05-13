@@ -374,9 +374,37 @@ pub enum Expression {
     Unit,
 }
 
-#[derive(Debug)]
 pub struct ParseFailure {
     pub parse_error: Option<peg::error::ParseError<peg::str::LineCol>>,
+    pub fragment: String,
+}
+impl std::fmt::Debug for ParseFailure {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let line = self.fragment.clone();
+        let loc = self.parse_error.as_ref().unwrap().location.clone();
+        let wave = " ".repeat(loc.column) + "^ here";
+        f.write_fmt(format_args!(
+            "Parse Failed! {:?}\n at {}:{},\n   {}\n  {}\n",
+            self.parse_error.as_ref().unwrap(),
+            loc.line,
+            loc.column,
+            line,
+            wave
+        ))
+    }
+}
+impl ParseFailure {
+    fn new(e: peg::error::ParseError<peg::str::LineCol>, fragment: &String) -> Self {
+        ParseFailure {
+            parse_error: Some(e.clone()),
+            fragment: fragment
+                .split("\n")
+                .skip(e.location.line - 1)
+                .next()
+                .unwrap()
+                .to_string(),
+        }
+    }
 }
 
 #[derive(Debug)]
@@ -388,16 +416,14 @@ impl Script {
     where
         I: Into<String>,
     {
-        matra_script::script(&input.into()).map_err(|parse_error| ParseFailure {
-            parse_error: Some(parse_error),
-        })
+        let fragment: String = input.into();
+        matra_script::script(&fragment).map_err(|e| ParseFailure::new(e, &fragment))
     }
     pub fn parse_expression<I>(input: I) -> Result<Expression, ParseFailure>
     where
         I: Into<String>,
     {
-        matra_script::expression(&input.into()).map_err(|e| ParseFailure {
-            parse_error: Some(e),
-        })
+        let fragment: String = input.into();
+        matra_script::expression(&fragment).map_err(|e| ParseFailure::new(e, &fragment))
     }
 }
