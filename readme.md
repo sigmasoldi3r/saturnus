@@ -12,7 +12,7 @@ and fast compilation times, to replace Lua scripts currently.
 ## Why replace Lua?
 
 I like many aspects of Lua, specially how fast and lightweight the VM is. But
-original Lua syntax is nowadays a little bit older, and it needs some rework to
+original Lua syntax is nowadays a little bit old, and it needs some rework to
 make the scripts less verbose and more easy to write.
 
 Among other things, here are some key aspects that Saturnus changes:
@@ -26,6 +26,7 @@ Among other things, here are some key aspects that Saturnus changes:
 - Terser loops.
 - Built-in operator overloading.
 - Custom operators.
+- Some [RTTI](https://en.wikipedia.org/wiki/Run-time_type_information) (Which enables reflection).
 
 ## Some examples
 
