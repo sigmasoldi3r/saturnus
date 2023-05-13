@@ -1,100 +1,115 @@
+use std::vec;
+
 peg::parser! {
-  grammar matra_script() for str {
-      pub rule script() -> Script
-          = _ statements:statement() ** __ _
-          { Script { statements } }
+    grammar matra_script() for str {
+        pub rule script() -> Script
+            = _ statements:statement() ** __ _
+            { Script { statements } }
 
-      // Statements
-      rule statement() -> Statement
-        = e:class() { Statement::Class(e) }
-        / e:func() { Statement::Function(e) }
-        / e:declare_var() { Statement::Declaration(e) }
-        / e:assignment() { Statement::Assignment(e) }
-        / e:return_stmt() { Statement::Return(e) }
-        / e:expression() _ EOS() { Statement::Expression(e) }
+        // Statements
+        rule statement() -> Statement
+            = e:class() { Statement::Class(e) }
+            / e:func() { Statement::Function(e) }
+            / e:declare_var() { Statement::Declaration(e) }
+            / e:assignment() { Statement::Assignment(e) }
+            / e:return_stmt() { Statement::Return(e) }
+            / e:expression() _ EOS() { Statement::Expression(e) }
 
-      rule func() -> Function
-          = dec:(e:decorator_list() __ {e})?  FN() __ name:identifier() _ "()" body:script() END()
-          { Function { name, decorators: dec.unwrap_or(vec![]), body } }
+        rule func() -> Function
+            = decorators:decorator_list() FN() __ name:identifier() _ arguments:argument_list() body:script() END()
+            { Function { name, decorators, body, arguments } }
 
-      rule class() -> Class
-          = dec:(e:decorator_list() __ {e})? CLASS() __ name:identifier() __ END()
-          { Class { name, decorators: dec.unwrap_or(vec![]) } }
+        rule class() -> Class
+            = decorators:decorator_list() CLASS() __ name:identifier() __ END()
+            { Class { name, decorators } }
 
-      rule declare_var() -> Declaration
-          = "let" __ target:identifier() value:(_ "=" _ e:expression(){e})? _ EOS()
-          { Declaration { target, value } }
+        rule declare_var() -> Declaration
+            = "let" __ target:identifier() value:(_ "=" _ e:expression(){e})? _ EOS()
+            { Declaration { target, value } }
 
-      rule assignment() -> Assignment
-          = target:identifier() _ "=" _ value:expression() _ EOS()
-          { Assignment { target, value } }
+        rule assignment() -> Assignment
+            = target:identifier() _ "=" _ value:expression() _ EOS()
+            { Assignment { target, value } }
 
-      rule return_stmt() -> Return
-          = "return" __ value:expression() _ EOS()
-          { Return { value } }
+        rule return_stmt() -> Return
+            = "return" __ value:expression() _ EOS()
+            { Return { value } }
 
-      // Expressions
-      rule expression() -> Expression
-          = e:string() { Expression::String(e) }
-          / e:number() { Expression::Number(e) }
-          / e:call_expr()  { Expression::Call(e) }
-          / e:dot_expr() { Expression::Reference(e) }
-          / e:tuple_expr() { Expression::Tuple(e) }
-          / "(" _ e:expression() _ ")" { e }
+        // Expressions
+        rule expression() -> Expression
+            = e:string() { Expression::String(e) }
+            / e:number() { Expression::Number(e) }
+            / e:lambda() { Expression::Lambda(e) }
+            / e:call_expr()  { Expression::Call(e) }
+            / e:dot_expr() { Expression::Reference(e) }
+            / e:tuple_expr() { Expression::Tuple(e) }
+            / "(" _ e:expression() _ ")" { e }
 
-      rule dot_expr() -> DotExpression
-          = value:identifier() ++ (_ "." _) { DotExpression(value) }
+        rule dot_expr() -> DotExpression
+            = value:identifier() ++ (_ "." _) { DotExpression(value) }
 
-      rule call_expr() -> CallExpression
-          = target:dot_expr() _ arguments:tuple_expr()
-          { CallExpression { target, arguments } }
+        rule lambda() -> Lambda
+            = FN() _ arguments:argument_list() body:script() END()
+            { Lambda { arguments, body } }
 
-      // Literals
-      rule number() -> Number
-          = value:$("-"? DIGIT()+ "." DIGIT()+) { Number::Float(value.parse().unwrap()) }
-          / value:$("-"? DIGIT()+) { Number::Integer(value.parse().unwrap()) }
+        rule call_expr() -> CallExpression
+            = target:dot_expr() _ arguments:tuple_expr()
+            { CallExpression { target, arguments } }
 
-      rule string() -> String
-          = "\"" value:$((!"\"" ANY())*) "\"" { value.into() }
+        // Literals
+        rule number() -> Number
+            = value:$("-"? DIGIT()+ "." DIGIT()+) { Number::Float(value.parse().unwrap()) }
+            / value:$("-"? DIGIT()+) { Number::Integer(value.parse().unwrap()) }
 
-      // Auxiliaries and sub-expressions
-      rule decorator_list() -> Vec<Decorator>
-          = e:decorator() ** _ { e }
+        rule string() -> String
+            = "\"" value:$((!"\"" ANY())*) "\"" { value.into() }
 
-      rule decorator() -> Decorator
-          = "@" _ target:call_expr() { Decorator { target: target.target, arguments: Some(target.arguments) } }
-          / "@" _ target:dot_expr() { Decorator { target, arguments: None } }
+        // Auxiliaries and sub-expressions
+        rule argument_list() -> Vec<Argument>
+            = "(" _ args:argument() ** (_ "," _) _ ")" { args }
 
-      rule identifier() -> Identifier
-          = value:$(IDENT())
-          { Identifier(value.into()) }
+        rule argument() -> Argument
+            = decorators:decorator_list() name:identifier()
+            { Argument { name, decorators } }
 
-      rule comma_expr() -> Vec<Expression>
-          = e:expression() ** (_ "," _) { e }
+        rule decorator_list() -> Vec<Decorator>
+            = e:decorator() ++ __ __ { e }
+            / { vec![] }
 
-      rule tuple_expr() -> Tuple
-          = "(" _ expr:comma_expr() _ ")"
-          { Tuple(expr) }
+        rule decorator() -> Decorator
+            = "@" _ target:call_expr() { Decorator { target: target.target, arguments: Some(target.arguments) } }
+            / "@" _ target:dot_expr() { Decorator { target, arguments: None } }
 
-      rule unit() -> Expression = "nil" { Expression::Unit }
+        rule identifier() -> Identifier
+            = value:$(IDENT())
+            { Identifier(value.into()) }
 
-      // Tokens
-      rule IDENT() = ALPHA() (ALPHA() / DIGIT())*
-      rule LET() = "let"
-      rule MUT() = "mut"
-      rule CLASS() = "class"
-      rule END() = "end"
-      rule FN() = "fn"
-      rule ANY() = [_]
-      rule BLANK() = ['\t'|' ']
-      rule WS() = BLANK() / EOL()
-      rule EOL() = ['\r'|'\n']
-      rule EOS() = EOL() / ";"
-      rule ALPHA() = ['A'..='Z'|'a'..='z'|'_']
-      rule DIGIT() = ['0'..='9']
-      rule _ = WS()*
-      rule __ = WS()+
-  }
+        rule comma_expr() -> Vec<Expression>
+            = e:expression() ** (_ "," _) { e }
+
+        rule tuple_expr() -> Tuple
+            = "(" _ expr:comma_expr() _ ")"
+            { Tuple(expr) }
+
+        rule unit() -> Expression = "nil" { Expression::Unit }
+
+        // Tokens
+        rule IDENT() = ALPHA() (ALPHA() / DIGIT())*
+        rule LET() = "let"
+        rule MUT() = "mut"
+        rule CLASS() = "class"
+        rule END() = "end"
+        rule FN() = "fn"
+        rule ANY() = [_]
+        rule BLANK() = ['\t'|' ']
+        rule WS() = BLANK() / EOL()
+        rule EOL() = ['\r'|'\n']
+        rule EOS() = EOL() / ";"
+        rule ALPHA() = ['A'..='Z'|'a'..='z'|'_']
+        rule DIGIT() = ['0'..='9']
+        rule _ = WS()*
+        rule __ = WS()+
+    }
 }
 
 #[derive(Debug)]
@@ -104,9 +119,22 @@ pub struct Decorator {
 }
 
 #[derive(Debug)]
-pub struct Function {
+pub struct Argument {
     pub name: Identifier,
     pub decorators: Vec<Decorator>,
+}
+
+#[derive(Debug)]
+pub struct Function {
+    pub name: Identifier,
+    pub arguments: Vec<Argument>,
+    pub decorators: Vec<Decorator>,
+    pub body: Script,
+}
+
+#[derive(Debug)]
+pub struct Lambda {
+    pub arguments: Vec<Argument>,
     pub body: Script,
 }
 
@@ -171,6 +199,7 @@ pub enum Statement {
 
 #[derive(Debug)]
 pub enum Expression {
+    Lambda(Lambda),
     Reference(DotExpression),
     Call(CallExpression),
     Tuple(Tuple),

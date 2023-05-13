@@ -7,6 +7,16 @@ class Foo
 
 end
 
+// How decorators decorate the world:
+fn FooFighters()
+  return fn(target, meta)
+    println("Decorating class ", meta.name)
+    return target
+  end
+end
+
+let monoid = fn() true end
+
 @FooFighters
 fn foo_fighters()
   class bar end

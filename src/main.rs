@@ -1,6 +1,6 @@
-use crate::{ast_visitor::Walker, lua::LuaEmitter, parser::Script};
+use crate::{code::Visitor, lua::LuaEmitter, parser::Script};
 
-mod ast_visitor;
+mod code;
 mod lua;
 mod parser;
 
@@ -9,13 +9,27 @@ fn main() {
     // println!("{:?}", ast);
     let ast = Script::parse(
         "
+fn the_foo2()
+    println(\"The foo was called, again.\");
+end
+
+fn brotato(what)
+    return \"Brotato $what!\";
+end
+
 @FooFighters
 fn foo_fighters()
     class bar end
-    the_foo2;
+    the_foo2();
     return brotato(\"code\");
 end
 ",
     );
-    println!("{:?}", Walker(Box::new(LuaEmitter)).walk_script(ast));
+    println!(
+        "--- CODE ---\n{}\n--- ---- ---",
+        LuaEmitter
+            .visit_script(code::Builder::new("  "), &ast)
+            .unwrap()
+            .collect()
+    );
 }
