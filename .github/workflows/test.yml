@@ -2,7 +2,9 @@ name: Test
 
 on:
   pull_request:
-    branches: [ "main" ]
+    branches: [ "main", "release", "nightly" ]
+  push:
+    branches: [ "main", "nightly" ]
 
 env:
   CARGO_TERM_COLOR: always
