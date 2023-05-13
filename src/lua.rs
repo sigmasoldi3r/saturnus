@@ -1,6 +1,6 @@
 use crate::{
     code::{self},
-    parser::Operator,
+    parser::{Assignment, BinaryExpression, DotExpression, Identifier, Operator},
 };
 
 pub struct LuaEmitter;
@@ -59,7 +59,23 @@ impl code::Visitor<code::Builder> for LuaEmitter {
         ctx: code::Builder,
         stmt: &crate::parser::Assignment,
     ) -> Result<code::Builder, code::VisitError> {
-        todo!()
+        let ctx = ctx.line().put(stmt.target.0.clone());
+        let ctx = ctx.put(" = ");
+        let ctx = if let Some(extra) = stmt.extra.as_ref() {
+            let Assignment { target, value, .. } = stmt.clone();
+            self.visit_binary(
+                ctx,
+                &BinaryExpression {
+                    left: crate::parser::Expression::Reference(DotExpression(vec![target])),
+                    operator: extra.clone(),
+                    right: value,
+                },
+            )
+        } else {
+            self.visit_expression(ctx, &stmt.value)
+        }?;
+        let ctx = ctx.put(";");
+        Ok(ctx)
     }
 
     fn visit_declaration(

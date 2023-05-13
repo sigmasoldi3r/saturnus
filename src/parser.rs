@@ -36,8 +36,8 @@ peg::parser! {
             { Declaration { target, value } }
 
         rule assignment() -> Assignment
-            = target:identifier() _ "=" _ value:expression() _ EOS()
-            { Assignment { target, value } }
+            = target:identifier() _ extra:assign_extra()? "=" _ value:expression() _ EOS()
+            { Assignment { target, value, extra } }
 
         rule return_stmt() -> Return
             = "return" __ value:expression() _ EOS()
@@ -54,6 +54,8 @@ peg::parser! {
             "¬" _ expression:@ { UnaryExpression { expression, operator: Operator::Bolted }.into() }
             "$" _ expression:@ { UnaryExpression { expression, operator: Operator::Dollar }.into() }
             "!?" _ expression:@ { UnaryExpression { expression, operator: Operator::ExclamationQuestion }.into() }
+            --
+            left:(@) _ ".." _ right:@ { BinaryExpression { left, right, operator: Operator::Concat }.into() }
             --
             left:(@) _ "+" _ right:@ { BinaryExpression { left, right, operator: Operator::Plus }.into() }
             left:(@) _ "-" _ right:@ { BinaryExpression { left, right, operator: Operator::Minus }.into() }
@@ -133,6 +135,13 @@ peg::parser! {
             = "\"" value:$((!"\"" ANY())*) "\"" { value.into() }
 
         // Auxiliaries and sub-expressions
+        rule assign_extra() -> Operator
+            = "+" { Operator::Plus }
+            / "-" { Operator::Minus }
+            / "*" { Operator::Product }
+            / "/" { Operator::Quotient }
+            / ".." { Operator::Concat }
+
         rule argument_list() -> Vec<Argument>
             = "(" _ args:argument() ** (_ "," _) _ ")" { args }
 
@@ -180,19 +189,19 @@ peg::parser! {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Decorator {
     pub target: DotExpression,
     pub arguments: Option<Tuple>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Argument {
     pub name: Identifier,
     pub decorators: Vec<Decorator>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Function {
     pub name: Identifier,
     pub arguments: Vec<Argument>,
@@ -200,63 +209,64 @@ pub struct Function {
     pub body: Script,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum LambdaBody {
     Complex(Script),
     Simple(Expression),
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Lambda {
     pub arguments: Vec<Argument>,
     pub body: LambdaBody,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Tuple(pub Vec<Expression>);
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Identifier(pub String);
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct DotExpression(pub Vec<Identifier>);
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Declaration {
     pub target: Identifier,
     pub value: Option<Expression>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Assignment {
     pub target: Identifier,
     pub value: Expression,
+    pub extra: Option<Operator>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Class {
     pub name: Identifier,
     pub decorators: Vec<Decorator>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct CallExpression {
     pub target: DotExpression,
     pub arguments: Tuple,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Return {
     pub value: Expression,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum Number {
     Float(f64),
     Integer(i64),
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct If {
     pub condition: Expression,
     pub body: Script,
@@ -264,7 +274,7 @@ pub struct If {
     pub else_branch: Option<Script>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum Statement {
     If(If),
     For,
@@ -279,7 +289,7 @@ pub enum Statement {
     Expression(Expression),
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum Operator {
     // Arithmetic
     Plus,
@@ -288,6 +298,7 @@ pub enum Operator {
     Product,
     Power,
     Remainder,
+    Concat,
     // Comparison
     Equal,
     Less,
@@ -340,7 +351,7 @@ pub enum Operator {
     ExclamationQuestion,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct BinaryExpression {
     pub left: Expression,
     pub right: Expression,
@@ -352,7 +363,7 @@ impl Into<Expression> for BinaryExpression {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct UnaryExpression {
     pub expression: Expression,
     pub operator: Operator,
@@ -363,7 +374,7 @@ impl Into<Expression> for UnaryExpression {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum Expression {
     Lambda(Box<Lambda>),
     Reference(DotExpression),
@@ -409,7 +420,7 @@ impl ParseFailure {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Script {
     pub statements: Vec<Statement>,
 }
