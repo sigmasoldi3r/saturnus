@@ -1,4 +1,7 @@
-use crate::code::{self};
+use crate::{
+    code::{self},
+    parser::Operator,
+};
 
 pub struct LuaEmitter;
 
@@ -54,7 +57,14 @@ impl code::Visitor<code::Builder> for LuaEmitter {
         context: code::Builder,
         stmt: &crate::parser::Declaration,
     ) -> Result<code::Builder, code::VisitError> {
-        todo!()
+        let context = context
+            .line()
+            .put("local ")
+            .put(stmt.target.0.clone())
+            .put(" = ");
+        let context = self.visit_expression(context, stmt.value.as_ref().unwrap())?;
+        let context = context.put(";");
+        Ok(context)
     }
 
     fn visit_expression_statement(
@@ -70,7 +80,27 @@ impl code::Visitor<code::Builder> for LuaEmitter {
         context: code::Builder,
         expr: &crate::parser::Lambda,
     ) -> Result<code::Builder, code::VisitError> {
-        todo!()
+        let context = context.put("function(");
+        let context = if let Some(first) = expr.arguments.first() {
+            context.put(first.name.0.clone())
+        } else {
+            context
+        };
+        let context = expr
+            .arguments
+            .iter()
+            .skip(1)
+            .fold(context, |context, ident| {
+                context.put(", ").put(ident.name.0.clone())
+            });
+        let context = context.put(")").push();
+        let context = match &expr.body {
+            crate::parser::LambdaBody::Complex(e) => self.visit_script(context, e)?,
+            crate::parser::LambdaBody::Simple(e) => self
+                .visit_expression(context.line().put("return "), e)
+                .map(|b| b.put(";"))?,
+        };
+        Ok(context.pop().unwrap().line().put("end"))
     }
 
     fn visit_reference(
@@ -133,5 +163,32 @@ impl code::Visitor<code::Builder> for LuaEmitter {
 
     fn visit_unit(&self, context: code::Builder) -> Result<code::Builder, code::VisitError> {
         Ok(context.put("nil"))
+    }
+
+    fn visit_binary(
+        &self,
+        context: code::Builder,
+        expr: &crate::parser::BinaryExpression,
+    ) -> Result<code::Builder, code::VisitError> {
+        let context = self.visit_expression(context, &expr.left)?.put(" ");
+        let context = match expr.operator {
+            Operator::Plus => context.put("+"),
+            Operator::Minus => context.put("-"),
+            Operator::Product => context.put("*"),
+            Operator::Quotient => context.put("/"),
+            Operator::Remainder => context.put("%"),
+            Operator::Power => context.put("**"),
+            _ => todo!("Operator not supported"),
+        };
+        let context = self.visit_expression(context.put(" "), &expr.right)?;
+        Ok(context)
+    }
+
+    fn visit_unary(
+        &self,
+        context: code::Builder,
+        expr: &crate::parser::UnaryExpression,
+    ) -> Result<code::Builder, code::VisitError> {
+        todo!()
     }
 }

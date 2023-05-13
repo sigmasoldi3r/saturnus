@@ -1,8 +1,8 @@
 use std::f32::consts::E;
 
 use crate::parser::{
-    Assignment, CallExpression, Class, Declaration, DotExpression, Expression, Function, Lambda,
-    Number, Return, Script, Tuple,
+    Assignment, BinaryExpression, CallExpression, Class, Declaration, DotExpression, Expression,
+    Function, Lambda, Number, Return, Script, Tuple, UnaryExpression,
 };
 
 #[derive(Debug)]
@@ -23,6 +23,8 @@ pub trait Visitor<T> {
     fn visit_number(&self, context: T, expr: &Number) -> Result<T, VisitError>;
     fn visit_string(&self, context: T, expr: &String) -> Result<T, VisitError>;
     fn visit_unit(&self, context: T) -> Result<T, VisitError>;
+    fn visit_binary(&self, context: T, expr: &BinaryExpression) -> Result<T, VisitError>;
+    fn visit_unary(&self, context: T, expr: &UnaryExpression) -> Result<T, VisitError>;
 
     // Generically implementable matching patterns:
     fn visit_expression(&self, context: T, expression: &Expression) -> Result<T, VisitError> {
@@ -34,6 +36,8 @@ pub trait Visitor<T> {
             Expression::Number(e) => self.visit_number(context, e),
             Expression::String(e) => self.visit_string(context, e),
             Expression::Unit => self.visit_unit(context),
+            Expression::Binary(e) => self.visit_binary(context, e),
+            Expression::Unary(e) => self.visit_unary(context, e),
         }
     }
     fn visit_script(&self, context: T, script: &Script) -> Result<T, VisitError> {
@@ -73,6 +77,28 @@ impl std::fmt::Debug for UnevenIndentationError {
 ///
 /// This means that you have an indentation stack, with it's state retained
 /// between calls, without having to store it in your code emitter.
+///
+/// Each call, consumes the builder and returns an extended version of it.
+/// If you want to preserve the state, clone the structure by calling `.clone()`
+/// explicitly.
+///
+/// Example:
+/// ```rs
+/// let out = Builder::new("  ")
+///     .put("hello")
+///     .push().line()
+///     .put("my")
+///     .pop().unwrap().line()
+///     .put("world!")
+///     .collect()
+/// ```
+/// Yields:
+/// ```
+/// hello
+///   my
+/// world
+/// ```
+#[derive(Clone)]
 pub struct Builder {
     level: u16,
     indent: String,

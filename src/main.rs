@@ -5,26 +5,9 @@ mod lua;
 mod parser;
 
 fn main() {
-    // let ast = Script::parse(include_str!("example.foo"));
+    // let ast = Script::parse(include_str!("example.saturn"));
     // println!("{:?}", ast);
-    let ast = Script::parse(
-        "
-fn the_foo2()
-    println(\"The foo was called, again.\");
-end
-
-fn brotato(what)
-    return \"Brotato $what!\";
-end
-
-@FooFighters
-fn foo_fighters()
-    class bar end
-    the_foo2();
-    return brotato(\"code\");
-end
-",
-    );
+    let ast = Script::parse(include_str!("simple.saturn"));
     println!(
         "--- CODE ---\n{}\n--- ---- ---",
         LuaEmitter

@@ -36,21 +36,78 @@ peg::parser! {
             { Return { value } }
 
         // Expressions
-        rule expression() -> Expression
-            = e:string() { Expression::String(e) }
-            / e:number() { Expression::Number(e) }
-            / e:lambda() { Expression::Lambda(e) }
-            / e:call_expr()  { Expression::Call(e) }
-            / e:dot_expr() { Expression::Reference(e) }
-            / e:tuple_expr() { Expression::Tuple(e) }
-            / "(" _ e:expression() _ ")" { e }
+        rule expression() -> Expression = precedence! {
+            "-" _ expression:@ { UnaryExpression { expression, operator: Operator::Minus }.into() }
+            "+" _ expression:@ { UnaryExpression { expression, operator: Operator::Plus }.into() }
+            "#?" _ expression:@ { UnaryExpression { expression, operator: Operator::Count }.into() }
+            "not" _ expression:@ { UnaryExpression { expression, operator: Operator::LogicNot }.into() }
+            "!" _ expression:@ { UnaryExpression { expression, operator: Operator::Exclamation }.into() }
+            "~" _ expression:@ { UnaryExpression { expression, operator: Operator::Tilde }.into() }
+            "¬" _ expression:@ { UnaryExpression { expression, operator: Operator::Bolted }.into() }
+            "$" _ expression:@ { UnaryExpression { expression, operator: Operator::Dollar }.into() }
+            "!?" _ expression:@ { UnaryExpression { expression, operator: Operator::ExclamationQuestion }.into() }
+            --
+            left:(@) _ "+" _ right:@ { BinaryExpression { left, right, operator: Operator::Plus }.into() }
+            left:(@) _ "-" _ right:@ { BinaryExpression { left, right, operator: Operator::Minus }.into() }
+            --
+            left:(@) _ "*" _ right:@ { BinaryExpression { left, right, operator: Operator::Product }.into() }
+            left:(@) _ "/" _ right:@ { BinaryExpression { left, right, operator: Operator::Quotient }.into() }
+            --
+            left:@ _ "**" _ right:(@) { BinaryExpression { left, right, operator: Operator::Power }.into() }
+            --
+            left:(@) _ "%" _ right:@ { BinaryExpression { left, right, operator: Operator::Remainder }.into() }
+            --
+            left:(@) _ ">=<" _ right:@ { BinaryExpression { left, right, operator: Operator::Funnel }.into() }
+            left:(@) _ ">=" _ right:@ { BinaryExpression { left, right, operator: Operator::GreaterEqual }.into() }
+            left:(@) _ ">" _ right:@ { BinaryExpression { left, right, operator: Operator::Greater }.into() }
+            left:(@) _ "<=>" _ right:@ { BinaryExpression { left, right, operator: Operator::Starship }.into() }
+            left:(@) _ "<=" _ right:@ { BinaryExpression { left, right, operator: Operator::LessEqual }.into() }
+            left:(@) _ "<>" _ right:@ { BinaryExpression { left, right, operator: Operator::NotEqual }.into() }
+            left:(@) _ "<" _ right:@ { BinaryExpression { left, right, operator: Operator::Less }.into() }
+            left:(@) _ "==" _ right:@ { BinaryExpression { left, right, operator: Operator::Equal }.into() }
+            --
+            left:(@) _ "and" _ right:@ { BinaryExpression { left, right, operator: Operator::LogicAnd }.into() }
+            left:(@) _ "or" _ right:@ { BinaryExpression { left, right, operator: Operator::LogicOr }.into() }
+            left:(@) _ "xor" _ right:@ { BinaryExpression { left, right, operator: Operator::LogicXOr }.into() }
+            left:(@) _ "nand" _ right:@ { BinaryExpression { left, right, operator: Operator::LogicNand }.into() }
+            left:(@) _ "nor" _ right:@ { BinaryExpression { left, right, operator: Operator::LogicNor }.into() }
+            --
+            left:(@) _ "<~>" _ right:@ { BinaryExpression { left, right, operator: Operator::Elastic }.into() }
+            left:(@) _ "<~" _ right:@ { BinaryExpression { left, right, operator: Operator::ElasticLeft }.into() }
+            left:(@) _ "~>" _ right:@ { BinaryExpression { left, right, operator: Operator::ElasticRight }.into() }
+            left:(@) _ "<:>" _ right:@ { BinaryExpression { left, right, operator: Operator::PinguBoth }.into() }
+            left:(@) _ "<:" _ right:@ { BinaryExpression { left, right, operator: Operator::PinguLeft }.into() }
+            left:(@) _ ":>" _ right:@ { BinaryExpression { left, right, operator: Operator::PinguRight }.into() }
+            left:(@) _ "<-|->" _ right:@ { BinaryExpression { left, right, operator: Operator::ArrowStandBoth }.into() }
+            left:(@) _ "<-|" _ right:@ { BinaryExpression { left, right, operator: Operator::ArrowStandLeft }.into() }
+            left:(@) _ "|->" _ right:@ { BinaryExpression { left, right, operator: Operator::ArrowStandRight }.into() }
+            left:(@) _ "<->" _ right:@ { BinaryExpression { left, right, operator: Operator::BothWays }.into() }
+            left:(@) _ "<-" _ right:@ { BinaryExpression { left, right, operator: Operator::ArrowLeft }.into() }
+            left:(@) _ "->" _ right:@ { BinaryExpression { left, right, operator: Operator::ArrowRight }.into() }
+            left:(@) _ "<|>" _ right:@ { BinaryExpression { left, right, operator: Operator::Disjoin }.into() }
+            left:(@) _ "<|" _ right:@ { BinaryExpression { left, right, operator: Operator::PipeLeft }.into() }
+            left:(@) _ "|>" _ right:@ { BinaryExpression { left, right, operator: Operator::PipeRight }.into() }
+            --
+            left:(@) _ "?:" _ right:@ { BinaryExpression { left, right, operator: Operator::Elvis }.into() }
+            left:(@) _ "??" _ right:@ { BinaryExpression { left, right, operator: Operator::Coalesce }.into() }
+            --
+            e:string() { Expression::String(e) }
+            e:number() { Expression::Number(e) }
+            e:lambda() { Expression::Lambda(Box::new(e)) }
+            e:call_expr()  { Expression::Call(e) }
+            e:dot_expr() { Expression::Reference(e) }
+            e:tuple_expr() { Expression::Tuple(e) }
+            "(" _ e:expression() _ ")" { e }
+        }
 
         rule dot_expr() -> DotExpression
             = value:identifier() ++ (_ "." _) { DotExpression(value) }
 
         rule lambda() -> Lambda
-            = FN() _ arguments:argument_list() body:script() END()
-            { Lambda { arguments, body } }
+            = FN() _ arguments:argument_list() _ expr:expression() _ END()
+            { Lambda { arguments, body: LambdaBody::Simple(expr) } }
+            / FN() _ arguments:argument_list() body:script() END()
+            { Lambda { arguments, body: LambdaBody::Complex(body) } }
 
         rule call_expr() -> CallExpression
             = target:dot_expr() _ arguments:tuple_expr()
@@ -133,9 +190,15 @@ pub struct Function {
 }
 
 #[derive(Debug)]
+pub enum LambdaBody {
+    Complex(Script),
+    Simple(Expression),
+}
+
+#[derive(Debug)]
 pub struct Lambda {
     pub arguments: Vec<Argument>,
-    pub body: Script,
+    pub body: LambdaBody,
 }
 
 #[derive(Debug)]
@@ -198,13 +261,99 @@ pub enum Statement {
 }
 
 #[derive(Debug)]
+pub enum Operator {
+    // Arithmetic
+    Plus,
+    Minus,
+    Quotient,
+    Product,
+    Power,
+    Remainder,
+    // Comparison
+    Equal,
+    Less,
+    LessEqual,
+    Greater,
+    GreaterEqual,
+    NotEqual,
+    Starship,
+    Funnel,
+    // Logic
+    LogicOr,
+    LogicAnd,
+    LogicNor,
+    LogicNand,
+    LogicXOr,
+    LogicNot,
+    // Binary
+    BWiseAnd,
+    BWiseOr,
+    BWiseNot,
+    BWiseLShift,
+    BWiseRShift,
+    BWiseLShiftRoundtrip,
+    BWiseRShiftRoundtrip,
+    // Special operators (No native equivalent for these)
+    Count, // Except this, in Lua.
+    ArrowRight,
+    ArrowLeft,
+    BothWays,
+    ArrowStandRight,
+    ArrowStandLeft,
+    ArrowStandBoth,
+    Exclamation,
+    Tilde,
+    Disjoin,
+    Elastic,
+    ElasticRight,
+    ElasticLeft,
+    Elvis,
+    Coalesce,
+    PinguRight,
+    PinguLeft,
+    PinguBoth,
+    PipeRight,
+    PipeLeft,
+    AskRight,
+    AskLeft,
+    Bolted,
+    Dollar,
+    ExclamationQuestion,
+}
+
+#[derive(Debug)]
+pub struct BinaryExpression {
+    pub left: Expression,
+    pub right: Expression,
+    pub operator: Operator,
+}
+impl Into<Expression> for BinaryExpression {
+    fn into(self) -> Expression {
+        Expression::Binary(Box::new(self))
+    }
+}
+
+#[derive(Debug)]
+pub struct UnaryExpression {
+    pub expression: Expression,
+    pub operator: Operator,
+}
+impl Into<Expression> for UnaryExpression {
+    fn into(self) -> Expression {
+        Expression::Unary(Box::new(self))
+    }
+}
+
+#[derive(Debug)]
 pub enum Expression {
-    Lambda(Lambda),
+    Lambda(Box<Lambda>),
     Reference(DotExpression),
     Call(CallExpression),
     Tuple(Tuple),
     Number(Number),
     String(String),
+    Binary(Box<BinaryExpression>),
+    Unary(Box<UnaryExpression>),
     Unit,
 }
 
