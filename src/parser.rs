@@ -10,10 +10,18 @@ peg::parser! {
         rule statement() -> Statement
             = e:class() { Statement::Class(e) }
             / e:func() { Statement::Function(e) }
+            / e:if_stmt() { Statement::If(e) }
             / e:declare_var() { Statement::Declaration(e) }
             / e:assignment() { Statement::Assignment(e) }
             / e:return_stmt() { Statement::Return(e) }
             / e:expression() _ EOS() { Statement::Expression(e) }
+
+        rule if_stmt() -> If
+            = "if" __ condition:expression() __ "then" body:script()
+              branches:("else" __ "if" __ c:expression() __ "then" s:script() { (c, s) })*
+              else_branch:("else" e:script() {e})?
+              "end"
+            { If { condition, body, branches, else_branch } }
 
         rule func() -> Function
             = decorators:decorator_list() FN() __ name:identifier() _ arguments:argument_list() body:script() END()
@@ -28,15 +36,15 @@ peg::parser! {
             { Declaration { target, value } }
 
         rule assignment() -> Assignment
-            = target:identifier() _ "=" _ value:expression() _ EOS()
-            { Assignment { target, value } }
+            = target:identifier() _ extra:assign_extra()? "=" _ value:expression() _ EOS()
+            { Assignment { target, value, extra } }
 
         rule return_stmt() -> Return
             = "return" __ value:expression() _ EOS()
             { Return { value } }
 
         // Expressions
-        rule expression() -> Expression = precedence! {
+        pub rule expression() -> Expression = precedence! {
             "-" _ expression:@ { UnaryExpression { expression, operator: Operator::Minus }.into() }
             "+" _ expression:@ { UnaryExpression { expression, operator: Operator::Plus }.into() }
             "#?" _ expression:@ { UnaryExpression { expression, operator: Operator::Count }.into() }
@@ -46,6 +54,8 @@ peg::parser! {
             "¬" _ expression:@ { UnaryExpression { expression, operator: Operator::Bolted }.into() }
             "$" _ expression:@ { UnaryExpression { expression, operator: Operator::Dollar }.into() }
             "!?" _ expression:@ { UnaryExpression { expression, operator: Operator::ExclamationQuestion }.into() }
+            --
+            left:(@) _ ".." _ right:@ { BinaryExpression { left, right, operator: Operator::Concat }.into() }
             --
             left:(@) _ "+" _ right:@ { BinaryExpression { left, right, operator: Operator::Plus }.into() }
             left:(@) _ "-" _ right:@ { BinaryExpression { left, right, operator: Operator::Minus }.into() }
@@ -96,6 +106,9 @@ peg::parser! {
             e:lambda() { Expression::Lambda(Box::new(e)) }
             e:call_expr()  { Expression::Call(e) }
             e:dot_expr() { Expression::Reference(e) }
+            unit() { Expression::Unit }
+            e:vector_expr() { Expression::Vector(e) }
+            e:table_expr() { Expression::Table(e) }
             e:tuple_expr() { Expression::Tuple(e) }
             "(" _ e:expression() _ ")" { e }
         }
@@ -108,6 +121,8 @@ peg::parser! {
             { Lambda { arguments, body: LambdaBody::Simple(expr) } }
             / FN() _ arguments:argument_list() body:script() END()
             { Lambda { arguments, body: LambdaBody::Complex(body) } }
+            / FN() _ arguments:argument_list() _ END()
+            { Lambda { arguments, body: LambdaBody::Complex(Script { statements: vec![] }) } }
 
         rule call_expr() -> CallExpression
             = target:dot_expr() _ arguments:tuple_expr()
@@ -115,13 +130,28 @@ peg::parser! {
 
         // Literals
         rule number() -> Number
-            = value:$("-"? DIGIT()+ "." DIGIT()+) { Number::Float(value.parse().unwrap()) }
-            / value:$("-"? DIGIT()+) { Number::Integer(value.parse().unwrap()) }
+            = value:$(DIGIT()+ "." DIGIT()+) { Number::Float(value.parse().unwrap()) }
+            / value:$(DIGIT()+) { Number::Integer(value.parse().unwrap()) }
 
         rule string() -> String
             = "\"" value:$((!"\"" ANY())*) "\"" { value.into() }
 
+        rule vector_expr() -> Vector
+            = "[" _ expressions:comma_expr() _ "]"
+            { Vector { expressions } }
+
+        rule table_expr() -> Table
+            = "{" _ key_values:table_kvs() _ "}"
+            { Table { key_values } }
+
         // Auxiliaries and sub-expressions
+        rule assign_extra() -> Operator
+            = "+" { Operator::Plus }
+            / "-" { Operator::Minus }
+            / "*" { Operator::Product }
+            / "/" { Operator::Quotient }
+            / ".." { Operator::Concat }
+
         rule argument_list() -> Vec<Argument>
             = "(" _ args:argument() ** (_ "," _) _ ")" { args }
 
@@ -144,11 +174,23 @@ peg::parser! {
         rule comma_expr() -> Vec<Expression>
             = e:expression() ** (_ "," _) { e }
 
+        rule table_kvs() -> Vec<(TableKeyExpression, Expression)>
+            = kv:table_kv_pair() ** (_ "," _)
+            { kv }
+
+        rule table_kv_pair() -> (TableKeyExpression, Expression)
+            = k:identifier() _ ":" _ v:expression()
+            { (TableKeyExpression::Identifier(k), v) }
+            / "[" _ k:expression() _ "]" _ ":" _ v:expression()
+            { (TableKeyExpression::Expression(k), v) }
+            / k:identifier()
+            { (TableKeyExpression::Implicit(k.clone()), Expression::Reference(DotExpression(vec![k]))) }
+
         rule tuple_expr() -> Tuple
             = "(" _ expr:comma_expr() _ ")"
             { Tuple(expr) }
 
-        rule unit() -> Expression = "nil" { Expression::Unit }
+        rule unit() -> Expression = "()" { Expression::Unit }
 
         // Tokens
         rule IDENT() = ALPHA() (ALPHA() / DIGIT())*
@@ -169,19 +211,19 @@ peg::parser! {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Decorator {
     pub target: DotExpression,
     pub arguments: Option<Tuple>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Argument {
     pub name: Identifier,
     pub decorators: Vec<Decorator>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Function {
     pub name: Identifier,
     pub arguments: Vec<Argument>,
@@ -189,65 +231,75 @@ pub struct Function {
     pub body: Script,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum LambdaBody {
     Complex(Script),
     Simple(Expression),
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Lambda {
     pub arguments: Vec<Argument>,
     pub body: LambdaBody,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Tuple(pub Vec<Expression>);
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Identifier(pub String);
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct DotExpression(pub Vec<Identifier>);
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Declaration {
     pub target: Identifier,
     pub value: Option<Expression>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Assignment {
     pub target: Identifier,
     pub value: Expression,
+    pub extra: Option<Operator>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Class {
     pub name: Identifier,
     pub decorators: Vec<Decorator>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct CallExpression {
     pub target: DotExpression,
     pub arguments: Tuple,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Return {
     pub value: Expression,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum Number {
     Float(f64),
     Integer(i64),
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
+pub struct If {
+    pub condition: Expression,
+    pub body: Script,
+    pub branches: Vec<(Expression, Script)>,
+    pub else_branch: Option<Script>,
+}
+
+#[derive(Debug, Clone)]
 pub enum Statement {
-    If,
+    If(If),
+    Match,
     For,
     Loop,
     While,
@@ -256,11 +308,10 @@ pub enum Statement {
     Function(Function),
     Assignment(Assignment),
     Declaration(Declaration),
-    Match,
     Expression(Expression),
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum Operator {
     // Arithmetic
     Plus,
@@ -269,6 +320,7 @@ pub enum Operator {
     Product,
     Power,
     Remainder,
+    Concat,
     // Comparison
     Equal,
     Less,
@@ -321,7 +373,7 @@ pub enum Operator {
     ExclamationQuestion,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct BinaryExpression {
     pub left: Expression,
     pub right: Expression,
@@ -333,7 +385,7 @@ impl Into<Expression> for BinaryExpression {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct UnaryExpression {
     pub expression: Expression,
     pub operator: Operator,
@@ -344,12 +396,31 @@ impl Into<Expression> for UnaryExpression {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
+pub struct Vector {
+    pub expressions: Vec<Expression>,
+}
+
+#[derive(Debug, Clone)]
+pub struct Table {
+    pub key_values: Vec<(TableKeyExpression, Expression)>,
+}
+
+#[derive(Debug, Clone)]
+pub enum TableKeyExpression {
+    Identifier(Identifier),
+    Expression(Expression),
+    Implicit(Identifier),
+}
+
+#[derive(Debug, Clone)]
 pub enum Expression {
     Lambda(Box<Lambda>),
     Reference(DotExpression),
     Call(CallExpression),
     Tuple(Tuple),
+    Table(Table),
+    Vector(Vector),
     Number(Number),
     String(String),
     Binary(Box<BinaryExpression>),
@@ -357,12 +428,56 @@ pub enum Expression {
     Unit,
 }
 
-#[derive(Debug)]
+pub struct ParseFailure {
+    pub parse_error: Option<peg::error::ParseError<peg::str::LineCol>>,
+    pub fragment: String,
+}
+impl std::fmt::Debug for ParseFailure {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let line = self.fragment.clone();
+        let loc = self.parse_error.as_ref().unwrap().location.clone();
+        let wave = " ".repeat(loc.column) + "^ here";
+        f.write_fmt(format_args!(
+            "Parse Failed! {:?}\n at {}:{},\n   {}\n  {}\n",
+            self.parse_error.as_ref().unwrap(),
+            loc.line,
+            loc.column,
+            line,
+            wave
+        ))
+    }
+}
+impl ParseFailure {
+    fn new(e: peg::error::ParseError<peg::str::LineCol>, fragment: &String) -> Self {
+        ParseFailure {
+            parse_error: Some(e.clone()),
+            fragment: fragment
+                .split("\n")
+                .skip(e.location.line - 1)
+                .next()
+                .unwrap()
+                .to_string(),
+        }
+    }
+}
+
+#[derive(Debug, Clone)]
 pub struct Script {
     pub statements: Vec<Statement>,
 }
 impl Script {
-    pub fn parse(input: &str) -> Self {
-        matra_script::script(input).unwrap()
+    pub fn parse<I>(input: I) -> Result<Self, ParseFailure>
+    where
+        I: Into<String>,
+    {
+        let fragment: String = input.into();
+        matra_script::script(&fragment).map_err(|e| ParseFailure::new(e, &fragment))
+    }
+    pub fn parse_expression<I>(input: I) -> Result<Expression, ParseFailure>
+    where
+        I: Into<String>,
+    {
+        let fragment: String = input.into();
+        matra_script::expression(&fragment).map_err(|e| ParseFailure::new(e, &fragment))
     }
 }

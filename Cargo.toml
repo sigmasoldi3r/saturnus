@@ -5,3 +5,7 @@ edition = "2021"
 
 [dependencies]
 peg = "0.8.1"
+clap = { version = "4.2", features = ["derive"] }
+
+[dev-dependencies]
+spectral = "0.6.0"
