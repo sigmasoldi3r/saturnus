@@ -1,6 +1,6 @@
 use crate::parser::{
-    Assignment, BinaryExpression, CallExpression, Class, Declaration, DotExpression, Expression,
-    Function, If, Lambda, Number, Return, Script, Table, Tuple, UnaryExpression, Vector,
+    Assignment, BinaryExpression, CallExpression, Class, DotExpression, Expression, Function, If,
+    Lambda, Let, Number, Return, Script, Table, Tuple, UnaryExpression, Vector,
 };
 
 #[derive(Debug)]
@@ -12,7 +12,7 @@ pub trait Visitor<T> {
     fn visit_class(&self, ctx: T, stmt: &Class) -> Result<T, VisitError>;
     fn visit_fn(&self, ctx: T, stmt: &Function) -> Result<T, VisitError>;
     fn visit_assignment(&self, ctx: T, stmt: &Assignment) -> Result<T, VisitError>;
-    fn visit_declaration(&self, ctx: T, stmt: &Declaration) -> Result<T, VisitError>;
+    fn visit_declaration(&self, ctx: T, stmt: &Let) -> Result<T, VisitError>;
     fn visit_expression_statement(&self, ctx: T, stmt: &Expression) -> Result<T, VisitError>;
     fn visit_lambda(&self, ctx: T, expr: &Lambda) -> Result<T, VisitError>;
     fn visit_reference(&self, ctx: T, expr: &DotExpression) -> Result<T, VisitError>;
@@ -56,7 +56,7 @@ pub trait Visitor<T> {
                 crate::parser::Statement::Class(e) => self.visit_class(ctx?, e),
                 crate::parser::Statement::Function(e) => self.visit_fn(ctx?, e),
                 crate::parser::Statement::Assignment(e) => self.visit_assignment(ctx?, e),
-                crate::parser::Statement::Declaration(e) => self.visit_declaration(ctx?, e),
+                crate::parser::Statement::Let(e) => self.visit_declaration(ctx?, e),
                 crate::parser::Statement::Match => todo!(),
                 crate::parser::Statement::Expression(e) => self.visit_expression_statement(ctx?, e),
             })

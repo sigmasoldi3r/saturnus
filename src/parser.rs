@@ -11,7 +11,7 @@ peg::parser! {
             = e:class() { Statement::Class(e) }
             / e:func() { Statement::Function(e) }
             / e:if_stmt() { Statement::If(e) }
-            / e:declare_var() { Statement::Declaration(e) }
+            / e:declare_var() { Statement::Let(e) }
             / e:assignment() { Statement::Assignment(e) }
             / e:return_stmt() { Statement::Return(e) }
             / e:expression() _ EOS() { Statement::Expression(e) }
@@ -28,12 +28,15 @@ peg::parser! {
             { Function { name, decorators, body, arguments } }
 
         rule class() -> Class
-            = decorators:decorator_list() CLASS() __ name:identifier() __ END()
-            { Class { name, decorators } }
+            = decorators:decorator_list() CLASS()
+              __ name:identifier()
+              fields:(_ f:class_fields() _ {f})*
+              _ END()
+            { Class { name, fields, decorators } }
 
-        rule declare_var() -> Declaration
+        rule declare_var() -> Let
             = "let" __ target:identifier() value:(_ "=" _ e:expression(){e})? _ EOS()
-            { Declaration { target, value } }
+            { Let { target, value } }
 
         rule assignment() -> Assignment
             = target:identifier() _ extra:assign_extra()? "=" _ value:expression() _ EOS()
@@ -145,6 +148,13 @@ peg::parser! {
             { Table { key_values } }
 
         // Auxiliaries and sub-expressions
+        rule class_fields() -> ClassField
+            = e:declare_var() { ClassField::Let(e) }
+            / e:func() { ClassField::Method(e) }
+            // TODO: Work on OP Overload
+            // / "operator" _ operator:any_operator() _ arguments:argument_list()
+            // { ClassField::Operator(OperatorOverload { operator, arguments }) }
+
         rule assign_extra() -> Operator
             = "+" { Operator::Plus }
             / "-" { Operator::Minus }
@@ -208,6 +218,46 @@ peg::parser! {
         rule DIGIT() = ['0'..='9']
         rule _ = WS()*
         rule __ = WS()+
+
+        // Special matching rule: Any Binary Operator
+        rule any_operator() -> Operator
+            = ".." { Operator::Concat }
+            / "+" { Operator::Plus }
+            / "-" { Operator::Minus }
+            / "*" { Operator::Product }
+            / "/" { Operator::Quotient }
+            / "**" { Operator::Power }
+            / "%" { Operator::Remainder }
+            / ">=<" { Operator::Funnel }
+            / ">=" { Operator::GreaterEqual }
+            / ">" { Operator::Greater }
+            / "<=>" { Operator::Starship }
+            / "<=" { Operator::LessEqual }
+            / "<>" { Operator::NotEqual }
+            / "<" { Operator::Less }
+            / "==" { Operator::Equal }
+            / "and" { Operator::LogicAnd }
+            / "or" { Operator::LogicOr }
+            / "xor" { Operator::LogicXOr }
+            / "nand" { Operator::LogicNand }
+            / "nor" { Operator::LogicNor }
+            / "<~>" { Operator::Elastic }
+            / "<~" { Operator::ElasticLeft }
+            / "~>" { Operator::ElasticRight }
+            / "<:>" { Operator::PinguBoth }
+            / "<:" { Operator::PinguLeft }
+            / ":>" { Operator::PinguRight }
+            / "<-|->" { Operator::ArrowStandBoth }
+            / "<-|" { Operator::ArrowStandLeft }
+            / "|->" { Operator::ArrowStandRight }
+            / "<->" { Operator::BothWays }
+            / "<-" { Operator::ArrowLeft }
+            / "->" { Operator::ArrowRight }
+            / "<|>" { Operator::Disjoin }
+            / "<|" { Operator::PipeLeft }
+            / "|>" { Operator::PipeRight }
+            / "?:" { Operator::Elvis }
+            / "??" { Operator::Coalesce }
     }
 }
 
@@ -253,7 +303,7 @@ pub struct Identifier(pub String);
 pub struct DotExpression(pub Vec<Identifier>);
 
 #[derive(Debug, Clone)]
-pub struct Declaration {
+pub struct Let {
     pub target: Identifier,
     pub value: Option<Expression>,
 }
@@ -269,6 +319,7 @@ pub struct Assignment {
 pub struct Class {
     pub name: Identifier,
     pub decorators: Vec<Decorator>,
+    pub fields: Vec<ClassField>,
 }
 
 #[derive(Debug, Clone)]
@@ -307,8 +358,21 @@ pub enum Statement {
     Class(Class),
     Function(Function),
     Assignment(Assignment),
-    Declaration(Declaration),
+    Let(Let),
     Expression(Expression),
+}
+
+#[derive(Debug, Clone)]
+pub struct OperatorOverload {
+    operator: Operator,
+    arguments: Vec<Argument>,
+}
+
+#[derive(Debug, Clone)]
+pub enum ClassField {
+    Method(Function),
+    Let(Let),
+    Operator(OperatorOverload),
 }
 
 #[derive(Debug, Clone)]

@@ -1,6 +1,8 @@
 use crate::{
     code::{self},
-    parser::{Assignment, BinaryExpression, DotExpression, Identifier, Operator},
+    parser::{
+        Assignment, BinaryExpression, DotExpression, Identifier, Lambda, LambdaBody, Operator,
+    },
 };
 
 pub struct LuaEmitter;
@@ -21,11 +23,75 @@ impl code::Visitor<code::Builder> for LuaEmitter {
         ctx: code::Builder,
         stmt: &crate::parser::Class,
     ) -> Result<code::Builder, code::VisitError> {
-        Ok(ctx
+        let ctx = ctx
             .line()
             .put("local ")
             .put(stmt.name.0.clone())
-            .put(" = {};"))
+            .put(" = {};")
+            .line()
+            .put(stmt.name.0.clone())
+            .put(".__meta__ = {};")
+            .line()
+            .put(stmt.name.0.clone())
+            .put(".__index = ")
+            .put(stmt.name.0.clone())
+            .put(";")
+            .line()
+            .put(stmt.name.0.clone())
+            .put(".__meta__.__call = function(self, struct)")
+            .push()
+            .line()
+            .put("return setmetatable(struct, ")
+            .put(stmt.name.0.clone())
+            .put(");")
+            .pop()
+            .unwrap()
+            .line()
+            .put("end;")
+            .line()
+            .put("setmetatable(")
+            .put(stmt.name.0.clone())
+            .put(", ")
+            .put(stmt.name.0.clone())
+            .put(".__meta__);");
+        let ctx = stmt.fields.iter().fold(Ok(ctx), |ctx, field| {
+            let ctx = ctx?.line();
+            let ctx = match field {
+                crate::parser::ClassField::Method(f) => {
+                    let ctx = ctx
+                        .put(stmt.name.0.clone())
+                        .put(".")
+                        .put(f.name.0.clone())
+                        .put(" = ");
+                    let ctx = self.visit_lambda(
+                        ctx,
+                        &Lambda {
+                            arguments: f.arguments.clone(),
+                            body: LambdaBody::Complex(f.body.clone()),
+                        },
+                    )?;
+                    ctx.put(";")
+                }
+                crate::parser::ClassField::Let(f) => {
+                    let ctx = ctx
+                        .put(stmt.name.0.clone())
+                        .put(".")
+                        .put(f.target.0.clone())
+                        .put(" = ");
+                    let ctx = if let Some(value) = f.value.as_ref() {
+                        self.visit_expression(ctx, value)?
+                    } else {
+                        ctx.put("nil")
+                    };
+                    ctx.put(";")
+                }
+                crate::parser::ClassField::Operator(f) => {
+                    todo!("Operator overload not implemented yet")
+                }
+            };
+            Ok(ctx)
+        })?;
+        Ok(ctx)
     }
 
     fn visit_fn(
@@ -81,7 +147,7 @@ impl code::Visitor<code::Builder> for LuaEmitter {
     fn visit_declaration(
         &self,
         ctx: code::Builder,
-        stmt: &crate::parser::Declaration,
+        stmt: &crate::parser::Let,
     ) -> Result<code::Builder, code::VisitError> {
         let ctx = ctx
             .line()
