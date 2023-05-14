@@ -255,4 +255,78 @@ impl code::Visitor<code::Builder> for LuaEmitter {
         let ctx = ctx.pop().unwrap().line().put("end");
         Ok(ctx)
     }
+
+    fn visit_table(
+        &self,
+        ctx: code::Builder,
+        expr: &crate::parser::Table,
+    ) -> Result<code::Builder, code::VisitError> {
+        let ctx = ctx.put("Table{");
+        let ctx = if let Some((k, v)) = expr.key_values.first() {
+            match k {
+                crate::parser::TableKeyExpression::Identifier(k) => {
+                    let ctx = ctx.put(k.0.clone()).put(" = ");
+                    self.visit_expression(ctx, v)
+                }
+                crate::parser::TableKeyExpression::Expression(k) => {
+                    let ctx = self.visit_expression(ctx, k)?.put(" = ");
+                    self.visit_expression(ctx, v)
+                }
+                crate::parser::TableKeyExpression::Implicit(k) => {
+                    let ctx = ctx.put(k.0.clone()).put(" = ");
+                    self.visit_expression(
+                        ctx,
+                        &crate::parser::Expression::Reference(DotExpression(vec![k.clone()])),
+                    )
+                }
+            }?
+        } else {
+            ctx
+        };
+        let ctx = expr
+            .key_values
+            .iter()
+            .skip(1)
+            .fold(Ok(ctx), |ctx, (k, v)| {
+                let ctx = ctx?.put(", ");
+                match k {
+                    crate::parser::TableKeyExpression::Identifier(k) => {
+                        let ctx = ctx.put(k.0.clone()).put(" = ");
+                        self.visit_expression(ctx, v)
+                    }
+                    crate::parser::TableKeyExpression::Expression(k) => {
+                        let ctx = ctx.put("[");
+                        let ctx = self.visit_expression(ctx, k)?.put("] = ");
+                        self.visit_expression(ctx, v)
+                    }
+                    crate::parser::TableKeyExpression::Implicit(k) => {
+                        let ctx = ctx.put(k.0.clone()).put(" = ");
+                        self.visit_expression(
+                            ctx,
+                            &crate::parser::Expression::Reference(DotExpression(vec![k.clone()])),
+                        )
+                    }
+                }
+            })?;
+        Ok(ctx.put("}"))
+    }
+
+    fn visit_vector(
+        &self,
+        ctx: code::Builder,
+        expr: &crate::parser::Vector,
+    ) -> Result<code::Builder, code::VisitError> {
+        let ctx = ctx.put("Vector{");
+        let ctx = if let Some(first) = expr.expressions.first() {
+            self.visit_expression(ctx, first)?
+        } else {
+            ctx
+        };
+        let ctx = expr.expressions.iter().skip(1).fold(Ok(ctx), |ctx, v| {
+            let ctx = ctx?.put(", ");
+            let ctx = self.visit_expression(ctx, v)?;
+            Ok(ctx)
+        })?;
+        Ok(ctx.put("}"))
+    }
 }

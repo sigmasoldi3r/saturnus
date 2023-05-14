@@ -107,6 +107,8 @@ peg::parser! {
             e:call_expr()  { Expression::Call(e) }
             e:dot_expr() { Expression::Reference(e) }
             unit() { Expression::Unit }
+            e:vector_expr() { Expression::Vector(e) }
+            e:table_expr() { Expression::Table(e) }
             e:tuple_expr() { Expression::Tuple(e) }
             "(" _ e:expression() _ ")" { e }
         }
@@ -133,6 +135,14 @@ peg::parser! {
 
         rule string() -> String
             = "\"" value:$((!"\"" ANY())*) "\"" { value.into() }
+
+        rule vector_expr() -> Vector
+            = "[" _ expressions:comma_expr() _ "]"
+            { Vector { expressions } }
+
+        rule table_expr() -> Table
+            = "{" _ key_values:table_kvs() _ "}"
+            { Table { key_values } }
 
         // Auxiliaries and sub-expressions
         rule assign_extra() -> Operator
@@ -163,6 +173,18 @@ peg::parser! {
 
         rule comma_expr() -> Vec<Expression>
             = e:expression() ** (_ "," _) { e }
+
+        rule table_kvs() -> Vec<(TableKeyExpression, Expression)>
+            = kv:table_kv_pair() ** (_ "," _)
+            { kv }
+
+        rule table_kv_pair() -> (TableKeyExpression, Expression)
+            = k:identifier() _ ":" _ v:expression()
+            { (TableKeyExpression::Identifier(k), v) }
+            / "[" _ k:expression() _ "]" _ ":" _ v:expression()
+            { (TableKeyExpression::Expression(k), v) }
+            / k:identifier()
+            { (TableKeyExpression::Implicit(k.clone()), Expression::Reference(DotExpression(vec![k]))) }
 
         rule tuple_expr() -> Tuple
             = "(" _ expr:comma_expr() _ ")"
@@ -277,6 +299,7 @@ pub struct If {
 #[derive(Debug, Clone)]
 pub enum Statement {
     If(If),
+    Match,
     For,
     Loop,
     While,
@@ -285,7 +308,6 @@ pub enum Statement {
     Function(Function),
     Assignment(Assignment),
     Declaration(Declaration),
-    Match,
     Expression(Expression),
 }
 
@@ -375,11 +397,30 @@ impl Into<Expression> for UnaryExpression {
 }
 
 #[derive(Debug, Clone)]
+pub struct Vector {
+    pub expressions: Vec<Expression>,
+}
+
+#[derive(Debug, Clone)]
+pub struct Table {
+    pub key_values: Vec<(TableKeyExpression, Expression)>,
+}
+
+#[derive(Debug, Clone)]
+pub enum TableKeyExpression {
+    Identifier(Identifier),
+    Expression(Expression),
+    Implicit(Identifier),
+}
+
+#[derive(Debug, Clone)]
 pub enum Expression {
     Lambda(Box<Lambda>),
     Reference(DotExpression),
     Call(CallExpression),
     Tuple(Tuple),
+    Table(Table),
+    Vector(Vector),
     Number(Number),
     String(String),
     Binary(Box<BinaryExpression>),

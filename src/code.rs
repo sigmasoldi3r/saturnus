@@ -1,6 +1,6 @@
 use crate::parser::{
     Assignment, BinaryExpression, CallExpression, Class, Declaration, DotExpression, Expression,
-    Function, If, Lambda, Number, Return, Script, Tuple, UnaryExpression,
+    Function, If, Lambda, Number, Return, Script, Table, Tuple, UnaryExpression, Vector,
 };
 
 #[derive(Debug)]
@@ -24,6 +24,8 @@ pub trait Visitor<T> {
     fn visit_binary(&self, ctx: T, expr: &BinaryExpression) -> Result<T, VisitError>;
     fn visit_unary(&self, ctx: T, expr: &UnaryExpression) -> Result<T, VisitError>;
     fn visit_if(&self, ctx: T, expr: &If) -> Result<T, VisitError>;
+    fn visit_table(&self, ctx: T, expr: &Table) -> Result<T, VisitError>;
+    fn visit_vector(&self, ctx: T, expr: &Vector) -> Result<T, VisitError>;
 
     // Generically implementable matching patterns:
     fn visit_expression(&self, ctx: T, expression: &Expression) -> Result<T, VisitError> {
@@ -37,6 +39,8 @@ pub trait Visitor<T> {
             Expression::Unit => self.visit_unit(ctx),
             Expression::Binary(e) => self.visit_binary(ctx, e),
             Expression::Unary(e) => self.visit_unary(ctx, e),
+            Expression::Table(e) => self.visit_table(ctx, e),
+            Expression::Vector(e) => self.visit_vector(ctx, e),
         }
     }
     fn visit_script(&self, ctx: T, script: &Script) -> Result<T, VisitError> {
