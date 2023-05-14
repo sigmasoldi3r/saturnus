@@ -130,6 +130,12 @@ peg::parser! {
         rule call_expr() -> CallExpression
             = target:dot_expr() _ arguments:tuple_expr()
             { CallExpression { target, arguments } }
+            / target:dot_expr() _ arg:table_expr()
+            { CallExpression { target, arguments: Tuple(vec![Expression::Table(arg)]) } }
+            / target:dot_expr() _ arg:vector_expr()
+            { CallExpression { target, arguments: Tuple(vec![Expression::Vector(arg)]) } }
+            / target:dot_expr() _ arg:string()
+            { CallExpression { target, arguments: Tuple(vec![Expression::String(arg)]) } }
 
         // Literals
         rule number() -> Number

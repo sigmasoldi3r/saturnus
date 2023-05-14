@@ -29,3 +29,13 @@ end;"
             .to_string(),
     );
 }
+
+#[test]
+fn struct_construction_syntax() {
+    let out = compile("let hello = Hello { name: \"World\" };");
+    assert_that!(out).is_equal_to(
+        "
+local hello = Hello({name = \"World\"});"
+            .to_string(),
+    );
+}
