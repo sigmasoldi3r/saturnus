@@ -261,7 +261,7 @@ impl code::Visitor<code::Builder> for LuaEmitter {
         ctx: code::Builder,
         expr: &crate::parser::Table,
     ) -> Result<code::Builder, code::VisitError> {
-        let ctx = ctx.put("Table{");
+        let ctx = ctx.put("{");
         let ctx = if let Some((k, v)) = expr.key_values.first() {
             match k {
                 crate::parser::TableKeyExpression::Identifier(k) => {
@@ -316,7 +316,7 @@ impl code::Visitor<code::Builder> for LuaEmitter {
         ctx: code::Builder,
         expr: &crate::parser::Vector,
     ) -> Result<code::Builder, code::VisitError> {
-        let ctx = ctx.put("Vector{");
+        let ctx = ctx.put("{");
         let ctx = if let Some(first) = expr.expressions.first() {
             self.visit_expression(ctx, first)?
         } else {
