@@ -1,0 +1,21 @@
+// This example contains basic Hello World like OOP
+
+// In Saturnus, inheritance is disabled by design.
+// Use composition instead.
+class Greeter
+  let name = "";
+  
+  // A simple method:
+  fn greet(self)
+    return "Hello " .. self.name .. "!";
+  end
+
+  // Static methods just don't use the "self" param:
+  fn new(name)
+    return Greeter { name };
+  end
+end
+
+// Test it out!
+let world = Greeter::new("World");
+print(world.greet());
