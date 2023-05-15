@@ -34,8 +34,16 @@ struct Args {
         help = "Prints the compilation result to the standard output"
     )]
     pipe: bool,
+    #[arg(
+        long,
+        help = "If used, the compilation output emits tab characters. Ignores indentation parameter"
+    )]
     use_tabs: bool,
-    #[arg(default_value = "2")]
+    #[arg(
+        default_value = "2",
+        long,
+        help = "The amount of space characters to use in each tab"
+    )]
     indentation: usize,
 }
 
@@ -49,7 +57,11 @@ fn get_default_output(str: &String) -> String {
 
 fn main() {
     let args = Args::parse();
-    let indent = if args.use_tabs { "\t" } else { " " }.repeat(args.indentation);
+    let indent = if args.use_tabs {
+        "\t".to_string()
+    } else {
+        " ".repeat(args.indentation)
+    };
     let in_path = args.input;
     let out_path = args.output.unwrap_or(get_default_output(&in_path));
     let mut in_file = File::open(in_path).unwrap();
