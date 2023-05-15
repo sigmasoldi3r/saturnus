@@ -106,6 +106,7 @@ pub enum Statement {
 pub struct OperatorOverload {
     pub operator: Operator,
     pub arguments: Vec<Argument>,
+    pub body: Script,
 }
 
 #[derive(Debug, Clone)]

@@ -88,11 +88,11 @@ impl code::Visitor<code::Builder> for LuaEmitter {
                     ctx.put(";")
                 }
                 ast::ClassField::Let(f) => {
-                    let ctx = ctx
-                        .put(stmt.name.0.clone())
-                        .put(".prototype.")
-                        .put(f.target.0.clone())
-                        .put(" = ");
+                    let ctx = ctx.put(format!(
+                        "{}.prototype.{} = ",
+                        stmt.name.0.clone(),
+                        f.target.0.clone()
+                    ));
                     let ctx = if let Some(value) = f.value.as_ref() {
                         self.visit_expression(ctx, value)?
                     } else {
@@ -100,8 +100,37 @@ impl code::Visitor<code::Builder> for LuaEmitter {
                     };
                     ctx.put(";")
                 }
-                ast::ClassField::Operator(_) => {
-                    todo!("Operator overload not implemented yet")
+                ast::ClassField::Operator(f) => {
+                    let target = match f.operator {
+                        ast::Operator::Plus => "__add",
+                        ast::Operator::Minus => "__sub",
+                        ast::Operator::Product => "__mul",
+                        ast::Operator::Quotient => "__div",
+                        ast::Operator::Remainder => "__mod",
+                        ast::Operator::Power => "__pow",
+                        ast::Operator::Equal => "__eq",
+                        ast::Operator::Less => "__lt",
+                        ast::Operator::LessEqual => "__le",
+                        ast::Operator::Concat => "__concat",
+                        ast::Operator::Count => "__len",
+                        _ => todo!(
+                            "Operator overload for {:?} operator not supported",
+                            f.operator.clone()
+                        ),
+                    };
+                    let ctx = ctx.put(format!(
+                        "{}.prototype.__meta__.{} = ",
+                        stmt.name.0.clone(),
+                        target
+                    ));
+                    let ctx = self.visit_lambda(
+                        ctx,
+                        &Lambda {
+                            arguments: f.arguments.clone(),
+                            body: LambdaBody::Complex(f.body.clone()),
+                        },
+                    )?;
+                    ctx.put(";")
                 }
             };
             Ok(ctx)

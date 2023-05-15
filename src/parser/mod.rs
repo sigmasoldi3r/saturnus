@@ -162,9 +162,8 @@ peg::parser! {
         rule class_fields() -> ClassField
             = e:declare_var() { ClassField::Let(e) }
             / e:func() { ClassField::Method(e) }
-            // TODO: Work on OP Overload
-            // / "operator" _ operator:any_operator() _ arguments:argument_list()
-            // { ClassField::Operator(OperatorOverload { operator, arguments }) }
+            / "operator" _ operator:any_operator() _ arguments:argument_list() body:script() END()
+            { ClassField::Operator(OperatorOverload { operator, arguments, body }) }
 
         rule assign_extra() -> Operator
             = "+" { Operator::Plus }

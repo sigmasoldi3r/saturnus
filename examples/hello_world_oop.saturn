@@ -14,8 +14,17 @@ class Greeter
   fn new(name)
     return Greeter { name };
   end
+
+  // Operator overload also is here!
+  operator +(self, other)
+    return Greeter::new(self.name .. " & " .. other.name);
+  end
 end
 
 // Test it out!
 let world = Greeter::new("World");
 print(world.greet());
+
+// Test operators:
+let sum = Greeter::new("Foo") + Greeter::new("Bar");
+print(sum.greet());
