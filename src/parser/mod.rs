@@ -42,7 +42,7 @@ peg::parser! {
             { Let { target, value } }
 
         rule assignment() -> Assignment
-            = target:identifier() _ extra:assign_extra()? "=" _ value:expression() _ EOS()
+            = target:dot_expr() _ extra:assign_extra()? "=" _ value:expression() _ EOS()
             { Assignment { target, value, extra } }
 
         rule return_stmt() -> Return

@@ -49,7 +49,7 @@ pub struct Let {
 
 #[derive(Debug, Clone)]
 pub struct Assignment {
-    pub target: Identifier,
+    pub target: DotExpression,
     pub value: Expression,
     pub extra: Option<Operator>,
 }

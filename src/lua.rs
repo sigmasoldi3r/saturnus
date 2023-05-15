@@ -169,14 +169,24 @@ impl code::Visitor<code::Builder> for LuaEmitter {
         ctx: code::Builder,
         stmt: &ast::Assignment,
     ) -> Result<code::Builder, code::VisitError> {
-        let ctx = ctx.line().put(stmt.target.0.clone());
+        let ctx = if let Some(first) = stmt.target.0.first() {
+            ctx.line().put(first.0.clone())
+        } else {
+            ctx
+        };
+        let ctx = stmt
+            .target
+            .0
+            .iter()
+            .skip(1)
+            .fold(ctx, |ctx, target| ctx.put(".").put(target.0.clone()));
         let ctx = ctx.put(" = ");
         let ctx = if let Some(extra) = stmt.extra.as_ref() {
             let Assignment { target, value, .. } = stmt.clone();
             self.visit_binary(
                 ctx,
                 &BinaryExpression {
-                    left: ast::Expression::Reference(DotExpression(vec![target])),
+                    left: ast::Expression::Reference(target),
                     operator: extra.clone(),
                     right: value,
                 },
