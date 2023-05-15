@@ -294,7 +294,7 @@ impl code::Visitor<code::Builder> for LuaEmitter {
         expr: &crate::parser::BinaryExpression,
     ) -> Result<code::Builder, code::VisitError> {
         let ctx = self.visit_expression(ctx, &expr.left)?.put(" ");
-        let ctx = match expr.operator {
+        let ctx = match expr.operator.clone() {
             // Basic math
             Operator::Plus => ctx.put("+"),
             Operator::Minus => ctx.put("-"),
@@ -302,6 +302,7 @@ impl code::Visitor<code::Builder> for LuaEmitter {
             Operator::Quotient => ctx.put("/"),
             Operator::Remainder => ctx.put("%"),
             Operator::Power => ctx.put("**"),
+            Operator::Concat => ctx.put(".."),
             // Comparison
             Operator::Greater => ctx.put(">"),
             Operator::GreaterEqual => ctx.put(">="),
@@ -309,7 +310,7 @@ impl code::Visitor<code::Builder> for LuaEmitter {
             Operator::LessEqual => ctx.put("<="),
             Operator::Equal => ctx.put("=="),
             Operator::NotEqual => ctx.put("~="),
-            _ => todo!("Binary operator not supported!"),
+            op => todo!("Binary operator {:?} not supported!", op),
         };
         let ctx = self.visit_expression(ctx.put(" "), &expr.right)?;
         Ok(ctx)

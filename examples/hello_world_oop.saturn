@@ -17,5 +17,5 @@ class Greeter
 end
 
 // Test it out!
-let world = Greeter::new("World");
+let world = Greeter.new("World");
 print(world.greet());

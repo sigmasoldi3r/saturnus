@@ -222,7 +222,9 @@ peg::parser! {
         rule FN() = "fn"
         rule ANY() = [_]
         rule BLANK() = ['\t'|' ']
-        rule WS() = BLANK() / EOL()
+        rule WS() = BLANK() / LINE_COMMENT() / BLOCK_COMMENT() / EOL()
+        rule LINE_COMMENT() = "//" (!EOL() ANY())* EOL()
+        rule BLOCK_COMMENT() = "/*" (!"*/" ANY())* "*/"
         rule EOL() = ['\r'|'\n']
         rule EOS() = EOL() / ";"
         rule ALPHA() = ['A'..='Z'|'a'..='z'|'_']
