@@ -228,12 +228,12 @@ impl code::Visitor<code::Builder> for LuaEmitter {
         expr: &crate::parser::CallExpression,
     ) -> Result<code::Builder, code::VisitError> {
         let ctx = self.visit_reference(ctx, &expr.target)?.put("(");
-        let ctx = if let Some(first) = expr.arguments.0.first() {
+        let ctx = if let Some(first) = expr.arguments.first() {
             self.visit_expression(ctx, first)?
         } else {
             ctx
         };
-        let ctx = expr.arguments.0.iter().skip(1).fold(Ok(ctx), |ctx, expr| {
+        let ctx = expr.arguments.iter().skip(1).fold(Ok(ctx), |ctx, expr| {
             self.visit_expression(ctx.map(|b| b.put(", "))?, expr)
         })?;
         Ok(ctx.put(")"))

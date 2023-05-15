@@ -128,14 +128,14 @@ peg::parser! {
             { Lambda { arguments, body: LambdaBody::Complex(Script { statements: vec![] }) } }
 
         rule call_expr() -> CallExpression
-            = target:dot_expr() _ arguments:tuple_expr()
+            = target:dot_expr() _ arguments:wrapped_comma_expr()
             { CallExpression { target, arguments } }
             / target:dot_expr() _ arg:table_expr()
-            { CallExpression { target, arguments: Tuple(vec![Expression::Table(arg)]) } }
+            { CallExpression { target, arguments: vec![Expression::Table(arg)] } }
             / target:dot_expr() _ arg:vector_expr()
-            { CallExpression { target, arguments: Tuple(vec![Expression::Vector(arg)]) } }
+            { CallExpression { target, arguments: vec![Expression::Vector(arg)] } }
             / target:dot_expr() _ arg:string()
-            { CallExpression { target, arguments: Tuple(vec![Expression::String(arg)]) } }
+            { CallExpression { target, arguments: vec![Expression::String(arg)] } }
 
         // Literals
         rule number() -> Number
@@ -186,6 +186,9 @@ peg::parser! {
         rule identifier() -> Identifier
             = value:$(IDENT())
             { Identifier(value.into()) }
+
+        rule wrapped_comma_expr() -> Vec<Expression>
+            = "(" _ e:comma_expr() _ ")" { e }
 
         rule comma_expr() -> Vec<Expression>
             = e:expression() ** (_ "," _) { e }
@@ -270,7 +273,7 @@ peg::parser! {
 #[derive(Debug, Clone)]
 pub struct Decorator {
     pub target: DotExpression,
-    pub arguments: Option<Tuple>,
+    pub arguments: Option<Vec<Expression>>,
 }
 
 #[derive(Debug, Clone)]
@@ -331,7 +334,7 @@ pub struct Class {
 #[derive(Debug, Clone)]
 pub struct CallExpression {
     pub target: DotExpression,
-    pub arguments: Tuple,
+    pub arguments: Vec<Expression>,
 }
 
 #[derive(Debug, Clone)]
