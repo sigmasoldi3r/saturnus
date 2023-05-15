@@ -130,14 +130,14 @@ peg::parser! {
             { Lambda { arguments, body: LambdaBody::Complex(Script { statements: vec![] }) } }
 
         rule call_expr() -> CallExpression
-            = target:dot_expr() _ arguments:wrapped_comma_expr()
-            { CallExpression { target, arguments } }
-            / target:dot_expr() _ arg:table_expr()
-            { CallExpression { target, arguments: vec![Expression::Table(arg)] } }
-            / target:dot_expr() _ arg:vector_expr()
-            { CallExpression { target, arguments: vec![Expression::Vector(arg)] } }
-            / target:dot_expr() _ arg:string()
-            { CallExpression { target, arguments: vec![Expression::String(arg)] } }
+            = target:dot_expr() static_target:(_ "::" _ e:identifier(){e})? _ arguments:wrapped_comma_expr()
+            { CallExpression { target, static_target, arguments } }
+            / target:dot_expr() static_target:(_ "::" _ e:identifier(){e})? _ arg:table_expr()
+            { CallExpression { target, static_target, arguments: vec![Expression::Table(arg)] } }
+            / target:dot_expr() static_target:(_ "::" _ e:identifier(){e})? _ arg:vector_expr()
+            { CallExpression { target, static_target, arguments: vec![Expression::Vector(arg)] } }
+            / target:dot_expr() static_target:(_ "::" _ e:identifier(){e})? _ arg:string()
+            { CallExpression { target, static_target, arguments: vec![Expression::String(arg)] } }
 
         // Literals
         rule number() -> Number
@@ -340,6 +340,7 @@ pub struct Class {
 #[derive(Debug, Clone)]
 pub struct CallExpression {
     pub target: DotExpression,
+    pub static_target: Option<Identifier>,
     pub arguments: Vec<Expression>,
 }
 

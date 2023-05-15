@@ -1,6 +1,8 @@
 use crate::{
     code::{self},
-    parser::{Assignment, BinaryExpression, DotExpression, Lambda, LambdaBody, Operator},
+    parser::{
+        Assignment, BinaryExpression, DotExpression, Identifier, Lambda, LambdaBody, Operator,
+    },
 };
 
 pub struct LuaEmitter;
@@ -211,7 +213,11 @@ impl code::Visitor<code::Builder> for LuaEmitter {
         ctx: code::Builder,
         expr: &crate::parser::DotExpression,
     ) -> Result<code::Builder, code::VisitError> {
-        let ctx = ctx.put(expr.0.first().unwrap().0.clone());
+        let ctx = if let Some(first) = expr.0.first() {
+            ctx.put(first.0.clone())
+        } else {
+            ctx
+        };
         let ctx = expr
             .0
             .iter()
@@ -225,7 +231,31 @@ impl code::Visitor<code::Builder> for LuaEmitter {
         ctx: code::Builder,
         expr: &crate::parser::CallExpression,
     ) -> Result<code::Builder, code::VisitError> {
-        let ctx = self.visit_reference(ctx, &expr.target)?.put("(");
+        let dot = if expr.static_target.is_some() {
+            expr.target.clone()
+        } else if expr.target.0.len() > 1 {
+            DotExpression(
+                expr.target
+                    .0
+                    .iter()
+                    .rev()
+                    .skip(1)
+                    .rev()
+                    .map(|x| x.clone())
+                    .collect(),
+            )
+        } else {
+            expr.target.clone()
+        };
+        let ctx = self.visit_reference(ctx, &dot)?;
+        let ctx = if let Some(static_target) = expr.static_target.as_ref() {
+            ctx.put(".").put(static_target.0.clone())
+        } else if expr.target.0.len() > 1 {
+            ctx.put(":").put(expr.target.0.last().unwrap().0.clone())
+        } else {
+            ctx
+        };
+        let ctx = ctx.put("(");
         let ctx = if let Some(first) = expr.arguments.first() {
             self.visit_expression(ctx, first)?
         } else {
