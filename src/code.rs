@@ -1,7 +1,9 @@
-use crate::parser::{
+use ast::{
     Assignment, BinaryExpression, CallExpression, Class, DotExpression, Expression, Function, If,
-    Lambda, Let, Number, Return, Script, Table, Tuple, UnaryExpression, Vector,
+    Lambda, Let, Number, Return, Table, Tuple, UnaryExpression, Vector,
 };
+
+use crate::parser::{ast, Script};
 
 #[derive(Debug)]
 pub struct VisitError;
@@ -48,17 +50,17 @@ pub trait Visitor<T> {
             .statements
             .iter()
             .fold(Ok(ctx), |ctx, stmt| match stmt {
-                crate::parser::Statement::If(e) => self.visit_if(ctx?, e),
-                crate::parser::Statement::For => todo!(),
-                crate::parser::Statement::Loop => todo!(),
-                crate::parser::Statement::While => todo!(),
-                crate::parser::Statement::Return(e) => self.visit_return(ctx?, e),
-                crate::parser::Statement::Class(e) => self.visit_class(ctx?, e),
-                crate::parser::Statement::Function(e) => self.visit_fn(ctx?, e),
-                crate::parser::Statement::Assignment(e) => self.visit_assignment(ctx?, e),
-                crate::parser::Statement::Let(e) => self.visit_declaration(ctx?, e),
-                crate::parser::Statement::Match => todo!(),
-                crate::parser::Statement::Expression(e) => self.visit_expression_statement(ctx?, e),
+                ast::Statement::If(e) => self.visit_if(ctx?, e),
+                ast::Statement::For => todo!(),
+                ast::Statement::Loop => todo!(),
+                ast::Statement::While => todo!(),
+                ast::Statement::Return(e) => self.visit_return(ctx?, e),
+                ast::Statement::Class(e) => self.visit_class(ctx?, e),
+                ast::Statement::Function(e) => self.visit_fn(ctx?, e),
+                ast::Statement::Assignment(e) => self.visit_assignment(ctx?, e),
+                ast::Statement::Let(e) => self.visit_declaration(ctx?, e),
+                ast::Statement::Match => todo!(),
+                ast::Statement::Expression(e) => self.visit_expression_statement(ctx?, e),
             })
     }
 }
