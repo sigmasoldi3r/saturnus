@@ -34,6 +34,9 @@ struct Args {
         help = "Prints the compilation result to the standard output"
     )]
     pipe: bool,
+    use_tabs: bool,
+    #[arg(default_value = "2")]
+    indentation: usize,
 }
 
 fn get_default_output(str: &String) -> String {
@@ -46,6 +49,7 @@ fn get_default_output(str: &String) -> String {
 
 fn main() {
     let args = Args::parse();
+    let indent = if args.use_tabs { "\t" } else { " " }.repeat(args.indentation);
     let in_path = args.input;
     let out_path = args.output.unwrap_or(get_default_output(&in_path));
     let mut in_file = File::open(in_path).unwrap();
@@ -53,7 +57,7 @@ fn main() {
     in_file.read_to_string(&mut input).unwrap();
     let output = lua::LuaEmitter
         .visit_script(
-            code::Builder::new("  "),
+            code::Builder::new(indent),
             &parser::Script::parse(input).unwrap(),
         )
         .unwrap()
