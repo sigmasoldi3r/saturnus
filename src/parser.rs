@@ -203,8 +203,8 @@ peg::parser! {
             { (TableKeyExpression::Implicit(k.clone()), Expression::Reference(DotExpression(vec![k]))) }
 
         rule tuple_expr() -> Tuple
-            = "(" _ expr:comma_expr() _ ")"
-            { Tuple(expr) }
+            = "(" _ e:expression() **<2,> (_ "," _) _ ")"
+            { Tuple(e) }
 
         rule unit() -> Expression = "()" { Expression::Unit }
 

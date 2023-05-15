@@ -100,7 +100,7 @@ impl code::Visitor<code::Builder> for LuaEmitter {
                     };
                     ctx.put(";")
                 }
-                crate::parser::ClassField::Operator(f) => {
+                crate::parser::ClassField::Operator(_) => {
                     todo!("Operator overload not implemented yet")
                 }
             };
@@ -244,7 +244,26 @@ impl code::Visitor<code::Builder> for LuaEmitter {
         ctx: code::Builder,
         expr: &crate::parser::Tuple,
     ) -> Result<code::Builder, code::VisitError> {
-        todo!()
+        let ctx = ctx.put("{");
+        let ctx = if let Some(first) = expr.0.first().as_ref() {
+            let ctx = ctx.put(format!("_0 = "));
+            self.visit_expression(ctx, first)?
+        } else {
+            ctx
+        };
+        let ctx = expr
+            .0
+            .iter()
+            .skip(1)
+            .fold(Ok((ctx, 1_u16)), |ctx, value| {
+                let (ctx, i) = ctx?;
+                let ctx = ctx.put(format!(", _{} = ", i));
+                let ctx = self.visit_expression(ctx, value)?;
+                Ok((ctx, i + 1))
+            })?
+            .0;
+        let ctx = ctx.put("}");
+        Ok(ctx)
     }
 
     fn visit_number(
