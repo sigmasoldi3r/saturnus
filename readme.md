@@ -67,16 +67,19 @@ Among other things, here are some key aspects that Saturnus changes:
 - Custom operators.
 - Some [RTTI](https://en.wikipedia.org/wiki/Run-time_type_information) (Which enables reflection).
 
-## Some examples
+## How does it look?
 
-Some little examples:
+> *note*: The "prelude" library is not yet implemented, and the module import
+> is yet to be drafted.
 
 ```rs
 use println from "prelude";
 use rti.Typed from "prelude";
+// Old lua way? This is also compatible, but not very cross-target friendly.
+let my_mod = require "My Mod";
 
 class Greeter
-  let who;
+  let who = "Unnamed";
 
   // This will make the function panic if "who" is not a string!
   @Typed([rti.String])
@@ -103,3 +106,4 @@ println(greeter.greet());
 - [ ] Operator overload
 - [ ] Bitwise operators (This one is easy)
 - [ ] Custom operator dispatch code generation
+- [ ] Destructuring assignment
