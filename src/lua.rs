@@ -1,8 +1,6 @@
 use crate::{
     code::{self},
-    parser::{
-        Assignment, BinaryExpression, DotExpression, Identifier, Lambda, LambdaBody, Operator,
-    },
+    parser::{Assignment, BinaryExpression, DotExpression, Lambda, LambdaBody, Operator},
 };
 
 pub struct LuaEmitter;

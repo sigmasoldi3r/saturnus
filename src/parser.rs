@@ -550,6 +550,9 @@ impl Script {
         let fragment: String = input.into();
         matra_script::script(&fragment).map_err(|e| ParseFailure::new(e, &fragment))
     }
+
+    // This function is used only in tests for now.
+    #[cfg(test)]
     pub fn parse_expression<I>(input: I) -> Result<Expression, ParseFailure>
     where
         I: Into<String>,
