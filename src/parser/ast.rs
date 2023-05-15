@@ -104,8 +104,8 @@ pub enum Statement {
 
 #[derive(Debug, Clone)]
 pub struct OperatorOverload {
-    operator: Operator,
-    arguments: Vec<Argument>,
+    pub operator: Operator,
+    pub arguments: Vec<Argument>,
 }
 
 #[derive(Debug, Clone)]
