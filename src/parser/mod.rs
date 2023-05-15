@@ -149,6 +149,7 @@ peg::parser! {
 
         rule string() -> String
             = "\"" value:$((!"\"" ANY())*) "\"" { value.into() }
+            / "'" value:$((!"'" ANY())*) "'" { value.into() }
 
         rule vector_expr() -> Vector
             = "[" _ expressions:comma_expr() _ "]"
