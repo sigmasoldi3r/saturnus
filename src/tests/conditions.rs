@@ -12,7 +12,7 @@ fn simple_if_statement() {
     );
     assert_that!(out).is_equal_to(
         "
-if some.complex() > thing then
+if some:complex() > thing then
   print(\"hello world!\");
 end"
         .to_string(),
