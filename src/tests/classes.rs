@@ -17,13 +17,15 @@ fn simple_class_test() {
         "
 local Hello = {};
 Hello.__meta__ = {};
-Hello.__index = Hello;
 Hello.__meta__.__call = function(self, struct)
-  return setmetatable(struct, Hello);
+  return setmetatable(struct, self.prototype.__meta__);
 end;
+Hello.prototype = {};
+Hello.prototype.__meta__ = {};
+Hello.prototype.__meta__.__index = Hello.prototype;
 setmetatable(Hello, Hello.__meta__);
-Hello.value = 0;
-Hello.tick = function(self)
+Hello.prototype.value = 0;
+Hello.prototype.tick = function(self)
   return 10 + self.value;
 end;"
             .to_string(),

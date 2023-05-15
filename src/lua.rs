@@ -25,42 +25,57 @@ impl code::Visitor<code::Builder> for LuaEmitter {
     ) -> Result<code::Builder, code::VisitError> {
         let ctx = ctx
             .line()
-            .put("local ")
-            .put(stmt.name.0.clone())
-            .put(" = {};")
+            .put(format!("local {} = {{}};", stmt.name.0.clone()))
             .line()
-            .put(stmt.name.0.clone())
-            .put(".__meta__ = {};")
+            .put(format!("{}.__meta__ = {{}};", stmt.name.0.clone()))
             .line()
-            .put(stmt.name.0.clone())
-            .put(".__index = ")
-            .put(stmt.name.0.clone())
-            .put(";")
-            .line()
-            .put(stmt.name.0.clone())
-            .put(".__meta__.__call = function(self, struct)")
+            .put(format!(
+                "{}.__meta__.__call = function(self, struct)",
+                stmt.name.0.clone()
+            ))
             .push()
             .line()
-            .put("return setmetatable(struct, ")
-            .put(stmt.name.0.clone())
-            .put(");")
+            .put("return setmetatable(struct, self.prototype.__meta__);")
             .pop()
             .unwrap()
             .line()
             .put("end;")
             .line()
-            .put("setmetatable(")
-            .put(stmt.name.0.clone())
-            .put(", ")
-            .put(stmt.name.0.clone())
-            .put(".__meta__);");
+            .put(format!("{}.prototype = {{}};", stmt.name.0.clone()))
+            .line()
+            .put(format!(
+                "{}.prototype.__meta__ = {{}};",
+                stmt.name.0.clone()
+            ))
+            .line()
+            .put(format!(
+                "{}.prototype.__meta__.__index = {}.prototype;",
+                stmt.name.0.clone(),
+                stmt.name.0.clone()
+            ))
+            .line()
+            .put(format!(
+                "setmetatable({}, {}.__meta__);",
+                stmt.name.0.clone(),
+                stmt.name.0.clone()
+            ));
         let ctx = stmt.fields.iter().fold(Ok(ctx), |ctx, field| {
             let ctx = ctx?.line();
             let ctx = match field {
                 crate::parser::ClassField::Method(f) => {
+                    let level = if let Some(first) = f.arguments.first() {
+                        if first.name.0 == "self" {
+                            ".prototype."
+                        } else {
+                            "."
+                        }
+                    } else {
+                        "."
+                    }
+                    .to_string();
                     let ctx = ctx
                         .put(stmt.name.0.clone())
-                        .put(".")
+                        .put(level)
                         .put(f.name.0.clone())
                         .put(" = ");
                     let ctx = self.visit_lambda(
@@ -75,7 +90,7 @@ impl code::Visitor<code::Builder> for LuaEmitter {
                 crate::parser::ClassField::Let(f) => {
                     let ctx = ctx
                         .put(stmt.name.0.clone())
-                        .put(".")
+                        .put(".prototype.")
                         .put(f.target.0.clone())
                         .put(" = ");
                     let ctx = if let Some(value) = f.value.as_ref() {
