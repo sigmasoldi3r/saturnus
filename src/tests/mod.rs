@@ -5,6 +5,7 @@ use crate::{
 };
 
 mod assignment;
+mod classes;
 mod collections;
 mod conditions;
 mod functions;

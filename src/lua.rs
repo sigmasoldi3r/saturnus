@@ -1,6 +1,8 @@
 use crate::{
     code::{self},
-    parser::{Assignment, BinaryExpression, DotExpression, Identifier, Operator},
+    parser::{
+        Assignment, BinaryExpression, DotExpression, Identifier, Lambda, LambdaBody, Operator,
+    },
 };
 
 pub struct LuaEmitter;
@@ -21,11 +23,90 @@ impl code::Visitor<code::Builder> for LuaEmitter {
         ctx: code::Builder,
         stmt: &crate::parser::Class,
     ) -> Result<code::Builder, code::VisitError> {
-        Ok(ctx
+        let ctx = ctx
             .line()
-            .put("local ")
-            .put(stmt.name.0.clone())
-            .put(" = {};"))
+            .put(format!("local {} = {{}};", stmt.name.0.clone()))
+            .line()
+            .put(format!("{}.__meta__ = {{}};", stmt.name.0.clone()))
+            .line()
+            .put(format!(
+                "{}.__meta__.__call = function(self, struct)",
+                stmt.name.0.clone()
+            ))
+            .push()
+            .line()
+            .put("return setmetatable(struct, self.prototype.__meta__);")
+            .pop()
+            .unwrap()
+            .line()
+            .put("end;")
+            .line()
+            .put(format!("{}.prototype = {{}};", stmt.name.0.clone()))
+            .line()
+            .put(format!(
+                "{}.prototype.__meta__ = {{}};",
+                stmt.name.0.clone()
+            ))
+            .line()
+            .put(format!(
+                "{}.prototype.__meta__.__index = {}.prototype;",
+                stmt.name.0.clone(),
+                stmt.name.0.clone()
+            ))
+            .line()
+            .put(format!(
+                "setmetatable({}, {}.__meta__);",
+                stmt.name.0.clone(),
+                stmt.name.0.clone()
+            ));
+        let ctx = stmt.fields.iter().fold(Ok(ctx), |ctx, field| {
+            let ctx = ctx?.line();
+            let ctx = match field {
+                crate::parser::ClassField::Method(f) => {
+                    let level = if let Some(first) = f.arguments.first() {
+                        if first.name.0 == "self" {
+                            ".prototype."
+                        } else {
+                            "."
+                        }
+                    } else {
+                        "."
+                    }
+                    .to_string();
+                    let ctx = ctx
+                        .put(stmt.name.0.clone())
+                        .put(level)
+                        .put(f.name.0.clone())
+                        .put(" = ");
+                    let ctx = self.visit_lambda(
+                        ctx,
+                        &Lambda {
+                            arguments: f.arguments.clone(),
+                            body: LambdaBody::Complex(f.body.clone()),
+                        },
+                    )?;
+                    ctx.put(";")
+                }
+                crate::parser::ClassField::Let(f) => {
+                    let ctx = ctx
+                        .put(stmt.name.0.clone())
+                        .put(".prototype.")
+                        .put(f.target.0.clone())
+                        .put(" = ");
+                    let ctx = if let Some(value) = f.value.as_ref() {
+                        self.visit_expression(ctx, value)?
+                    } else {
+                        ctx.put("nil")
+                    };
+                    ctx.put(";")
+                }
+                crate::parser::ClassField::Operator(_) => {
+                    todo!("Operator overload not implemented yet")
+                }
+            };
+            Ok(ctx)
+        })?;
+        Ok(ctx)
     }
 
     fn visit_fn(
@@ -81,7 +162,7 @@ impl code::Visitor<code::Builder> for LuaEmitter {
     fn visit_declaration(
         &self,
         ctx: code::Builder,
-        stmt: &crate::parser::Declaration,
+        stmt: &crate::parser::Let,
     ) -> Result<code::Builder, code::VisitError> {
         let ctx = ctx
             .line()
@@ -132,7 +213,11 @@ impl code::Visitor<code::Builder> for LuaEmitter {
         ctx: code::Builder,
         expr: &crate::parser::DotExpression,
     ) -> Result<code::Builder, code::VisitError> {
-        let ctx = ctx.put(expr.0.first().unwrap().0.clone());
+        let ctx = if let Some(first) = expr.0.first() {
+            ctx.put(first.0.clone())
+        } else {
+            ctx
+        };
         let ctx = expr
             .0
             .iter()
@@ -146,13 +231,37 @@ impl code::Visitor<code::Builder> for LuaEmitter {
         ctx: code::Builder,
         expr: &crate::parser::CallExpression,
     ) -> Result<code::Builder, code::VisitError> {
-        let ctx = self.visit_reference(ctx, &expr.target)?.put("(");
-        let ctx = if let Some(first) = expr.arguments.0.first() {
+        let dot = if expr.static_target.is_some() {
+            expr.target.clone()
+        } else if expr.target.0.len() > 1 {
+            DotExpression(
+                expr.target
+                    .0
+                    .iter()
+                    .rev()
+                    .skip(1)
+                    .rev()
+                    .map(|x| x.clone())
+                    .collect(),
+            )
+        } else {
+            expr.target.clone()
+        };
+        let ctx = self.visit_reference(ctx, &dot)?;
+        let ctx = if let Some(static_target) = expr.static_target.as_ref() {
+            ctx.put(".").put(static_target.0.clone())
+        } else if expr.target.0.len() > 1 {
+            ctx.put(":").put(expr.target.0.last().unwrap().0.clone())
+        } else {
+            ctx
+        };
+        let ctx = ctx.put("(");
+        let ctx = if let Some(first) = expr.arguments.first() {
             self.visit_expression(ctx, first)?
         } else {
             ctx
         };
-        let ctx = expr.arguments.0.iter().skip(1).fold(Ok(ctx), |ctx, expr| {
+        let ctx = expr.arguments.iter().skip(1).fold(Ok(ctx), |ctx, expr| {
             self.visit_expression(ctx.map(|b| b.put(", "))?, expr)
         })?;
         Ok(ctx.put(")"))
@@ -163,7 +272,26 @@ impl code::Visitor<code::Builder> for LuaEmitter {
         ctx: code::Builder,
         expr: &crate::parser::Tuple,
     ) -> Result<code::Builder, code::VisitError> {
-        todo!()
+        let ctx = ctx.put("{");
+        let ctx = if let Some(first) = expr.0.first().as_ref() {
+            let ctx = ctx.put(format!("_0 = "));
+            self.visit_expression(ctx, first)?
+        } else {
+            ctx
+        };
+        let ctx = expr
+            .0
+            .iter()
+            .skip(1)
+            .fold(Ok((ctx, 1_u16)), |ctx, value| {
+                let (ctx, i) = ctx?;
+                let ctx = ctx.put(format!(", _{} = ", i));
+                let ctx = self.visit_expression(ctx, value)?;
+                Ok((ctx, i + 1))
+            })?
+            .0;
+        let ctx = ctx.put("}");
+        Ok(ctx)
     }
 
     fn visit_number(
@@ -196,7 +324,7 @@ impl code::Visitor<code::Builder> for LuaEmitter {
         expr: &crate::parser::BinaryExpression,
     ) -> Result<code::Builder, code::VisitError> {
         let ctx = self.visit_expression(ctx, &expr.left)?.put(" ");
-        let ctx = match expr.operator {
+        let ctx = match expr.operator.clone() {
             // Basic math
             Operator::Plus => ctx.put("+"),
             Operator::Minus => ctx.put("-"),
@@ -204,6 +332,7 @@ impl code::Visitor<code::Builder> for LuaEmitter {
             Operator::Quotient => ctx.put("/"),
             Operator::Remainder => ctx.put("%"),
             Operator::Power => ctx.put("**"),
+            Operator::Concat => ctx.put(".."),
             // Comparison
             Operator::Greater => ctx.put(">"),
             Operator::GreaterEqual => ctx.put(">="),
@@ -211,7 +340,7 @@ impl code::Visitor<code::Builder> for LuaEmitter {
             Operator::LessEqual => ctx.put("<="),
             Operator::Equal => ctx.put("=="),
             Operator::NotEqual => ctx.put("~="),
-            _ => todo!("Binary operator not supported!"),
+            op => todo!("Binary operator {:?} not supported!", op),
         };
         let ctx = self.visit_expression(ctx.put(" "), &expr.right)?;
         Ok(ctx)

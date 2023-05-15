@@ -9,6 +9,45 @@ will arrive in the future, so stay tuned if you like the language.
 The original purpose of this language was to provide an easy-to-learn syntax,
 and fast compilation times, to replace Lua scripts currently.
 
+## Getting started
+
+In order to compile your first file, you can check out the `/examples` folder,
+and then, invoke the compiler from a terminal like:
+
+```sh
+./saturnus -i examples/hello_world_oop.saturn
+```
+
+(Or if you're using windows cmd)
+```cmd
+.\saturnus.exe -i examples\hello_world_oop.saturn
+```
+
+To get more help about the parameters, type:
+```sh
+./saturnus --help
+```
+
+### Where to get the binaries?
+
+Currently the CD is disabled, however you can grab the latest [artifacts from
+the nightly branch][nightly], **BUT!**
+
+[nightly]: https://github.com/sigmasoldi3r/Saturnus/actions/workflows/build-artifacts.yml
+
+**BUT...** beware that the artifacts will be surely outdated.
+
+The safest way is just to clone this repository, and run:
+
+```sh
+cargo build --release
+```
+
+Then you will have the executable at `target/release/saturnus`. (You need the
+[Rust tooling][rustup] to make that happen).
+
+[rustup]: https://www.rust-lang.org/learn/get-started
+
 ## Why replace Lua?
 
 I like many aspects of Lua, specially how fast and lightweight the VM is. But
@@ -54,3 +93,13 @@ end
 let greeter = Greeter::new("Saturnus");
 println(greeter.greet());
 ```
+
+## Yet TODO:
+
+- [ ] Implement a simple build system
+- [ ] Match structure
+- [ ] Add loops (for, while and "loop")
+- [ ] Decorator code generation
+- [ ] Operator overload
+- [ ] Bitwise operators (This one is easy)
+- [ ] Custom operator dispatch code generation
