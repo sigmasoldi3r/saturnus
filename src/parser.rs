@@ -100,6 +100,8 @@ peg::parser! {
             left:(@) _ "<|>" _ right:@ { BinaryExpression { left, right, operator: Operator::Disjoin }.into() }
             left:(@) _ "<|" _ right:@ { BinaryExpression { left, right, operator: Operator::PipeLeft }.into() }
             left:(@) _ "|>" _ right:@ { BinaryExpression { left, right, operator: Operator::PipeRight }.into() }
+            left:(@) _ "<?" _ right:@ { BinaryExpression { left, right, operator: Operator::AskRight }.into() }
+            left:(@) _ "?>" _ right:@ { BinaryExpression { left, right, operator: Operator::AskLeft }.into() }
             --
             left:(@) _ "?:" _ right:@ { BinaryExpression { left, right, operator: Operator::Elvis }.into() }
             left:(@) _ "??" _ right:@ { BinaryExpression { left, right, operator: Operator::Coalesce }.into() }
@@ -239,11 +241,9 @@ peg::parser! {
             / "%" { Operator::Remainder }
             / ">=<" { Operator::Funnel }
             / ">=" { Operator::GreaterEqual }
-            / ">" { Operator::Greater }
             / "<=>" { Operator::Starship }
             / "<=" { Operator::LessEqual }
             / "<>" { Operator::NotEqual }
-            / "<" { Operator::Less }
             / "==" { Operator::Equal }
             / "and" { Operator::LogicAnd }
             / "or" { Operator::LogicOr }
@@ -265,9 +265,13 @@ peg::parser! {
             / "<|>" { Operator::Disjoin }
             / "<|" { Operator::PipeLeft }
             / "|>" { Operator::PipeRight }
+            / "?>" { Operator::AskRight }
+            / "<?" { Operator::AskLeft }
             / "?:" { Operator::Elvis }
             / "??" { Operator::Coalesce }
-    }
+            / ">" { Operator::Greater }
+            / "<" { Operator::Less }
+        }
 }
 
 #[derive(Debug, Clone)]
