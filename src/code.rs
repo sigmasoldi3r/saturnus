@@ -1,7 +1,4 @@
-use ast::{
-    Assignment, BinaryExpression, CallExpression, Class, DotExpression, Expression, Function, If,
-    Lambda, Let, Number, Return, Table, Tuple, UnaryExpression, Vector,
-};
+use ast::*;
 
 use crate::parser::{ast, Script};
 
@@ -28,6 +25,10 @@ pub trait Visitor<T> {
     fn visit_if(&self, ctx: T, expr: &If) -> Result<T, VisitError>;
     fn visit_table(&self, ctx: T, expr: &Table) -> Result<T, VisitError>;
     fn visit_vector(&self, ctx: T, expr: &Vector) -> Result<T, VisitError>;
+    fn visit_for(&self, ctx: T, expr: &For) -> Result<T, VisitError>;
+    fn visit_while(&self, ctx: T, expr: &While) -> Result<T, VisitError>;
+    fn visit_loop(&self, ctx: T, expr: &Loop) -> Result<T, VisitError>;
+    fn visit_match(&self, ctx: T, expr: &Match) -> Result<T, VisitError>;
 
     // Generically implementable matching patterns:
     fn visit_expression(&self, ctx: T, expression: &Expression) -> Result<T, VisitError> {
@@ -51,15 +52,15 @@ pub trait Visitor<T> {
             .iter()
             .fold(Ok(ctx), |ctx, stmt| match stmt {
                 ast::Statement::If(e) => self.visit_if(ctx?, e),
-                ast::Statement::For => todo!(),
-                ast::Statement::Loop => todo!(),
-                ast::Statement::While => todo!(),
+                ast::Statement::For(e) => self.visit_for(ctx?, e),
+                ast::Statement::Loop(e) => self.visit_loop(ctx?, e),
+                ast::Statement::While(e) => self.visit_while(ctx?, e),
                 ast::Statement::Return(e) => self.visit_return(ctx?, e),
                 ast::Statement::Class(e) => self.visit_class(ctx?, e),
                 ast::Statement::Function(e) => self.visit_fn(ctx?, e),
                 ast::Statement::Assignment(e) => self.visit_assignment(ctx?, e),
                 ast::Statement::Let(e) => self.visit_declaration(ctx?, e),
-                ast::Statement::Match => todo!(),
+                ast::Statement::Match(e) => self.visit_match(ctx?, e),
                 ast::Statement::Expression(e) => self.visit_expression_statement(ctx?, e),
             })
     }

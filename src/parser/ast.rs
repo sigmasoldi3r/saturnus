@@ -21,15 +21,9 @@ pub struct Function {
 }
 
 #[derive(Debug, Clone)]
-pub enum LambdaBody {
-    Complex(Script),
-    Simple(Expression),
-}
-
-#[derive(Debug, Clone)]
 pub struct Lambda {
     pub arguments: Vec<Argument>,
-    pub body: LambdaBody,
+    pub body: ScriptOrExpression,
 }
 
 #[derive(Debug, Clone)]
@@ -88,12 +82,48 @@ pub struct If {
 }
 
 #[derive(Debug, Clone)]
+pub struct For {
+    pub handler: Identifier,
+    pub target: Expression,
+    pub body: Script,
+}
+
+#[derive(Debug, Clone)]
+pub enum ExpressionOrLet {
+    Expression(Expression),
+    Let(Let),
+}
+
+#[derive(Debug, Clone)]
+pub struct While {
+    pub condition: ExpressionOrLet,
+    pub body: Script,
+}
+
+#[derive(Debug, Clone)]
+pub struct Loop {
+    pub body: Script,
+}
+
+#[derive(Debug, Clone)]
+pub enum ScriptOrExpression {
+    Script(Script),
+    Expression(Expression),
+}
+
+#[derive(Debug, Clone)]
+pub struct Match {
+    pub target: Expression,
+    pub branches: Vec<(Expression, ScriptOrExpression)>,
+}
+
+#[derive(Debug, Clone)]
 pub enum Statement {
     If(If),
-    Match,
-    For,
-    Loop,
-    While,
+    Match(Match),
+    For(For),
+    Loop(Loop),
+    While(While),
     Return(Return),
     Class(Class),
     Function(Function),

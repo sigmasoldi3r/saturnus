@@ -13,6 +13,9 @@ peg::parser! {
         rule statement() -> Statement
             = e:class() { Statement::Class(e) }
             / e:func() { Statement::Function(e) }
+            / e:for_each() { Statement::For(e) }
+            / e:while_loop() { Statement::While(e) }
+            / e:loop_loop() {  Statement::Loop(e) }
             / e:if_stmt() { Statement::If(e) }
             / e:declare_var() { Statement::Let(e) }
             / e:assignment() { Statement::Assignment(e) }
@@ -26,6 +29,21 @@ peg::parser! {
               "end"
             { If { condition, body, branches, else_branch } }
 
+        rule for_each() -> For
+            = "for" __ handler:identifier() __ "in" __ target:expression() __ "do"
+              body:script() END()
+            { For { handler, target, body } }
+
+        rule while_loop() -> While
+            = "while" __ c:expression() __ "do" body:script() END()
+            { While { condition: ExpressionOrLet::Expression(c), body } }
+            / "while" __ c:let_expression() __ "do" body:script() END()
+            { While { condition: ExpressionOrLet::Let(c), body } }
+
+        rule loop_loop() -> Loop
+            = "loop" body:script() END()
+            { Loop { body } }
+
         rule func() -> Function
             = decorators:decorator_list() FN() __ name:identifier() _ arguments:argument_list() body:script() END()
             { Function { name, decorators, body, arguments } }
@@ -38,8 +56,7 @@ peg::parser! {
             { Class { name, fields, decorators } }
 
         rule declare_var() -> Let
-            = "let" __ target:identifier() value:(_ "=" _ e:expression(){e})? _ EOS()
-            { Let { target, value } }
+            = e:let_expression() _ EOS() { e }
 
         rule assignment() -> Assignment
             = target:dot_expr() _ extra:assign_extra()? "=" _ value:expression() _ EOS()
@@ -126,11 +143,11 @@ peg::parser! {
 
         rule lambda() -> Lambda
             = FN() _ arguments:argument_list() _ expr:expression() _ END()
-            { Lambda { arguments, body: LambdaBody::Simple(expr) } }
+            { Lambda { arguments, body: ScriptOrExpression::Expression(expr) } }
             / FN() _ arguments:argument_list() body:script() END()
-            { Lambda { arguments, body: LambdaBody::Complex(body) } }
+            { Lambda { arguments, body: ScriptOrExpression::Script(body) } }
             / FN() _ arguments:argument_list() _ END()
-            { Lambda { arguments, body: LambdaBody::Complex(Script { statements: vec![] }) } }
+            { Lambda { arguments, body: ScriptOrExpression::Script(Script { statements: vec![] }) } }
 
         rule call_expr() -> CallExpression
             = target:dot_expr() static_target:(_ "::" _ e:identifier(){e})? _ arguments:wrapped_comma_expr()
@@ -160,6 +177,10 @@ peg::parser! {
             { Table { key_values } }
 
         // Auxiliaries and sub-expressions
+        rule let_expression() -> Let
+            = "let" __ target:identifier() value:(_ "=" _ e:expression(){e})?
+            { Let { target, value } }
+
         rule class_fields() -> ClassField
             = e:declare_var() { ClassField::Let(e) }
             / e:func() { ClassField::Method(e) }
