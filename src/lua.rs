@@ -254,7 +254,7 @@ impl code::Visitor<code::Builder> for LuaEmitter {
             match first {
                 ast::DotSegment::Identifier(e) => 
                 ctx.put(e.0.clone()),
-                ast::DotSegment::Expression(e) => panic!("Found an array access segment as first item! Perhaps you forgot to wrap [] between parens? ([])"),
+                ast::DotSegment::Expression(_) => panic!("Found an array access segment as first item! Perhaps you forgot to wrap [] between parens? ([])"),
             }
         } else {
             ctx
