@@ -226,56 +226,24 @@ I like many aspects of Lua, specially how fast and lightweight the VM is. But
 original Lua syntax is nowadays a little bit old, and it needs some rework to
 make the scripts less verbose and more easy to write.
 
-Among other things, here are some key aspects that Saturnus changes:
+Aside of the [Language Basics](#language-basics) section, there are other key
+aspects of the language:
 
-- Function syntax is simpler, `fn` instead of `local function`.
-- Lambdas are simpler yet familiar, Eg: `fn() 1 + 2 end`.
-- More idiomatic class definitions: `class MyClass end` instead of [the classic one](https://www.lua.org/manual/2.4/node36.html).
 - Decorators!
 - A built-in prelude library for runtime type checks.
-- Nice string interpolation.
+- ~~Nice string interpolation.~~ (Maybe not?)
 - Terser loops.
 - Built-in operator overloading.
 - Custom operators.
 - Some [RTTI](https://en.wikipedia.org/wiki/Run-time_type_information) (Which enables reflection).
 
-## How does it look?
+## The MVP release to-do list:
 
-> *note*: The "prelude" library is not yet implemented, and the module import
-> is yet to be drafted.
-
-```rs
-use println from "prelude";
-use rti.Typed from "prelude";
-// Old lua way? This is also compatible, but not very cross-target friendly.
-let my_mod = require "My Mod";
-
-class Greeter
-  let who = "Unnamed";
-
-  // This will make the function panic if "who" is not a string!
-  @Typed([rti.String])
-  fn new(who)
-    Greeter { who }
-  end
-
-  fn greet(self)
-    return "Hello {self.who}!";
-  end
-end
-
-// The classic OOP hello world:
-let greeter = Greeter::new("Saturnus");
-println(greeter.greet());
-```
-
-## Yet TODO:
-
-- [ ] Implement a simple build system
+- [x] ~~Implement a simple build system~~ **Janus** comes to the rescue!
 - [ ] Match structure
-- [ ] Add loops (for, while and "loop")
+- [x] ~~Add loops (for, while and "loop")~~
 - [ ] Decorator code generation
-- [ ] Operator overload
+- [x] ~~Operator overload~~
 - [ ] Bitwise operators (This one is easy)
 - [ ] Custom operator dispatch code generation
 - [ ] Destructuring assignment
