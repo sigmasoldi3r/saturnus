@@ -5,9 +5,9 @@ use spectral::prelude::*;
 fn simple_named_function() {
     let out = compile(
         "
-    fn foo(a, b)
+    fn foo(a, b) {
       return 2 + a + b;
-    end
+    }
 ",
     );
     assert_that!(out).is_equal_to(
@@ -23,7 +23,7 @@ end"
 fn simple_named_empty_function() {
     let out = compile(
         "
-    fn foo(a, b) end
+    fn foo(a, b) {}
 ",
     );
     assert_that!(out).is_equal_to(
@@ -36,7 +36,7 @@ end"
 
 #[test]
 fn inline_lambda() {
-    let out = compile_expr("fn(a, b) a + b end");
+    let out = compile_expr("fn(a, b): a + b");
     assert_that!(out).is_equal_to(
         "function(a, b)
   return a + b;
@@ -47,7 +47,7 @@ end"
 
 #[test]
 fn inline_empty_lambda() {
-    let out = compile_expr("fn(a, b) end");
+    let out = compile_expr("fn(a, b) {}");
     assert_that!(out).is_equal_to(
         "function(a, b)
 end"
@@ -58,13 +58,38 @@ end"
 #[test]
 fn block_lambda() {
     let out = compile_expr(
-        "fn(a, b)
-      return a + b;
-    end",
+        "
+        fn(a, b) {
+            return a + b;
+        }
+    "
+        .trim(),
     );
     assert_that!(out).is_equal_to(
         "function(a, b)
   return a + b;
+end"
+        .to_string(),
+    );
+}
+
+#[test]
+fn nested_lambda_code() {
+    let out = compile(
+        "
+    fn factory(a) {
+        return fn(b) {
+            return a + b;
+        };
+    }
+    ",
+    );
+    assert_that!(out).is_equal_to(
+        "
+local function factory(a)
+  return function(b)
+    return a + b;
+  end;
 end"
         .to_string(),
     );

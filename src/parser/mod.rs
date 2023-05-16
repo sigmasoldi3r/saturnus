@@ -23,36 +23,38 @@ peg::parser! {
             / e:expression() _ EOS() { Statement::Expression(e) }
 
         rule if_stmt() -> If
-            = "if" __ condition:expression() __ "then" body:script()
-              branches:("else" __ "if" __ c:expression() __ "then" s:script() { (c, s) })*
-              else_branch:("else" e:script() {e})?
-              "end"
+            = "if" __ condition:expression() __ "{" body:script()
+              branches:("}" _ "else" __ "if" __ c:expression() __ "{" s:script() { (c, s) })*
+              else_branch:("}" _ "else" _ "{" e:script() {e})?
+              "}"
             { If { condition, body, branches, else_branch } }
 
         rule for_each() -> For
-            = "for" __ handler:identifier() __ "in" __ target:expression() __ "do"
-              body:script() END()
+            = "for" __ handler:identifier() __ "in" __ target:expression() _ "{"
+              body:script() "}"
             { For { handler, target, body } }
 
         rule while_loop() -> While
-            = "while" __ c:expression() __ "do" body:script() END()
+            = "while" __ c:expression() _ "{" body:script() "}"
             { While { condition: ExpressionOrLet::Expression(c), body } }
-            / "while" __ c:let_expression() __ "do" body:script() END()
+            / "while" __ c:let_expression() _ "{" body:script() "}"
             { While { condition: ExpressionOrLet::Let(c), body } }
 
         rule loop_loop() -> Loop
-            = "loop" body:script() END()
+            = "loop" _ "{" body:script() "}"
             { Loop { body } }
 
         rule func() -> Function
-            = decorators:decorator_list() FN() __ name:identifier() _ arguments:argument_list() body:script() END()
+            = decorators:decorator_list() FN() __ name:identifier() _ arguments:argument_list() _ "{" body:script() "}"
             { Function { name, decorators, body, arguments } }
+            / decorators:decorator_list() FN() __ name:identifier() _ arguments:argument_list() _ "{" _ "}"
+            { Function { name, decorators, body: Script { statements: vec![] }, arguments } }
 
         rule class() -> Class
             = decorators:decorator_list() CLASS()
-              __ name:identifier()
+              __ name:identifier() _ "{"
               fields:(_ f:class_fields() _ {f})*
-              _ END()
+              _ "}"
             { Class { name, fields, decorators } }
 
         rule declare_var() -> Let
@@ -146,11 +148,11 @@ peg::parser! {
             / e:("[" _ e:expression() _ "]" {e}) { DotSegment::Expression(e) }
 
         rule lambda() -> Lambda
-            = FN() _ arguments:argument_list() _ expr:expression() _ END()
-            { Lambda { arguments, body: ScriptOrExpression::Expression(expr) } }
-            / FN() _ arguments:argument_list() body:script() END()
+            = FN() _ arguments:argument_list() _ "{" body:script() "}"
             { Lambda { arguments, body: ScriptOrExpression::Script(body) } }
-            / FN() _ arguments:argument_list() _ END()
+            / FN() _ arguments:argument_list() _ ":" _ expr:expression()
+            { Lambda { arguments, body: ScriptOrExpression::Expression(expr) } }
+            / FN() _ arguments:argument_list() _ "{" _ "}"
             { Lambda { arguments, body: ScriptOrExpression::Script(Script { statements: vec![] }) } }
 
         rule call_expr() -> CallExpression
@@ -188,7 +190,7 @@ peg::parser! {
         rule class_fields() -> ClassField
             = e:declare_var() { ClassField::Let(e) }
             / e:func() { ClassField::Method(e) }
-            / "operator" _ operator:any_operator() _ arguments:argument_list() body:script() END()
+            / "operator" _ operator:any_operator() _ arguments:argument_list() _ "{" body:script() "}"
             { ClassField::Operator(OperatorOverload { operator, arguments, body }) }
 
         rule assign_extra() -> Operator

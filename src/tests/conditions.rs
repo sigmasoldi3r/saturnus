@@ -5,9 +5,9 @@ use spectral::prelude::*;
 fn simple_if_statement() {
     let out = compile(
         "
-      if some.complex() > thing then
+      if some.complex() > thing {
         print(\"hello world!\");
-      end
+      }
     ",
     );
     assert_that!(out).is_equal_to(
@@ -23,11 +23,11 @@ end"
 fn if_with_else() {
     let out = compile(
         "
-  if some.thing then
+  if some.thing {
     thing();
-  else
+  } else {
     print(\"2 + 2 = \", 2 + 2);
-  end
+  }
 ",
     );
     assert_that!(out).is_equal_to(
@@ -45,11 +45,11 @@ end"
 fn if_with_branches() {
     let out = compile(
         "
-  if some.thing then
+  if some.thing {
     thing();
-  else if the_branch() then
+  } else if the_branch() {
     print(\"2 + 2 = \", 2 + 2);
-  end
+  }
 ",
     );
     assert_that!(out).is_equal_to(
@@ -67,13 +67,13 @@ end"
 fn if_with_branches_and_else() {
     let out = compile(
         "
-  if some.thing then
+  if some.thing {
     thing();
-  else if another.thing then
+  } else if another.thing {
     another(one);
-  else
+  } else {
     print(\"2 + 2 = \", 2 + 2);
-  end
+  }
 ",
     );
     assert_that!(out).is_equal_to(
