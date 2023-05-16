@@ -47,7 +47,7 @@ struct Args {
     indentation: usize,
 }
 
-fn get_default_output(str: &String) -> String {
+fn get_default_output(str: &Path) -> String {
     Path::new(str)
         .with_extension("lua")
         .to_str()
@@ -62,11 +62,11 @@ fn main() {
     } else {
         " ".repeat(args.indentation)
     };
-    let in_path = args.input;
-    let out_path = args.output.unwrap_or(get_default_output(&in_path));
-    let mut in_file = File::open(in_path).unwrap();
-    let mut input = String::new();
-    in_file.read_to_string(&mut input).unwrap();
+    use std::fs::read_to_string;
+    let in_path = Path::new(&args.input);
+    println!("Compiling {:?}...", in_path);
+    let out_path = args.output.unwrap_or(get_default_output(in_path));
+    let input = read_to_string(in_path).unwrap();
     let output = lua::LuaEmitter
         .visit_script(
             code::Builder::new(indent),

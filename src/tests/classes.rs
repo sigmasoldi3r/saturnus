@@ -41,3 +41,34 @@ local hello = Hello({name = \"World\"});"
             .to_string(),
     );
 }
+
+#[test]
+fn operator_overload_code_generation() {
+    let out = compile(
+        "
+    class Hello
+      let value = 0;
+      operator +(self, other)
+        return self.value + other.value;
+      end
+    end
+  ",
+    );
+    assert_that!(out).is_equal_to(
+        "
+local Hello = {};
+Hello.__meta__ = {};
+Hello.__meta__.__call = function(self, struct)
+  return setmetatable(struct, self.prototype.__meta__);
+end;
+Hello.prototype = {};
+Hello.prototype.__meta__ = {};
+Hello.prototype.__meta__.__index = Hello.prototype;
+setmetatable(Hello, Hello.__meta__);
+Hello.prototype.value = 0;
+Hello.prototype.__meta__.__add = function(self, other)
+  return self.value + other.value;
+end;"
+            .to_string(),
+    );
+}

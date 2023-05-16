@@ -1,3 +1,6 @@
+pub mod ast;
+
+use ast::*;
 use std::vec;
 
 peg::parser! {
@@ -10,6 +13,9 @@ peg::parser! {
         rule statement() -> Statement
             = e:class() { Statement::Class(e) }
             / e:func() { Statement::Function(e) }
+            / e:for_each() { Statement::For(e) }
+            / e:while_loop() { Statement::While(e) }
+            / e:loop_loop() {  Statement::Loop(e) }
             / e:if_stmt() { Statement::If(e) }
             / e:declare_var() { Statement::Let(e) }
             / e:assignment() { Statement::Assignment(e) }
@@ -23,6 +29,21 @@ peg::parser! {
               "end"
             { If { condition, body, branches, else_branch } }
 
+        rule for_each() -> For
+            = "for" __ handler:identifier() __ "in" __ target:expression() __ "do"
+              body:script() END()
+            { For { handler, target, body } }
+
+        rule while_loop() -> While
+            = "while" __ c:expression() __ "do" body:script() END()
+            { While { condition: ExpressionOrLet::Expression(c), body } }
+            / "while" __ c:let_expression() __ "do" body:script() END()
+            { While { condition: ExpressionOrLet::Let(c), body } }
+
+        rule loop_loop() -> Loop
+            = "loop" body:script() END()
+            { Loop { body } }
+
         rule func() -> Function
             = decorators:decorator_list() FN() __ name:identifier() _ arguments:argument_list() body:script() END()
             { Function { name, decorators, body, arguments } }
@@ -35,11 +56,10 @@ peg::parser! {
             { Class { name, fields, decorators } }
 
         rule declare_var() -> Let
-            = "let" __ target:identifier() value:(_ "=" _ e:expression(){e})? _ EOS()
-            { Let { target, value } }
+            = e:let_expression() _ EOS() { e }
 
         rule assignment() -> Assignment
-            = target:identifier() _ extra:assign_extra()? "=" _ value:expression() _ EOS()
+            = target:dot_expr() _ extra:assign_extra()? "=" _ value:expression() _ EOS()
             { Assignment { target, value, extra } }
 
         rule return_stmt() -> Return
@@ -123,11 +143,11 @@ peg::parser! {
 
         rule lambda() -> Lambda
             = FN() _ arguments:argument_list() _ expr:expression() _ END()
-            { Lambda { arguments, body: LambdaBody::Simple(expr) } }
+            { Lambda { arguments, body: ScriptOrExpression::Expression(expr) } }
             / FN() _ arguments:argument_list() body:script() END()
-            { Lambda { arguments, body: LambdaBody::Complex(body) } }
+            { Lambda { arguments, body: ScriptOrExpression::Script(body) } }
             / FN() _ arguments:argument_list() _ END()
-            { Lambda { arguments, body: LambdaBody::Complex(Script { statements: vec![] }) } }
+            { Lambda { arguments, body: ScriptOrExpression::Script(Script { statements: vec![] }) } }
 
         rule call_expr() -> CallExpression
             = target:dot_expr() static_target:(_ "::" _ e:identifier(){e})? _ arguments:wrapped_comma_expr()
@@ -146,6 +166,7 @@ peg::parser! {
 
         rule string() -> String
             = "\"" value:$((!"\"" ANY())*) "\"" { value.into() }
+            / "'" value:$((!"'" ANY())*) "'" { value.into() }
 
         rule vector_expr() -> Vector
             = "[" _ expressions:comma_expr() _ "]"
@@ -156,12 +177,15 @@ peg::parser! {
             { Table { key_values } }
 
         // Auxiliaries and sub-expressions
+        rule let_expression() -> Let
+            = "let" __ target:identifier() value:(_ "=" _ e:expression(){e})?
+            { Let { target, value } }
+
         rule class_fields() -> ClassField
             = e:declare_var() { ClassField::Let(e) }
             / e:func() { ClassField::Method(e) }
-            // TODO: Work on OP Overload
-            // / "operator" _ operator:any_operator() _ arguments:argument_list()
-            // { ClassField::Operator(OperatorOverload { operator, arguments }) }
+            / "operator" _ operator:any_operator() _ arguments:argument_list() body:script() END()
+            { ClassField::Operator(OperatorOverload { operator, arguments, body }) }
 
         rule assign_extra() -> Operator
             = "+" { Operator::Plus }
@@ -274,238 +298,6 @@ peg::parser! {
             / ">" { Operator::Greater }
             / "<" { Operator::Less }
         }
-}
-
-#[derive(Debug, Clone)]
-pub struct Decorator {
-    pub target: DotExpression,
-    pub arguments: Option<Vec<Expression>>,
-}
-
-#[derive(Debug, Clone)]
-pub struct Argument {
-    pub name: Identifier,
-    pub decorators: Vec<Decorator>,
-}
-
-#[derive(Debug, Clone)]
-pub struct Function {
-    pub name: Identifier,
-    pub arguments: Vec<Argument>,
-    pub decorators: Vec<Decorator>,
-    pub body: Script,
-}
-
-#[derive(Debug, Clone)]
-pub enum LambdaBody {
-    Complex(Script),
-    Simple(Expression),
-}
-
-#[derive(Debug, Clone)]
-pub struct Lambda {
-    pub arguments: Vec<Argument>,
-    pub body: LambdaBody,
-}
-
-#[derive(Debug, Clone)]
-pub struct Tuple(pub Vec<Expression>);
-
-#[derive(Debug, Clone)]
-pub struct Identifier(pub String);
-
-#[derive(Debug, Clone)]
-pub struct DotExpression(pub Vec<Identifier>);
-
-#[derive(Debug, Clone)]
-pub struct Let {
-    pub target: Identifier,
-    pub value: Option<Expression>,
-}
-
-#[derive(Debug, Clone)]
-pub struct Assignment {
-    pub target: Identifier,
-    pub value: Expression,
-    pub extra: Option<Operator>,
-}
-
-#[derive(Debug, Clone)]
-pub struct Class {
-    pub name: Identifier,
-    pub decorators: Vec<Decorator>,
-    pub fields: Vec<ClassField>,
-}
-
-#[derive(Debug, Clone)]
-pub struct CallExpression {
-    pub target: DotExpression,
-    pub static_target: Option<Identifier>,
-    pub arguments: Vec<Expression>,
-}
-
-#[derive(Debug, Clone)]
-pub struct Return {
-    pub value: Expression,
-}
-
-#[derive(Debug, Clone)]
-pub enum Number {
-    Float(f64),
-    Integer(i64),
-}
-
-#[derive(Debug, Clone)]
-pub struct If {
-    pub condition: Expression,
-    pub body: Script,
-    pub branches: Vec<(Expression, Script)>,
-    pub else_branch: Option<Script>,
-}
-
-#[derive(Debug, Clone)]
-pub enum Statement {
-    If(If),
-    Match,
-    For,
-    Loop,
-    While,
-    Return(Return),
-    Class(Class),
-    Function(Function),
-    Assignment(Assignment),
-    Let(Let),
-    Expression(Expression),
-}
-
-#[derive(Debug, Clone)]
-pub struct OperatorOverload {
-    operator: Operator,
-    arguments: Vec<Argument>,
-}
-
-#[derive(Debug, Clone)]
-pub enum ClassField {
-    Method(Function),
-    Let(Let),
-    Operator(OperatorOverload),
-}
-
-#[derive(Debug, Clone)]
-pub enum Operator {
-    // Arithmetic
-    Plus,
-    Minus,
-    Quotient,
-    Product,
-    Power,
-    Remainder,
-    Concat,
-    // Comparison
-    Equal,
-    Less,
-    LessEqual,
-    Greater,
-    GreaterEqual,
-    NotEqual,
-    Starship,
-    Funnel,
-    // Logic
-    LogicOr,
-    LogicAnd,
-    LogicNor,
-    LogicNand,
-    LogicXOr,
-    LogicNot,
-    // Binary
-    BWiseAnd,
-    BWiseOr,
-    BWiseNot,
-    BWiseLShift,
-    BWiseRShift,
-    BWiseLShiftRoundtrip,
-    BWiseRShiftRoundtrip,
-    // Special operators (No native equivalent for these)
-    Count, // Except this, in Lua.
-    ArrowRight,
-    ArrowLeft,
-    BothWays,
-    ArrowStandRight,
-    ArrowStandLeft,
-    ArrowStandBoth,
-    Exclamation,
-    Tilde,
-    Disjoin,
-    Elastic,
-    ElasticRight,
-    ElasticLeft,
-    Elvis,
-    Coalesce,
-    PinguRight,
-    PinguLeft,
-    PinguBoth,
-    PipeRight,
-    PipeLeft,
-    AskRight,
-    AskLeft,
-    Bolted,
-    Dollar,
-    ExclamationQuestion,
-}
-
-#[derive(Debug, Clone)]
-pub struct BinaryExpression {
-    pub left: Expression,
-    pub right: Expression,
-    pub operator: Operator,
-}
-impl Into<Expression> for BinaryExpression {
-    fn into(self) -> Expression {
-        Expression::Binary(Box::new(self))
-    }
-}
-
-#[derive(Debug, Clone)]
-pub struct UnaryExpression {
-    pub expression: Expression,
-    pub operator: Operator,
-}
-impl Into<Expression> for UnaryExpression {
-    fn into(self) -> Expression {
-        Expression::Unary(Box::new(self))
-    }
-}
-
-#[derive(Debug, Clone)]
-pub struct Vector {
-    pub expressions: Vec<Expression>,
-}
-
-#[derive(Debug, Clone)]
-pub struct Table {
-    pub key_values: Vec<(TableKeyExpression, Expression)>,
-}
-
-#[derive(Debug, Clone)]
-pub enum TableKeyExpression {
-    Identifier(Identifier),
-    Expression(Expression),
-    Implicit(Identifier),
-}
-
-#[derive(Debug, Clone)]
-pub enum Expression {
-    Lambda(Box<Lambda>),
-    Reference(DotExpression),
-    Call(CallExpression),
-    Tuple(Tuple),
-    Table(Table),
-    Vector(Vector),
-    Number(Number),
-    String(String),
-    Binary(Box<BinaryExpression>),
-    Unary(Box<UnaryExpression>),
-    Unit,
 }
 
 pub struct ParseFailure {

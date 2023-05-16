@@ -1,8 +1,6 @@
 use crate::{
     code::{self},
-    parser::{
-        Assignment, BinaryExpression, DotExpression, Identifier, Lambda, LambdaBody, Operator,
-    },
+    parser::ast::{self},
 };
 
 pub struct LuaEmitter;
@@ -11,7 +9,7 @@ impl code::Visitor<code::Builder> for LuaEmitter {
     fn visit_return(
         &self,
         ctx: code::Builder,
-        stmt: &crate::parser::Return,
+        stmt: &ast::Return,
     ) -> Result<code::Builder, code::VisitError> {
         let ctx = ctx.line().put("return ");
         let ctx = self.visit_expression(ctx, &stmt.value)?;
@@ -21,7 +19,7 @@ impl code::Visitor<code::Builder> for LuaEmitter {
     fn visit_class(
         &self,
         ctx: code::Builder,
-        stmt: &crate::parser::Class,
+        stmt: &ast::Class,
     ) -> Result<code::Builder, code::VisitError> {
         let ctx = ctx
             .line()
@@ -62,7 +60,7 @@ impl code::Visitor<code::Builder> for LuaEmitter {
         let ctx = stmt.fields.iter().fold(Ok(ctx), |ctx, field| {
             let ctx = ctx?.line();
             let ctx = match field {
-                crate::parser::ClassField::Method(f) => {
+                ast::ClassField::Method(f) => {
                     let level = if let Some(first) = f.arguments.first() {
                         if first.name.0 == "self" {
                             ".prototype."
@@ -80,19 +78,19 @@ impl code::Visitor<code::Builder> for LuaEmitter {
                         .put(" = ");
                     let ctx = self.visit_lambda(
                         ctx,
-                        &Lambda {
+                        &ast::Lambda {
                             arguments: f.arguments.clone(),
-                            body: LambdaBody::Complex(f.body.clone()),
+                            body: ast::ScriptOrExpression::Script(f.body.clone()),
                         },
                     )?;
                     ctx.put(";")
                 }
-                crate::parser::ClassField::Let(f) => {
-                    let ctx = ctx
-                        .put(stmt.name.0.clone())
-                        .put(".prototype.")
-                        .put(f.target.0.clone())
-                        .put(" = ");
+                ast::ClassField::Let(f) => {
+                    let ctx = ctx.put(format!(
+                        "{}.prototype.{} = ",
+                        stmt.name.0.clone(),
+                        f.target.0.clone()
+                    ));
                     let ctx = if let Some(value) = f.value.as_ref() {
                         self.visit_expression(ctx, value)?
                     } else {
@@ -100,8 +98,37 @@ impl code::Visitor<code::Builder> for LuaEmitter {
                     };
                     ctx.put(";")
                 }
-                crate::parser::ClassField::Operator(_) => {
-                    todo!("Operator overload not implemented yet")
+                ast::ClassField::Operator(f) => {
+                    let target = match f.operator {
+                        ast::Operator::Plus => "__add",
+                        ast::Operator::Minus => "__sub",
+                        ast::Operator::Product => "__mul",
+                        ast::Operator::Quotient => "__div",
+                        ast::Operator::Remainder => "__mod",
+                        ast::Operator::Power => "__pow",
+                        ast::Operator::Equal => "__eq",
+                        ast::Operator::Less => "__lt",
+                        ast::Operator::LessEqual => "__le",
+                        ast::Operator::Concat => "__concat",
+                        ast::Operator::Count => "__len",
+                        _ => todo!(
+                            "Operator overload for {:?} operator not supported",
+                            f.operator.clone()
+                        ),
+                    };
+                    let ctx = ctx.put(format!(
+                        "{}.prototype.__meta__.{} = ",
+                        stmt.name.0.clone(),
+                        target
+                    ));
+                    let ctx = self.visit_lambda(
+                        ctx,
+                        &ast::Lambda {
+                            arguments: f.arguments.clone(),
+                            body: ast::ScriptOrExpression::Script(f.body.clone()),
+                        },
+                    )?;
+                    ctx.put(";")
                 }
             };
             Ok(ctx)
@@ -112,7 +139,7 @@ impl code::Visitor<code::Builder> for LuaEmitter {
     fn visit_fn(
         &self,
         ctx: code::Builder,
-        stmt: &crate::parser::Function,
+        stmt: &ast::Function,
     ) -> Result<code::Builder, code::VisitError> {
         let ctx = ctx
             .line()
@@ -138,16 +165,26 @@ impl code::Visitor<code::Builder> for LuaEmitter {
     fn visit_assignment(
         &self,
         ctx: code::Builder,
-        stmt: &crate::parser::Assignment,
+        stmt: &ast::Assignment,
     ) -> Result<code::Builder, code::VisitError> {
-        let ctx = ctx.line().put(stmt.target.0.clone());
+        let ctx = if let Some(first) = stmt.target.0.first() {
+            ctx.line().put(first.0.clone())
+        } else {
+            ctx
+        };
+        let ctx = stmt
+            .target
+            .0
+            .iter()
+            .skip(1)
+            .fold(ctx, |ctx, target| ctx.put(".").put(target.0.clone()));
         let ctx = ctx.put(" = ");
         let ctx = if let Some(extra) = stmt.extra.as_ref() {
-            let Assignment { target, value, .. } = stmt.clone();
+            let ast::Assignment { target, value, .. } = stmt.clone();
             self.visit_binary(
                 ctx,
-                &BinaryExpression {
-                    left: crate::parser::Expression::Reference(DotExpression(vec![target])),
+                &ast::BinaryExpression {
+                    left: ast::Expression::Reference(target),
                     operator: extra.clone(),
                     right: value,
                 },
@@ -162,7 +199,7 @@ impl code::Visitor<code::Builder> for LuaEmitter {
     fn visit_declaration(
         &self,
         ctx: code::Builder,
-        stmt: &crate::parser::Let,
+        stmt: &ast::Let,
     ) -> Result<code::Builder, code::VisitError> {
         let ctx = ctx
             .line()
@@ -177,7 +214,7 @@ impl code::Visitor<code::Builder> for LuaEmitter {
     fn visit_expression_statement(
         &self,
         ctx: code::Builder,
-        stmt: &crate::parser::Expression,
+        stmt: &ast::Expression,
     ) -> Result<code::Builder, code::VisitError> {
         Ok(self.visit_expression(ctx.line(), stmt)?.put(";"))
     }
@@ -185,7 +222,7 @@ impl code::Visitor<code::Builder> for LuaEmitter {
     fn visit_lambda(
         &self,
         ctx: code::Builder,
-        expr: &crate::parser::Lambda,
+        expr: &ast::Lambda,
     ) -> Result<code::Builder, code::VisitError> {
         let ctx = ctx.put("function(");
         let ctx = if let Some(first) = expr.arguments.first() {
@@ -200,8 +237,8 @@ impl code::Visitor<code::Builder> for LuaEmitter {
             .fold(ctx, |ctx, ident| ctx.put(", ").put(ident.name.0.clone()));
         let ctx = ctx.put(")").push();
         let ctx = match &expr.body {
-            crate::parser::LambdaBody::Complex(e) => self.visit_script(ctx, e)?,
-            crate::parser::LambdaBody::Simple(e) => self
+            ast::ScriptOrExpression::Script(e) => self.visit_script(ctx, e)?,
+            ast::ScriptOrExpression::Expression(e) => self
                 .visit_expression(ctx.line().put("return "), e)
                 .map(|b| b.put(";"))?,
         };
@@ -211,7 +248,7 @@ impl code::Visitor<code::Builder> for LuaEmitter {
     fn visit_reference(
         &self,
         ctx: code::Builder,
-        expr: &crate::parser::DotExpression,
+        expr: &ast::DotExpression,
     ) -> Result<code::Builder, code::VisitError> {
         let ctx = if let Some(first) = expr.0.first() {
             ctx.put(first.0.clone())
@@ -229,12 +266,12 @@ impl code::Visitor<code::Builder> for LuaEmitter {
     fn visit_call(
         &self,
         ctx: code::Builder,
-        expr: &crate::parser::CallExpression,
+        expr: &ast::CallExpression,
     ) -> Result<code::Builder, code::VisitError> {
         let dot = if expr.static_target.is_some() {
             expr.target.clone()
         } else if expr.target.0.len() > 1 {
-            DotExpression(
+            ast::DotExpression(
                 expr.target
                     .0
                     .iter()
@@ -270,7 +307,7 @@ impl code::Visitor<code::Builder> for LuaEmitter {
     fn visit_tuple(
         &self,
         ctx: code::Builder,
-        expr: &crate::parser::Tuple,
+        expr: &ast::Tuple,
     ) -> Result<code::Builder, code::VisitError> {
         let ctx = ctx.put("{");
         let ctx = if let Some(first) = expr.0.first().as_ref() {
@@ -297,11 +334,11 @@ impl code::Visitor<code::Builder> for LuaEmitter {
     fn visit_number(
         &self,
         ctx: code::Builder,
-        expr: &crate::parser::Number,
+        expr: &ast::Number,
     ) -> Result<code::Builder, code::VisitError> {
         let repr = match expr {
-            crate::parser::Number::Float(e) => e.to_string(),
-            crate::parser::Number::Integer(e) => e.to_string(),
+            ast::Number::Float(e) => e.to_string(),
+            ast::Number::Integer(e) => e.to_string(),
         };
         Ok(ctx.put(repr))
     }
@@ -321,25 +358,25 @@ impl code::Visitor<code::Builder> for LuaEmitter {
     fn visit_binary(
         &self,
         ctx: code::Builder,
-        expr: &crate::parser::BinaryExpression,
+        expr: &ast::BinaryExpression,
     ) -> Result<code::Builder, code::VisitError> {
         let ctx = self.visit_expression(ctx, &expr.left)?.put(" ");
         let ctx = match expr.operator.clone() {
             // Basic math
-            Operator::Plus => ctx.put("+"),
-            Operator::Minus => ctx.put("-"),
-            Operator::Product => ctx.put("*"),
-            Operator::Quotient => ctx.put("/"),
-            Operator::Remainder => ctx.put("%"),
-            Operator::Power => ctx.put("**"),
-            Operator::Concat => ctx.put(".."),
+            ast::Operator::Plus => ctx.put("+"),
+            ast::Operator::Minus => ctx.put("-"),
+            ast::Operator::Product => ctx.put("*"),
+            ast::Operator::Quotient => ctx.put("/"),
+            ast::Operator::Remainder => ctx.put("%"),
+            ast::Operator::Power => ctx.put("**"),
+            ast::Operator::Concat => ctx.put(".."),
             // Comparison
-            Operator::Greater => ctx.put(">"),
-            Operator::GreaterEqual => ctx.put(">="),
-            Operator::Less => ctx.put("<"),
-            Operator::LessEqual => ctx.put("<="),
-            Operator::Equal => ctx.put("=="),
-            Operator::NotEqual => ctx.put("~="),
+            ast::Operator::Greater => ctx.put(">"),
+            ast::Operator::GreaterEqual => ctx.put(">="),
+            ast::Operator::Less => ctx.put("<"),
+            ast::Operator::LessEqual => ctx.put("<="),
+            ast::Operator::Equal => ctx.put("=="),
+            ast::Operator::NotEqual => ctx.put("~="),
             op => todo!("Binary operator {:?} not supported!", op),
         };
         let ctx = self.visit_expression(ctx.put(" "), &expr.right)?;
@@ -349,10 +386,10 @@ impl code::Visitor<code::Builder> for LuaEmitter {
     fn visit_unary(
         &self,
         ctx: code::Builder,
-        expr: &crate::parser::UnaryExpression,
+        expr: &ast::UnaryExpression,
     ) -> Result<code::Builder, code::VisitError> {
         let ctx = match expr.operator {
-            Operator::Minus => ctx.put("-"),
+            ast::Operator::Minus => ctx.put("-"),
             _ => todo!("Unary operator not supported!"),
         };
         let ctx = self.visit_expression(ctx, &expr.expression)?;
@@ -362,7 +399,7 @@ impl code::Visitor<code::Builder> for LuaEmitter {
     fn visit_if(
         &self,
         ctx: code::Builder,
-        expr: &crate::parser::If,
+        expr: &ast::If,
     ) -> Result<code::Builder, code::VisitError> {
         let ctx = ctx.line().put("if ");
         let ctx = self.visit_expression(ctx, &expr.condition)?;
@@ -388,24 +425,24 @@ impl code::Visitor<code::Builder> for LuaEmitter {
     fn visit_table(
         &self,
         ctx: code::Builder,
-        expr: &crate::parser::Table,
+        expr: &ast::Table,
     ) -> Result<code::Builder, code::VisitError> {
         let ctx = ctx.put("{");
         let ctx = if let Some((k, v)) = expr.key_values.first() {
             match k {
-                crate::parser::TableKeyExpression::Identifier(k) => {
+                ast::TableKeyExpression::Identifier(k) => {
                     let ctx = ctx.put(k.0.clone()).put(" = ");
                     self.visit_expression(ctx, v)
                 }
-                crate::parser::TableKeyExpression::Expression(k) => {
+                ast::TableKeyExpression::Expression(k) => {
                     let ctx = self.visit_expression(ctx, k)?.put(" = ");
                     self.visit_expression(ctx, v)
                 }
-                crate::parser::TableKeyExpression::Implicit(k) => {
+                ast::TableKeyExpression::Implicit(k) => {
                     let ctx = ctx.put(k.0.clone()).put(" = ");
                     self.visit_expression(
                         ctx,
-                        &crate::parser::Expression::Reference(DotExpression(vec![k.clone()])),
+                        &ast::Expression::Reference(ast::DotExpression(vec![k.clone()])),
                     )
                 }
             }?
@@ -419,20 +456,20 @@ impl code::Visitor<code::Builder> for LuaEmitter {
             .fold(Ok(ctx), |ctx, (k, v)| {
                 let ctx = ctx?.put(", ");
                 match k {
-                    crate::parser::TableKeyExpression::Identifier(k) => {
+                    ast::TableKeyExpression::Identifier(k) => {
                         let ctx = ctx.put(k.0.clone()).put(" = ");
                         self.visit_expression(ctx, v)
                     }
-                    crate::parser::TableKeyExpression::Expression(k) => {
+                    ast::TableKeyExpression::Expression(k) => {
                         let ctx = ctx.put("[");
                         let ctx = self.visit_expression(ctx, k)?.put("] = ");
                         self.visit_expression(ctx, v)
                     }
-                    crate::parser::TableKeyExpression::Implicit(k) => {
+                    ast::TableKeyExpression::Implicit(k) => {
                         let ctx = ctx.put(k.0.clone()).put(" = ");
                         self.visit_expression(
                             ctx,
-                            &crate::parser::Expression::Reference(DotExpression(vec![k.clone()])),
+                            &ast::Expression::Reference(ast::DotExpression(vec![k.clone()])),
                         )
                     }
                 }
@@ -443,7 +480,7 @@ impl code::Visitor<code::Builder> for LuaEmitter {
     fn visit_vector(
         &self,
         ctx: code::Builder,
-        expr: &crate::parser::Vector,
+        expr: &ast::Vector,
     ) -> Result<code::Builder, code::VisitError> {
         let ctx = ctx.put("{");
         let ctx = if let Some(first) = expr.expressions.first() {
@@ -457,5 +494,81 @@ impl code::Visitor<code::Builder> for LuaEmitter {
             Ok(ctx)
         })?;
         Ok(ctx.put("}"))
+    }
+
+    fn visit_for(
+        &self,
+        ctx: code::Builder,
+        expr: &ast::For,
+    ) -> Result<code::Builder, code::VisitError> {
+        let ctx = ctx
+            .line()
+            .put(format!("for {} in ", expr.handler.0.clone()));
+        let ctx = self.visit_expression(ctx, &expr.target)?;
+        let ctx = ctx.put(" do").push();
+        let ctx = self.visit_script(ctx, &expr.body)?;
+        let ctx = ctx.pop().unwrap().line().put("end");
+        Ok(ctx)
+    }
+
+    fn visit_while(
+        &self,
+        ctx: code::Builder,
+        expr: &ast::While,
+    ) -> Result<code::Builder, code::VisitError> {
+        let ctx = match &expr.condition {
+            ast::ExpressionOrLet::Expression(e) => {
+                let ctx = ctx.line().put("while ");
+                let ctx = self.visit_expression(ctx, e)?;
+                let ctx = ctx.put(" do").push();
+                let ctx = self.visit_script(ctx, &expr.body)?;
+                ctx.pop().unwrap().line().put("end")
+            }
+            ast::ExpressionOrLet::Let(e) => {
+                let ctx = ctx.line().put("do").push();
+                let ctx = self.visit_declaration(ctx, e)?;
+                let ctx = ctx
+                    .line()
+                    .put(format!("while {} do", e.target.0.clone()))
+                    .push();
+                let ctx = self.visit_script(ctx, &expr.body)?;
+                let ctx = self.visit_assignment(
+                    ctx,
+                    &ast::Assignment {
+                        target: ast::DotExpression(vec![e.target.clone()]),
+                        value: e.value.clone().unwrap(),
+                        extra: None,
+                    },
+                )?;
+                ctx.pop()
+                    .unwrap()
+                    .line()
+                    .put("end")
+                    .pop()
+                    .unwrap()
+                    .line()
+                    .put("end")
+            }
+        };
+        Ok(ctx)
+    }
+
+    fn visit_loop(
+        &self,
+        ctx: code::Builder,
+        expr: &ast::Loop,
+    ) -> Result<code::Builder, code::VisitError> {
+        let ctx = ctx.line().put("while true do").push();
+        let ctx = self.visit_script(ctx, &expr.body)?;
+        let ctx = ctx.pop().unwrap().line().put("end");
+        Ok(ctx)
+    }
+
+    fn visit_match(
+        &self,
+        ctx: code::Builder,
+        expr: &ast::Match,
+    ) -> Result<code::Builder, code::VisitError> {
+        todo!()
     }
 }

@@ -9,6 +9,7 @@ mod classes;
 mod collections;
 mod conditions;
 mod functions;
+mod loops;
 mod numbers;
 
 /// Fixture that streamlines the compilation, only for tests.

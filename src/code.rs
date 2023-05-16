@@ -1,7 +1,6 @@
-use crate::parser::{
-    Assignment, BinaryExpression, CallExpression, Class, DotExpression, Expression, Function, If,
-    Lambda, Let, Number, Return, Script, Table, Tuple, UnaryExpression, Vector,
-};
+use ast::*;
+
+use crate::parser::{ast, Script};
 
 #[derive(Debug)]
 pub struct VisitError;
@@ -26,6 +25,10 @@ pub trait Visitor<T> {
     fn visit_if(&self, ctx: T, expr: &If) -> Result<T, VisitError>;
     fn visit_table(&self, ctx: T, expr: &Table) -> Result<T, VisitError>;
     fn visit_vector(&self, ctx: T, expr: &Vector) -> Result<T, VisitError>;
+    fn visit_for(&self, ctx: T, expr: &For) -> Result<T, VisitError>;
+    fn visit_while(&self, ctx: T, expr: &While) -> Result<T, VisitError>;
+    fn visit_loop(&self, ctx: T, expr: &Loop) -> Result<T, VisitError>;
+    fn visit_match(&self, ctx: T, expr: &Match) -> Result<T, VisitError>;
 
     // Generically implementable matching patterns:
     fn visit_expression(&self, ctx: T, expression: &Expression) -> Result<T, VisitError> {
@@ -48,17 +51,17 @@ pub trait Visitor<T> {
             .statements
             .iter()
             .fold(Ok(ctx), |ctx, stmt| match stmt {
-                crate::parser::Statement::If(e) => self.visit_if(ctx?, e),
-                crate::parser::Statement::For => todo!(),
-                crate::parser::Statement::Loop => todo!(),
-                crate::parser::Statement::While => todo!(),
-                crate::parser::Statement::Return(e) => self.visit_return(ctx?, e),
-                crate::parser::Statement::Class(e) => self.visit_class(ctx?, e),
-                crate::parser::Statement::Function(e) => self.visit_fn(ctx?, e),
-                crate::parser::Statement::Assignment(e) => self.visit_assignment(ctx?, e),
-                crate::parser::Statement::Let(e) => self.visit_declaration(ctx?, e),
-                crate::parser::Statement::Match => todo!(),
-                crate::parser::Statement::Expression(e) => self.visit_expression_statement(ctx?, e),
+                ast::Statement::If(e) => self.visit_if(ctx?, e),
+                ast::Statement::For(e) => self.visit_for(ctx?, e),
+                ast::Statement::Loop(e) => self.visit_loop(ctx?, e),
+                ast::Statement::While(e) => self.visit_while(ctx?, e),
+                ast::Statement::Return(e) => self.visit_return(ctx?, e),
+                ast::Statement::Class(e) => self.visit_class(ctx?, e),
+                ast::Statement::Function(e) => self.visit_fn(ctx?, e),
+                ast::Statement::Assignment(e) => self.visit_assignment(ctx?, e),
+                ast::Statement::Let(e) => self.visit_declaration(ctx?, e),
+                ast::Statement::Match(e) => self.visit_match(ctx?, e),
+                ast::Statement::Expression(e) => self.visit_expression_statement(ctx?, e),
             })
     }
 }
