@@ -153,4 +153,12 @@ impl Builder {
             ..self
         }
     }
+    /// Creates a new copy of this builder, but with empty buffer.
+    pub fn clone_like(&self) -> Self {
+        Builder {
+            level: self.level,
+            indent: self.indent.clone(),
+            buffer: "".to_string(),
+        }
+    }
 }

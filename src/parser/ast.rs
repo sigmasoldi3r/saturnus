@@ -2,8 +2,7 @@ use super::Script;
 
 #[derive(Debug, Clone)]
 pub struct Decorator {
-    pub target: DotExpression,
-    pub arguments: Option<Vec<Expression>>,
+    pub target: Expression,
 }
 
 #[derive(Debug, Clone)]
@@ -33,7 +32,13 @@ pub struct Tuple(pub Vec<Expression>);
 pub struct Identifier(pub String);
 
 #[derive(Debug, Clone)]
-pub struct DotExpression(pub Vec<Identifier>);
+pub enum DotSegment {
+    Identifier(Identifier),
+    Expression(Expression),
+}
+
+#[derive(Debug, Clone)]
+pub struct DotExpression(pub Vec<DotSegment>);
 
 #[derive(Debug, Clone)]
 pub struct Let {

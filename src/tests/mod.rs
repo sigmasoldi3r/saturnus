@@ -4,6 +4,7 @@ use crate::{
     parser::Script,
 };
 
+mod array_access;
 mod assignment;
 mod classes;
 mod collections;

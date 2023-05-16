@@ -139,7 +139,11 @@ peg::parser! {
         }
 
         rule dot_expr() -> DotExpression
-            = value:identifier() ++ (_ "." _) { DotExpression(value) }
+            = value:dot_segment() ++ (_ "." _) { DotExpression(value) }
+
+        rule dot_segment() -> DotSegment
+            = e:identifier() { DotSegment::Identifier(e) }
+            / e:("[" _ e:expression() _ "]" {e}) { DotSegment::Expression(e) }
 
         rule lambda() -> Lambda
             = FN() _ arguments:argument_list() _ expr:expression() _ END()
@@ -206,8 +210,8 @@ peg::parser! {
             / { vec![] }
 
         rule decorator() -> Decorator
-            = "@" _ target:call_expr() { Decorator { target: target.target, arguments: Some(target.arguments) } }
-            / "@" _ target:dot_expr() { Decorator { target, arguments: None } }
+            = "@" _ e:call_expr() { Decorator { target: Expression::Call(e) } }
+            / "@" _ e:dot_expr() { Decorator { target: Expression::Reference(e) } }
 
         rule identifier() -> Identifier
             = value:$(IDENT())
@@ -229,7 +233,10 @@ peg::parser! {
             / "[" _ k:expression() _ "]" _ ":" _ v:expression()
             { (TableKeyExpression::Expression(k), v) }
             / k:identifier()
-            { (TableKeyExpression::Implicit(k.clone()), Expression::Reference(DotExpression(vec![k]))) }
+            { (
+                TableKeyExpression::Implicit(k.clone()),
+                Expression::Reference(DotExpression(vec![DotSegment::Identifier(k)]))
+            ) }
 
         rule tuple_expr() -> Tuple
             = "(" _ e:expression() **<2,> (_ "," _) _ ")"
