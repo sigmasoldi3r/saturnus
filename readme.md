@@ -107,24 +107,24 @@ In _Saturnus_ you can loop with four different structures: `while`, `while let`,
 // The basic loop!
 // Will repeat as long as the expression between "while" and "do" words is
 // true-like (Can evaluate to "true").
-while something() do
+while something() {
   print("Something is true!");
-end
+}
 
 // This one is a sugar syntax introduced by Saturnus!
 // Imagine you want to loop as long as you have a result that is not null, you
 // could use iterators, reserve your own local variables and such, but we
 // have a more idiomatic syntax sugar for you:
-while let some = thing() do
+while let some = thing() {
   // The "some" variable is only visible within the loop, and you know that
   // will be a true-ish value (Like 1, true or something not null).
   print("Some is " .. some);
-end
+}
 
 // Now, the classical foreach:
-for entry in entries() do
+for entry in entries() {
   print(entry._0 .. " = " .. entry._1);
-end
+}
 // Note: This is a raw iterator loop, and cannot be used in place of an
 // iterator! This means that is no replacement for pairs function (and also
 // it does NOT work well with it...)
@@ -133,13 +133,13 @@ end
 // To transform collections to iterators, you will need some prelude functions.
 
 // And the final, the simplest and the dumbest:
-loop
+loop {
   print("I'm looping forever...");
-  if should_exit() then
+  if should_exit() {
     print("Or I am?");
     return true;
-  end
-end
+  }
+}
 // Note: Has no exit condition, you will have to either "break" or "return"!
 ```
 
@@ -149,25 +149,25 @@ Now, this follows conditions! We have `if`, `if else` and `else` at the moment:
 
 ```rs
 // If statements are pretty close to Lua, as you can witness here:
-if something() then
+if something() {
   print("Something was true!");
-end
+}
 
-if a then
+if a {
   print("A");
-else
+} else {
   print("Not A...");
-end
+}
 
 // The only difference is that "else if" is separated with a space instead
 // of being the word elseif.
-if a then
+if a {
   print("A");
-else if b then
+} else if b {
   print("B");
-else
+} else {
   print("woops");
-end
+}
 ```
 
 Functions!
@@ -177,18 +177,18 @@ They are **always** local, never global (That is forbidden by design).
 
 ```rs
 // Fair enough:
-fn some_func(a, b)
+fn some_func(a, b) {
   return a + b;
-end
+}
 
 // Oh, you can also have anonymous functions by the way!
-let anon = fn(a, b)
+let anon = fn(a, b) {
   return a + b;
-end
+}
 
 // And if an anonymous function ONLY has one expression inside (Without ";"),
 // that expression is an implicit return statement:
-collections::reduce([1, 2, 3], fn(a, b) a + b end);
+collections::reduce([1, 2, 3], fn(a, b) { a + b });
 // Pretty cool
 ```
 
@@ -197,22 +197,22 @@ course, but with a catch: We forbid inheritance by design, which does not
 eliminate polymorphism.
 
 ```rs
-class Person
+class Person {
   // Fields (which are optional btw), are declared as variables:
   let name = "unnamed";
 
   // Methods, like normal functions, but remember that if the first (and only
   // the first) argument is "self", it will be a dynamic method, and if that is
   // absent, it will be compiled as a static method:
-  fn get_name(self)
+  fn get_name(self) {
     return self.name;
-  end
+  }
 
   // Example of an static method, where the usage is shown later:
-  fn greet(person)
+  fn greet(person) {
     print("Greetings " .. person.name .. "!");
-  end
-end
+  }
+}
 
 // Here you'll clearly see the difference:
 let person = Person { name: "Mr. Foo" };

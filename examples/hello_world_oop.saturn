@@ -2,24 +2,24 @@
 
 // In Saturnus, inheritance is disabled by design.
 // Use composition instead.
-class Greeter
+class Greeter {
   let name = "";
   
   // A simple method:
-  fn greet(self)
+  fn greet(self) {
     return "Hello " .. self.name .. "!";
-  end
+  }
 
   // Static methods just don't use the "self" param:
-  fn new(name)
+  fn new(name) {
     return Greeter { name };
-  end
+  }
 
   // Operator overload also is here!
-  operator +(self, other)
+  operator +(self, other) {
     return Greeter::new(self.name .. " & " .. other.name);
-  end
-end
+  }
+}
 
 // Test it out!
 let world = Greeter::new("World");
