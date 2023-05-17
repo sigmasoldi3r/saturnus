@@ -52,8 +52,14 @@ Then you will have the executable at `target/release/saturnus`. (You need the
 
 ## Language Basics
 
-> *note*: Some structures will be pretty similar to Lua, so this assumes you
-> have some knowledge about programming in Lua.
+> **Note**
+> Some structures will be pretty similar to Rust, so this assumes you
+> have some knowledge about OOP languages, and you're familiar with the Lua
+> runtime.
+
+> **Warning**
+> An important remark about the syntax: Unlike Lua, here each
+> statement that is **not** a block, it must end with **;** symbol!
 
 Declarations and function calls:
 
@@ -71,8 +77,8 @@ Imagine that you have static functions (aka do not belong to an object):
 some_function(1, 2, 3);
 let b = fetch("some url");
 // Note that like in lua, you can pass [], {} and "" without parentheses:
-let bar = joining [1, 2, 3]
-let c = foo { bar }
+let bar = joining! [1, 2, 3];
+let c = Foo { bar };
 // etc
 ```
 
