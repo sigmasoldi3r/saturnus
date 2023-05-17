@@ -1,0 +1,7 @@
+[project]
+name = "Saturnus Examples"
+author = "SigmaOctantis"
+version = "1.0.0"
+
+[build]
+# Use default build flags

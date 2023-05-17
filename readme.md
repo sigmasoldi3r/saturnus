@@ -13,6 +13,15 @@ Wanna see how it looks? [Jump to Language Basics](#language-basics)!
 
 ## Getting started
 
+The easiest way is to [install the tools](installation.md), and then run:
+
+```sh
+cd examples
+janus build
+```
+
+Tada! But, you can do the below steps.
+
 In order to compile your first file, you can check out the `/examples` folder,
 and then, invoke the compiler from a terminal like:
 
