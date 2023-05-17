@@ -30,6 +30,36 @@ To get more help about the parameters, type:
 ./saturnus --help
 ```
 
+### Introducing Janus!
+
+Now _Saturnus_ has a simple build system, meet Janus: The official _Saturnus_
+programming language build toolkit.
+
+To build a Janus workspace, you need to create a file named `Janus.toml`, here
+is an example of a working project file:
+
+```toml
+[project]
+name = "Helo Saturnus!"
+author = "You & Me"
+version = "1.0.0"
+
+[build]
+# Use default build flags
+```
+
+Tweak the fields according to your needs. Now by default, the only compile mode
+available is the module-less, compile-in-place mode. This will produce `.lua`
+files next to your `.saturn` files.
+
+A little bit of Janus todo would be:
+
+- [ ] Define more build modes
+- [ ] Add flags to target other platforms
+- [ ] Create different module system strategies
+- [ ] File I/O directories customization
+- [ ] Compiler flags
+
 ### Where to get the binaries?
 
 Currently the CD is disabled, however you can grab the latest [artifacts from
