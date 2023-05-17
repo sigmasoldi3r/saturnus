@@ -59,7 +59,7 @@ Then you will have the executable at `target/release/saturnus`. (You need the
 
 > **Warning**
 > An important remark about the syntax: Unlike Lua, here each
-> statement that is **not** a block, it must end with **;** symbol!
+> statement that is **not** a block, it must end with a **semicolon** (`;`).
 
 Declarations and function calls:
 
@@ -67,6 +67,12 @@ Declarations and function calls:
 // Variables are easy stuff in Saturnus:
 let a = "be something";
 // period.
+
+// Addition is more idiomatic than in plain Lua syntax:
+count += 1;
+
+// Array access can be weird compared to Lua (It has an extra dot):
+let foo = bar.[key].value;
 ```
 
 Now, function calls can be something more complex.
@@ -77,6 +83,7 @@ Imagine that you have static functions (aka do not belong to an object):
 some_function(1, 2, 3);
 let b = fetch("some url");
 // Note that like in lua, you can pass [], {} and "" without parentheses:
+let module = require! "Mods";
 let bar = joining! [1, 2, 3];
 let c = Foo { bar };
 // etc
