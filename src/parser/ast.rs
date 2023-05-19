@@ -161,6 +161,7 @@ pub enum Operator {
     Power,
     Remainder,
     Concat,
+    Range,
     // Comparison
     Equal,
     Less,

@@ -20,23 +20,12 @@ cd examples
 janus build
 ```
 
-Tada! But, you can do the below steps.
-
-In order to compile your first file, you can check out the `/examples` folder,
-and then, invoke the compiler from a terminal like:
+To get more information on how to run the saturnus compiler or the Janus tool,
+use the `--help` (Or `-h`) flag, like:
 
 ```sh
-./saturnus -i examples/hello_world_oop.saturn
-```
-
-(Or if you're using windows cmd)
-```cmd
-.\saturnus.exe -i examples\hello_world_oop.saturn
-```
-
-To get more help about the parameters, type:
-```sh
-./saturnus --help
+janus --help
+saturnus --help
 ```
 
 ### Introducing Janus!
@@ -92,11 +81,13 @@ Then you will have the executable at `target/release/saturnus`. (You need the
 ## Language Basics
 
 > **Note**
+>
 > Some structures will be pretty similar to Rust, so this assumes you
 > have some knowledge about OOP languages, and you're familiar with the Lua
 > runtime.
 
 > **Warning**
+>
 > An important remark about the syntax: Unlike Lua, here each
 > statement that is **not** a block, it must end with a **semicolon** (`;`).
 
@@ -109,8 +100,30 @@ let a = "be something";
 
 // Addition is more idiomatic than in plain Lua syntax:
 count += 1;
+strcat ++= "foo'd";
 
-// Array access can be weird compared to Lua (It has an extra dot):
+// Basic operators:
+let a = b + c;
+let a = b - c;
+let a = b * c;
+let a = b / c;
+let a = b ** c; // Power op
+let a = b % c; // Modulo
+let a = b ++ c; // String concatenation
+let rng = 1..10; // Range iterator build
+
+// Collection types:
+
+// Like in Javascript
+let this_is_a_table = { a, b: "foo", c: 30-30 };
+let this_is_a_vector = [1, 2, 3, (), "potato"];
+// New structure, The tuple!
+let this_is_a_tuple = ("foo", 10, "bar");
+let foo = this_is_a_tuple._0;
+let ten = this_is_a_tuple._1;
+let bar = this_is_a_tuple._2;
+
+// Array access can be weird compared to others (It has an extra dot):
 let foo = bar.[key].value;
 ```
 
@@ -170,12 +183,17 @@ while something() {
 while let some = thing() {
   // The "some" variable is only visible within the loop, and you know that
   // will be a true-ish value (Like 1, true or something not null).
-  print("Some is " .. some);
+  print("Some is " ++ some);
+}
+
+// Numeric for? Easy sugar:
+for i in 1..10 {
+  print("i = " ++ i)
 }
 
 // Now, the classical foreach:
 for entry in entries() {
-  print(entry._0 .. " = " .. entry._1);
+  print(entry._0 ++ " = " ++ entry._1);
 }
 // Note: This is a raw iterator loop, and cannot be used in place of an
 // iterator! This means that is no replacement for pairs function (and also
@@ -236,7 +254,7 @@ fn some_func(a, b) {
 // Oh, you can also have anonymous functions by the way!
 let anon = fn(a, b) {
   return a + b;
-}
+};
 
 // And if an anonymous function ONLY has one expression inside (Without ";"),
 // that expression is an implicit return statement:
@@ -245,8 +263,8 @@ collections::reduce([1, 2, 3], fn(a, b) { a + b });
 ```
 
 Time for some object oriented programming! Yes, _Saturnus_ has classes, of
-course, but with a catch: We forbid inheritance by design, which does not
-eliminate polymorphism.
+course, but we forbid inheritance by design, which does not eliminate
+at all polymorphism (see below).
 
 ```rs
 class Person {
@@ -262,7 +280,7 @@ class Person {
 
   // Example of an static method, where the usage is shown later:
   fn greet(person) {
-    print("Greetings " .. person.name .. "!");
+    print("Greetings " ++ person.name ++ "!");
   }
 }
 
@@ -270,6 +288,37 @@ class Person {
 let person = Person { name: "Mr. Foo" };
 let name = person.get_name(); // Dynamic dispatch
 Person::greet(person); // Static method dispatch!
+```
+
+Polymorphism example, altough if you're familiar with the term
+["Duck Typing"][duck-type], you won't need this example:
+
+[duck-type]: https://en.wikipedia.org/wiki/Duck_typing
+
+```rs
+class Foo {
+  fn action(self) {
+    return "At a distance"; // Einstein would complain...
+  }
+}
+
+class Bar {
+  fn action(self) {
+    return "Quantum entanglement";
+  }
+}
+
+class FooBarConsumer {
+  fn consume(self, actor) {
+    return "The action was: " ++ actor.action();
+  }
+}
+let foo = Foo {};
+let bar = Bar {};
+
+let consumer = FooBarConsumer {};
+print(consumer.consume(foo));
+print(consumer.consume(bar));
 ```
 
 ## Why replace Lua?
@@ -292,6 +341,7 @@ aspects of the language:
 ## The MVP release to-do list:
 
 - [x] ~~Implement a simple build system~~ **Janus** comes to the rescue!
+- [ ] Ennumeration structures
 - [ ] Match structure
 - [x] ~~Add loops (for, while and "loop")~~
 - [ ] Decorator code generation

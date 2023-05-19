@@ -4,7 +4,7 @@ use ast::*;
 use std::vec;
 
 peg::parser! {
-    grammar matra_script() for str {
+    grammar saturnus_script() for str {
         pub rule script() -> Script
             = _ statements:statement() ** __ _
             { Script { statements } }
@@ -80,8 +80,9 @@ peg::parser! {
             "$" _ expression:@ { UnaryExpression { expression, operator: Operator::Dollar }.into() }
             "!?" _ expression:@ { UnaryExpression { expression, operator: Operator::ExclamationQuestion }.into() }
             --
-            left:(@) _ ".." _ right:@ { BinaryExpression { left, right, operator: Operator::Concat }.into() }
-            --
+            left:(@) _ "++" _ right:@ { BinaryExpression { left, right, operator: Operator::Concat }.into() }
+            left:(@) _ ".." _ right:@ { BinaryExpression { left, right, operator: Operator::Range }.into() }
+
             left:(@) _ "+" _ right:@ { BinaryExpression { left, right, operator: Operator::Plus }.into() }
             left:(@) _ "-" _ right:@ { BinaryExpression { left, right, operator: Operator::Minus }.into() }
             --
@@ -198,7 +199,7 @@ peg::parser! {
             / "-" { Operator::Minus }
             / "*" { Operator::Product }
             / "/" { Operator::Quotient }
-            / ".." { Operator::Concat }
+            / "++" { Operator::Concat }
 
         rule argument_list() -> Vec<Argument>
             = "(" _ args:argument() ** (_ "," _) _ ")" { args }
@@ -267,7 +268,8 @@ peg::parser! {
 
         // Special matching rule: Any Binary Operator
         rule any_operator() -> Operator
-            = ".." { Operator::Concat }
+            = "++" { Operator::Concat }
+            / ".." { Operator::Range }
             / "+" { Operator::Plus }
             / "-" { Operator::Minus }
             / "*" { Operator::Product }
@@ -352,7 +354,7 @@ impl Script {
         I: Into<String>,
     {
         let fragment: String = input.into();
-        matra_script::script(&fragment).map_err(|e| ParseFailure::new(e, &fragment))
+        saturnus_script::script(&fragment).map_err(|e| ParseFailure::new(e, &fragment))
     }
 
     // This function is used only in tests for now.
@@ -362,6 +364,6 @@ impl Script {
         I: Into<String>,
     {
         let fragment: String = input.into();
-        matra_script::expression(&fragment).map_err(|e| ParseFailure::new(e, &fragment))
+        saturnus_script::expression(&fragment).map_err(|e| ParseFailure::new(e, &fragment))
     }
 }
