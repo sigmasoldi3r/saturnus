@@ -6,6 +6,7 @@ use crate::{
 
 mod array_access;
 mod assignment;
+mod binary_operators;
 mod classes;
 mod collections;
 mod conditions;
