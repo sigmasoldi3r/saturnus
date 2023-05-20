@@ -24,7 +24,7 @@ fn tuple_expressions() {
 #[test]
 fn the_1_tuple_case() {
     let out = compile_expr("(45)");
-    assert_that!(out).is_equal_to("45".to_string());
+    assert_that!(out).is_equal_to("(45)".to_string());
 }
 
 #[test]

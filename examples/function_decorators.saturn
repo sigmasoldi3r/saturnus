@@ -1,0 +1,12 @@
+
+
+fn Test() {
+    return fn(target, name) {
+        print("Adding " .. name .. " to the test suite!");
+    };
+}
+
+@Test()
+fn my_func() {
+    print("Some func");
+}

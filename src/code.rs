@@ -29,6 +29,7 @@ pub trait Visitor<T> {
     fn visit_while(&self, ctx: T, expr: &While) -> Result<T, VisitError>;
     fn visit_loop(&self, ctx: T, expr: &Loop) -> Result<T, VisitError>;
     fn visit_match(&self, ctx: T, expr: &Match) -> Result<T, VisitError>;
+    fn visit_1tuple(&self, ctx: T, expr: &Expression) -> Result<T, VisitError>;
 
     // Generically implementable matching patterns:
     fn visit_expression(&self, ctx: T, expression: &Expression) -> Result<T, VisitError> {
@@ -44,6 +45,7 @@ pub trait Visitor<T> {
             Expression::Unary(e) => self.visit_unary(ctx, e),
             Expression::Table(e) => self.visit_table(ctx, e),
             Expression::Vector(e) => self.visit_vector(ctx, e),
+            Expression::Tuple1(e) => self.visit_1tuple(ctx, e),
         }
     }
     fn visit_script(&self, ctx: T, script: &Script) -> Result<T, VisitError> {
@@ -151,6 +153,14 @@ impl Builder {
         Builder {
             buffer: format!("{}\n{}", self.buffer, self.indent.repeat(self.level.into())),
             ..self
+        }
+    }
+    /// Creates a new copy of this builder, but with empty buffer.
+    pub fn clone_like(&self) -> Self {
+        Builder {
+            level: self.level,
+            indent: self.indent.clone(),
+            buffer: "".to_string(),
         }
     }
 }

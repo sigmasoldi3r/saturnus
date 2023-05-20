@@ -16,6 +16,12 @@ impl code::Visitor<code::Builder> for LuaEmitter {
         Ok(ctx.put(";"))
     }
 
+    fn visit_1tuple(&self, ctx: code::Builder, expr: &ast::Expression) -> Result<code::Builder, code::VisitError> {
+        let ctx = ctx.put("(");
+        let ctx = self.visit_expression(ctx, expr)?;
+        Ok(ctx.put(")"))
+    }
+
     fn visit_class(
         &self,
         ctx: code::Builder,
@@ -131,6 +137,16 @@ impl code::Visitor<code::Builder> for LuaEmitter {
                     ctx.put(";")
                 }
             };
+            let ctx = stmt.decorators.iter().fold(Ok(ctx), |ctx, dec| {
+                let ctx = ctx?.line();
+                let ctx = self.visit_expression(ctx, &dec.target)?;
+                let ctx = ctx.put(format!(
+                    "({}, \"{}\");",
+                    stmt.name.0.clone(),
+                    stmt.name.0.clone()
+                ));
+                Ok(ctx)
+            })?;
             Ok(ctx)
         })?;
         Ok(ctx)
@@ -159,6 +175,16 @@ impl code::Visitor<code::Builder> for LuaEmitter {
         let ctx = ctx.put(")").push();
         let ctx = self.visit_script(ctx, &stmt.body)?;
         let ctx = ctx.pop().unwrap().line().put("end");
+        let ctx = stmt.decorators.iter().fold(Ok(ctx), |ctx, dec| {
+            let ctx = ctx?.line();
+            let ctx = self.visit_expression(ctx, &dec.target)?;
+            let ctx = ctx.put(format!(
+                "({}, \"{}\");",
+                stmt.name.0.clone(),
+                stmt.name.0.clone()
+            ));
+            Ok(ctx)
+        })?;
         Ok(ctx)
     }
 
@@ -167,18 +193,8 @@ impl code::Visitor<code::Builder> for LuaEmitter {
         ctx: code::Builder,
         stmt: &ast::Assignment,
     ) -> Result<code::Builder, code::VisitError> {
-        let ctx = if let Some(first) = stmt.target.0.first() {
-            ctx.line().put(first.0.clone())
-        } else {
-            ctx
-        };
-        let ctx = stmt
-            .target
-            .0
-            .iter()
-            .skip(1)
-            .fold(ctx, |ctx, target| ctx.put(".").put(target.0.clone()));
-        let ctx = ctx.put(" = ");
+        let segment = self.visit_reference(ctx.clone_like(), &stmt.target)?.collect();
+        let ctx = ctx.line().put(segment).put(" = ");
         let ctx = if let Some(extra) = stmt.extra.as_ref() {
             let ast::Assignment { target, value, .. } = stmt.clone();
             self.visit_binary(
@@ -251,7 +267,11 @@ impl code::Visitor<code::Builder> for LuaEmitter {
         expr: &ast::DotExpression,
     ) -> Result<code::Builder, code::VisitError> {
         let ctx = if let Some(first) = expr.0.first() {
-            ctx.put(first.0.clone())
+            match first {
+                ast::DotSegment::Identifier(e) => 
+                ctx.put(e.0.clone()),
+                ast::DotSegment::Expression(_) => panic!("Found an array access segment as first item! Perhaps you forgot to wrap [] between parens? ([])"),
+            }
         } else {
             ctx
         };
@@ -259,7 +279,17 @@ impl code::Visitor<code::Builder> for LuaEmitter {
             .0
             .iter()
             .skip(1)
-            .fold(ctx, |ctx, ident| ctx.put(".").put(ident.0.clone()));
+            .fold(Ok(ctx), |ctx, target| {
+                match target {
+                    ast::DotSegment::Identifier(e) =>
+                        Ok(ctx?.put(".").put(e.0.clone())),
+                    ast::DotSegment::Expression(e) => {
+                        let ctx = ctx?.put("[");
+                        let ctx = self.visit_expression(ctx, e)?;
+                        Ok(ctx.put("]"))
+                    },
+                }
+            })?;
         Ok(ctx)
     }
 
@@ -268,10 +298,8 @@ impl code::Visitor<code::Builder> for LuaEmitter {
         ctx: code::Builder,
         expr: &ast::CallExpression,
     ) -> Result<code::Builder, code::VisitError> {
-        let dot = if expr.static_target.is_some() {
-            expr.target.clone()
-        } else if expr.target.0.len() > 1 {
-            ast::DotExpression(
+        let segment = self.visit_reference(ctx.clone_like(),
+            &ast::DotExpression(
                 expr.target
                     .0
                     .iter()
@@ -280,17 +308,26 @@ impl code::Visitor<code::Builder> for LuaEmitter {
                     .rev()
                     .map(|x| x.clone())
                     .collect(),
-            )
+            ))?.collect();
+        let ctx = ctx.put(segment.clone());
+        let last = expr.target.0.last();
+        let ctx = if let Some(sc) = expr.static_target.as_ref() {
+            let ctx = if let Some(last) = last {
+                let ctx = if segment.len() > 0 {
+                    ctx.put(".")
+                } else {ctx};
+                self.visit_reference(ctx, &ast::DotExpression(vec![last.clone()]))?
+            } else {ctx};
+            ctx.put(".").put(sc.0.clone())
         } else {
-            expr.target.clone()
-        };
-        let ctx = self.visit_reference(ctx, &dot)?;
-        let ctx = if let Some(static_target) = expr.static_target.as_ref() {
-            ctx.put(".").put(static_target.0.clone())
-        } else if expr.target.0.len() > 1 {
-            ctx.put(":").put(expr.target.0.last().unwrap().0.clone())
-        } else {
-            ctx
+            if let Some(last) = last {
+                let ctx = if segment.len() > 0 {
+                    ctx.put(":")
+                } else {ctx};
+                self.visit_reference(ctx, &ast::DotExpression(vec![last.clone()]))?
+            } else {
+                ctx
+            }
         };
         let ctx = ctx.put("(");
         let ctx = if let Some(first) = expr.arguments.first() {
@@ -377,6 +414,10 @@ impl code::Visitor<code::Builder> for LuaEmitter {
             ast::Operator::LessEqual => ctx.put("<="),
             ast::Operator::Equal => ctx.put("=="),
             ast::Operator::NotEqual => ctx.put("~="),
+            // Logic
+            ast::Operator::LogicNot => ctx.put("not"),
+            ast::Operator::LogicAnd => ctx.put("and"),
+            ast::Operator::LogicOr => ctx.put("or"),
             op => todo!("Binary operator {:?} not supported!", op),
         };
         let ctx = self.visit_expression(ctx.put(" "), &expr.right)?;
@@ -388,9 +429,10 @@ impl code::Visitor<code::Builder> for LuaEmitter {
         ctx: code::Builder,
         expr: &ast::UnaryExpression,
     ) -> Result<code::Builder, code::VisitError> {
-        let ctx = match expr.operator {
+        let ctx = match expr.operator.clone() {
             ast::Operator::Minus => ctx.put("-"),
-            _ => todo!("Unary operator not supported!"),
+            ast::Operator::LogicNot => ctx.put("not "),
+            op => todo!("Unary operator {:?} not supported!", op),
         };
         let ctx = self.visit_expression(ctx, &expr.expression)?;
         Ok(ctx)
@@ -442,7 +484,8 @@ impl code::Visitor<code::Builder> for LuaEmitter {
                     let ctx = ctx.put(k.0.clone()).put(" = ");
                     self.visit_expression(
                         ctx,
-                        &ast::Expression::Reference(ast::DotExpression(vec![k.clone()])),
+                        &ast::Expression::Reference(
+                            ast::DotExpression(vec![ast::DotSegment::Identifier(k.clone())])),
                     )
                 }
             }?
@@ -469,7 +512,8 @@ impl code::Visitor<code::Builder> for LuaEmitter {
                         let ctx = ctx.put(k.0.clone()).put(" = ");
                         self.visit_expression(
                             ctx,
-                            &ast::Expression::Reference(ast::DotExpression(vec![k.clone()])),
+                            &ast::Expression::Reference(
+                                ast::DotExpression(vec![ast::DotSegment::Identifier(k.clone())])),
                         )
                     }
                 }
@@ -535,7 +579,7 @@ impl code::Visitor<code::Builder> for LuaEmitter {
                 let ctx = self.visit_assignment(
                     ctx,
                     &ast::Assignment {
-                        target: ast::DotExpression(vec![e.target.clone()]),
+                        target: ast::DotExpression(vec![ast::DotSegment::Identifier(e.target.clone())]),
                         value: e.value.clone().unwrap(),
                         extra: None,
                     },

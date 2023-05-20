@@ -13,22 +13,50 @@ Wanna see how it looks? [Jump to Language Basics](#language-basics)!
 
 ## Getting started
 
-In order to compile your first file, you can check out the `/examples` folder,
-and then, invoke the compiler from a terminal like:
+The easiest way is to [install the tools](installation.md), and then run:
 
 ```sh
-./saturnus -i examples/hello_world_oop.saturn
+cd examples
+janus build
 ```
 
-(Or if you're using windows cmd)
-```cmd
-.\saturnus.exe -i examples\hello_world_oop.saturn
-```
+To get more information on how to run the saturnus compiler or the Janus tool,
+use the `--help` (Or `-h`) flag, like:
 
-To get more help about the parameters, type:
 ```sh
-./saturnus --help
+janus --help
+saturnus --help
 ```
+
+### Introducing Janus!
+
+Now _Saturnus_ has a simple build system, meet Janus: The official _Saturnus_
+programming language build toolkit.
+
+To build a Janus workspace, you need to create a file named `Janus.toml`, here
+is an example of a working project file:
+
+```toml
+[project]
+name = "Helo Saturnus!"
+author = "You & Me"
+version = "1.0.0"
+
+[build]
+# Use default build flags
+```
+
+Tweak the fields according to your needs. Now by default, the only compile mode
+available is the module-less, compile-in-place mode. This will produce `.lua`
+files next to your `.saturn` files.
+
+A little bit of Janus todo would be:
+
+- [ ] Define more build modes
+- [ ] Add flags to target other platforms
+- [ ] Create different module system strategies
+- [ ] File I/O directories customization
+- [ ] Compiler flags
 
 ### Where to get the binaries?
 
@@ -52,8 +80,16 @@ Then you will have the executable at `target/release/saturnus`. (You need the
 
 ## Language Basics
 
-> *note*: Some structures will be pretty similar to Lua, so this assumes you
-> have some knowledge about programming in Lua.
+> **Note**
+>
+> Some structures will be pretty similar to Rust, so this assumes you
+> have some knowledge about OOP languages, and you're familiar with the Lua
+> runtime.
+
+> **Warning**
+>
+> An important remark about the syntax: Unlike Lua, here each
+> statement that is **not** a block, it must end with a **semicolon** (`;`).
 
 Declarations and function calls:
 
@@ -61,6 +97,34 @@ Declarations and function calls:
 // Variables are easy stuff in Saturnus:
 let a = "be something";
 // period.
+
+// Addition is more idiomatic than in plain Lua syntax:
+count += 1;
+strcat ++= "foo'd";
+
+// Basic operators:
+let a = b + c;
+let a = b - c;
+let a = b * c;
+let a = b / c;
+let a = b ** c; // Power op
+let a = b % c; // Modulo
+let a = b ++ c; // String concatenation
+let rng = 1..10; // Range iterator build
+
+// Collection types:
+
+// Like in Javascript
+let this_is_a_table = { a, b: "foo", c: 30-30 };
+let this_is_a_vector = [1, 2, 3, (), "potato"];
+// New structure, The tuple!
+let this_is_a_tuple = ("foo", 10, "bar");
+let foo = this_is_a_tuple._0;
+let ten = this_is_a_tuple._1;
+let bar = this_is_a_tuple._2;
+
+// Array access can be weird compared to others (It has an extra dot):
+let foo = bar.[key].value;
 ```
 
 Now, function calls can be something more complex.
@@ -71,8 +135,9 @@ Imagine that you have static functions (aka do not belong to an object):
 some_function(1, 2, 3);
 let b = fetch("some url");
 // Note that like in lua, you can pass [], {} and "" without parentheses:
-let bar = joining [1, 2, 3]
-let c = foo { bar }
+let module = require! "Mods";
+let bar = joining! [1, 2, 3];
+let c = Foo { bar };
 // etc
 ```
 
@@ -107,24 +172,29 @@ In _Saturnus_ you can loop with four different structures: `while`, `while let`,
 // The basic loop!
 // Will repeat as long as the expression between "while" and "do" words is
 // true-like (Can evaluate to "true").
-while something() do
+while something() {
   print("Something is true!");
-end
+}
 
 // This one is a sugar syntax introduced by Saturnus!
 // Imagine you want to loop as long as you have a result that is not null, you
 // could use iterators, reserve your own local variables and such, but we
 // have a more idiomatic syntax sugar for you:
-while let some = thing() do
+while let some = thing() {
   // The "some" variable is only visible within the loop, and you know that
   // will be a true-ish value (Like 1, true or something not null).
-  print("Some is " .. some);
-end
+  print("Some is " ++ some);
+}
+
+// Numeric for? Easy sugar:
+for i in 1..10 {
+  print("i = " ++ i)
+}
 
 // Now, the classical foreach:
-for entry in entries() do
-  print(entry._0 .. " = " .. entry._1);
-end
+for entry in entries() {
+  print(entry._0 ++ " = " ++ entry._1);
+}
 // Note: This is a raw iterator loop, and cannot be used in place of an
 // iterator! This means that is no replacement for pairs function (and also
 // it does NOT work well with it...)
@@ -133,13 +203,13 @@ end
 // To transform collections to iterators, you will need some prelude functions.
 
 // And the final, the simplest and the dumbest:
-loop
+loop {
   print("I'm looping forever...");
-  if should_exit() then
+  if should_exit() {
     print("Or I am?");
     return true;
-  end
-end
+  }
+}
 // Note: Has no exit condition, you will have to either "break" or "return"!
 ```
 
@@ -149,25 +219,25 @@ Now, this follows conditions! We have `if`, `if else` and `else` at the moment:
 
 ```rs
 // If statements are pretty close to Lua, as you can witness here:
-if something() then
+if something() {
   print("Something was true!");
-end
+}
 
-if a then
+if a {
   print("A");
-else
+} else {
   print("Not A...");
-end
+}
 
 // The only difference is that "else if" is separated with a space instead
 // of being the word elseif.
-if a then
+if a {
   print("A");
-else if b then
+} else if b {
   print("B");
-else
+} else {
   print("woops");
-end
+}
 ```
 
 Functions!
@@ -177,47 +247,78 @@ They are **always** local, never global (That is forbidden by design).
 
 ```rs
 // Fair enough:
-fn some_func(a, b)
+fn some_func(a, b) {
   return a + b;
-end
+}
 
 // Oh, you can also have anonymous functions by the way!
-let anon = fn(a, b)
+let anon = fn(a, b) {
   return a + b;
-end
+};
 
 // And if an anonymous function ONLY has one expression inside (Without ";"),
 // that expression is an implicit return statement:
-collections::reduce([1, 2, 3], fn(a, b) a + b end);
+collections::reduce([1, 2, 3], fn(a, b) { a + b });
 // Pretty cool
 ```
 
 Time for some object oriented programming! Yes, _Saturnus_ has classes, of
-course, but with a catch: We forbid inheritance by design, which does not
-eliminate polymorphism.
+course, but we forbid inheritance by design, which does not eliminate
+at all polymorphism (see below).
 
 ```rs
-class Person
+class Person {
   // Fields (which are optional btw), are declared as variables:
   let name = "unnamed";
 
   // Methods, like normal functions, but remember that if the first (and only
   // the first) argument is "self", it will be a dynamic method, and if that is
   // absent, it will be compiled as a static method:
-  fn get_name(self)
+  fn get_name(self) {
     return self.name;
-  end
+  }
 
   // Example of an static method, where the usage is shown later:
-  fn greet(person)
-    print("Greetings " .. person.name .. "!");
-  end
-end
+  fn greet(person) {
+    print("Greetings " ++ person.name ++ "!");
+  }
+}
 
 // Here you'll clearly see the difference:
 let person = Person { name: "Mr. Foo" };
 let name = person.get_name(); // Dynamic dispatch
 Person::greet(person); // Static method dispatch!
+```
+
+Polymorphism example, altough if you're familiar with the term
+["Duck Typing"][duck-type], you won't need this example:
+
+[duck-type]: https://en.wikipedia.org/wiki/Duck_typing
+
+```rs
+class Foo {
+  fn action(self) {
+    return "At a distance"; // Einstein would complain...
+  }
+}
+
+class Bar {
+  fn action(self) {
+    return "Quantum entanglement";
+  }
+}
+
+class FooBarConsumer {
+  fn consume(self, actor) {
+    return "The action was: " ++ actor.action();
+  }
+}
+let foo = Foo {};
+let bar = Bar {};
+
+let consumer = FooBarConsumer {};
+print(consumer.consume(foo));
+print(consumer.consume(bar));
 ```
 
 ## Why replace Lua?
@@ -226,56 +327,25 @@ I like many aspects of Lua, specially how fast and lightweight the VM is. But
 original Lua syntax is nowadays a little bit old, and it needs some rework to
 make the scripts less verbose and more easy to write.
 
-Among other things, here are some key aspects that Saturnus changes:
+Aside of the [Language Basics](#language-basics) section, there are other key
+aspects of the language:
 
-- Function syntax is simpler, `fn` instead of `local function`.
-- Lambdas are simpler yet familiar, Eg: `fn() 1 + 2 end`.
-- More idiomatic class definitions: `class MyClass end` instead of [the classic one](https://www.lua.org/manual/2.4/node36.html).
 - Decorators!
 - A built-in prelude library for runtime type checks.
-- Nice string interpolation.
+- ~~Nice string interpolation.~~ (Maybe not?)
 - Terser loops.
 - Built-in operator overloading.
 - Custom operators.
 - Some [RTTI](https://en.wikipedia.org/wiki/Run-time_type_information) (Which enables reflection).
 
-## How does it look?
+## The MVP release to-do list:
 
-> *note*: The "prelude" library is not yet implemented, and the module import
-> is yet to be drafted.
-
-```rs
-use println from "prelude";
-use rti.Typed from "prelude";
-// Old lua way? This is also compatible, but not very cross-target friendly.
-let my_mod = require "My Mod";
-
-class Greeter
-  let who = "Unnamed";
-
-  // This will make the function panic if "who" is not a string!
-  @Typed([rti.String])
-  fn new(who)
-    Greeter { who }
-  end
-
-  fn greet(self)
-    return "Hello {self.who}!";
-  end
-end
-
-// The classic OOP hello world:
-let greeter = Greeter::new("Saturnus");
-println(greeter.greet());
-```
-
-## Yet TODO:
-
-- [ ] Implement a simple build system
+- [x] ~~Implement a simple build system~~ **Janus** comes to the rescue!
+- [ ] Ennumeration structures
 - [ ] Match structure
-- [ ] Add loops (for, while and "loop")
+- [x] ~~Add loops (for, while and "loop")~~
 - [ ] Decorator code generation
-- [ ] Operator overload
+- [x] ~~Operator overload~~
 - [ ] Bitwise operators (This one is easy)
 - [ ] Custom operator dispatch code generation
 - [ ] Destructuring assignment

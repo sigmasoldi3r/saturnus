@@ -5,12 +5,12 @@ use spectral::prelude::*;
 fn simple_class_test() {
     let out = compile(
         "
-    class Hello
+    class Hello {
       let value = 0;
-      fn tick(self)
+      fn tick(self) {
         return 10 + self.value;
-      end
-    end
+      }
+    }
   ",
     );
     assert_that!(out).is_equal_to(
@@ -46,12 +46,12 @@ local hello = Hello({name = \"World\"});"
 fn operator_overload_code_generation() {
     let out = compile(
         "
-    class Hello
+    class Hello {
       let value = 0;
-      operator +(self, other)
+      operator +(self, other) {
         return self.value + other.value;
-      end
-    end
+      }
+    }
   ",
     );
     assert_that!(out).is_equal_to(

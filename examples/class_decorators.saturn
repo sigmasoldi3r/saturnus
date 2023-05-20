@@ -1,0 +1,25 @@
+
+// Here is how decorators work in Saturnus:
+fn MakeArcane() {
+  // You return a function,
+  // and that will decorate the target class.
+  return fn(target) {
+    target.prototype.kind = "ARCANE";
+  };
+}
+
+// One of the advantages of Saturnus over Lua,
+// is that you can have decorator code generation:
+@MakeArcane()
+class Mundane {
+  let kind = "mundane";
+
+  fn what_kind_is(self) {
+    return self.kind;
+  }
+}
+
+let mundane = Mundane {/* Use default constructor fields */};
+
+// If you run the output you'll be surely suprised:
+print("My mundane thing is in fact: " .. mundane.what_kind_is());

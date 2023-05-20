@@ -1,8 +1,4 @@
-use std::{
-    fs::File,
-    io::{Read, Write},
-    path::Path,
-};
+use std::{fs::File, io::Write, path::Path};
 
 use clap::Parser;
 use code::Visitor;
@@ -69,7 +65,8 @@ fn main() {
     let input = read_to_string(in_path).unwrap();
     let output = lua::LuaEmitter
         .visit_script(
-            code::Builder::new(indent),
+            code::Builder::new(indent)
+                .put("-- Compiled by Saturnus compiler, warning: Changes may be discarded!"),
             &parser::Script::parse(input).unwrap(),
         )
         .unwrap()

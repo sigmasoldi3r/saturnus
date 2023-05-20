@@ -4,7 +4,7 @@ use ast::*;
 use std::vec;
 
 peg::parser! {
-    grammar matra_script() for str {
+    grammar saturnus_script() for str {
         pub rule script() -> Script
             = _ statements:statement() ** __ _
             { Script { statements } }
@@ -23,36 +23,38 @@ peg::parser! {
             / e:expression() _ EOS() { Statement::Expression(e) }
 
         rule if_stmt() -> If
-            = "if" __ condition:expression() __ "then" body:script()
-              branches:("else" __ "if" __ c:expression() __ "then" s:script() { (c, s) })*
-              else_branch:("else" e:script() {e})?
-              "end"
+            = "if" __ condition:expression() __ "{" body:script()
+              branches:("}" _ "else" __ "if" __ c:expression() __ "{" s:script() { (c, s) })*
+              else_branch:("}" _ "else" _ "{" e:script() {e})?
+              "}"
             { If { condition, body, branches, else_branch } }
 
         rule for_each() -> For
-            = "for" __ handler:identifier() __ "in" __ target:expression() __ "do"
-              body:script() END()
+            = "for" __ handler:identifier() __ "in" __ target:expression() _ "{"
+              body:script() "}"
             { For { handler, target, body } }
 
         rule while_loop() -> While
-            = "while" __ c:expression() __ "do" body:script() END()
+            = "while" __ c:expression() _ "{" body:script() "}"
             { While { condition: ExpressionOrLet::Expression(c), body } }
-            / "while" __ c:let_expression() __ "do" body:script() END()
+            / "while" __ c:let_expression() _ "{" body:script() "}"
             { While { condition: ExpressionOrLet::Let(c), body } }
 
         rule loop_loop() -> Loop
-            = "loop" body:script() END()
+            = "loop" _ "{" body:script() "}"
             { Loop { body } }
 
         rule func() -> Function
-            = decorators:decorator_list() FN() __ name:identifier() _ arguments:argument_list() body:script() END()
+            = decorators:decorator_list() FN() __ name:identifier() _ arguments:argument_list() _ "{" body:script() "}"
             { Function { name, decorators, body, arguments } }
+            / decorators:decorator_list() FN() __ name:identifier() _ arguments:argument_list() _ "{" _ "}"
+            { Function { name, decorators, body: Script { statements: vec![] }, arguments } }
 
         rule class() -> Class
             = decorators:decorator_list() CLASS()
-              __ name:identifier()
+              __ name:identifier() _ "{"
               fields:(_ f:class_fields() _ {f})*
-              _ END()
+              _ "}"
             { Class { name, fields, decorators } }
 
         rule declare_var() -> Let
@@ -78,8 +80,9 @@ peg::parser! {
             "$" _ expression:@ { UnaryExpression { expression, operator: Operator::Dollar }.into() }
             "!?" _ expression:@ { UnaryExpression { expression, operator: Operator::ExclamationQuestion }.into() }
             --
-            left:(@) _ ".." _ right:@ { BinaryExpression { left, right, operator: Operator::Concat }.into() }
-            --
+            left:(@) _ "++" _ right:@ { BinaryExpression { left, right, operator: Operator::Concat }.into() }
+            left:(@) _ ".." _ right:@ { BinaryExpression { left, right, operator: Operator::Range }.into() }
+
             left:(@) _ "+" _ right:@ { BinaryExpression { left, right, operator: Operator::Plus }.into() }
             left:(@) _ "-" _ right:@ { BinaryExpression { left, right, operator: Operator::Minus }.into() }
             --
@@ -135,18 +138,22 @@ peg::parser! {
             e:vector_expr() { Expression::Vector(e) }
             e:table_expr() { Expression::Table(e) }
             e:tuple_expr() { Expression::Tuple(e) }
-            "(" _ e:expression() _ ")" { e }
+            "(" _ e:expression() _ ")" { Expression::Tuple1(Box::new(e)) }
         }
 
         rule dot_expr() -> DotExpression
-            = value:identifier() ++ (_ "." _) { DotExpression(value) }
+            = value:dot_segment() ++ (_ "." _) { DotExpression(value) }
+
+        rule dot_segment() -> DotSegment
+            = e:identifier() { DotSegment::Identifier(e) }
+            / e:("[" _ e:expression() _ "]" {e}) { DotSegment::Expression(e) }
 
         rule lambda() -> Lambda
-            = FN() _ arguments:argument_list() _ expr:expression() _ END()
-            { Lambda { arguments, body: ScriptOrExpression::Expression(expr) } }
-            / FN() _ arguments:argument_list() body:script() END()
+            = FN() _ arguments:argument_list() _ "{" body:script() "}"
             { Lambda { arguments, body: ScriptOrExpression::Script(body) } }
-            / FN() _ arguments:argument_list() _ END()
+            / FN() _ arguments:argument_list() _ ":" _ expr:expression()
+            { Lambda { arguments, body: ScriptOrExpression::Expression(expr) } }
+            / FN() _ arguments:argument_list() _ "{" _ "}"
             { Lambda { arguments, body: ScriptOrExpression::Script(Script { statements: vec![] }) } }
 
         rule call_expr() -> CallExpression
@@ -184,7 +191,7 @@ peg::parser! {
         rule class_fields() -> ClassField
             = e:declare_var() { ClassField::Let(e) }
             / e:func() { ClassField::Method(e) }
-            / "operator" _ operator:any_operator() _ arguments:argument_list() body:script() END()
+            / "operator" _ operator:any_operator() _ arguments:argument_list() _ "{" body:script() "}"
             { ClassField::Operator(OperatorOverload { operator, arguments, body }) }
 
         rule assign_extra() -> Operator
@@ -192,7 +199,7 @@ peg::parser! {
             / "-" { Operator::Minus }
             / "*" { Operator::Product }
             / "/" { Operator::Quotient }
-            / ".." { Operator::Concat }
+            / "++" { Operator::Concat }
 
         rule argument_list() -> Vec<Argument>
             = "(" _ args:argument() ** (_ "," _) _ ")" { args }
@@ -206,8 +213,8 @@ peg::parser! {
             / { vec![] }
 
         rule decorator() -> Decorator
-            = "@" _ target:call_expr() { Decorator { target: target.target, arguments: Some(target.arguments) } }
-            / "@" _ target:dot_expr() { Decorator { target, arguments: None } }
+            = "@" _ e:call_expr() { Decorator { target: Expression::Call(e) } }
+            / "@" _ e:dot_expr() { Decorator { target: Expression::Reference(e) } }
 
         rule identifier() -> Identifier
             = value:$(IDENT())
@@ -229,7 +236,10 @@ peg::parser! {
             / "[" _ k:expression() _ "]" _ ":" _ v:expression()
             { (TableKeyExpression::Expression(k), v) }
             / k:identifier()
-            { (TableKeyExpression::Implicit(k.clone()), Expression::Reference(DotExpression(vec![k]))) }
+            { (
+                TableKeyExpression::Implicit(k.clone()),
+                Expression::Reference(DotExpression(vec![DotSegment::Identifier(k)]))
+            ) }
 
         rule tuple_expr() -> Tuple
             = "(" _ e:expression() **<2,> (_ "," _) _ ")"
@@ -258,7 +268,8 @@ peg::parser! {
 
         // Special matching rule: Any Binary Operator
         rule any_operator() -> Operator
-            = ".." { Operator::Concat }
+            = "++" { Operator::Concat }
+            / ".." { Operator::Range }
             / "+" { Operator::Plus }
             / "-" { Operator::Minus }
             / "*" { Operator::Product }
@@ -343,7 +354,7 @@ impl Script {
         I: Into<String>,
     {
         let fragment: String = input.into();
-        matra_script::script(&fragment).map_err(|e| ParseFailure::new(e, &fragment))
+        saturnus_script::script(&fragment).map_err(|e| ParseFailure::new(e, &fragment))
     }
 
     // This function is used only in tests for now.
@@ -353,6 +364,6 @@ impl Script {
         I: Into<String>,
     {
         let fragment: String = input.into();
-        matra_script::expression(&fragment).map_err(|e| ParseFailure::new(e, &fragment))
+        saturnus_script::expression(&fragment).map_err(|e| ParseFailure::new(e, &fragment))
     }
 }
