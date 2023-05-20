@@ -425,6 +425,7 @@ impl code::Visitor<code::Builder> for LuaEmitter {
     ) -> Result<code::Builder, code::VisitError> {
         let ctx = match expr.operator.clone() {
             ast::Operator::Minus => ctx.put("-"),
+            ast::Operator::LogicNot => ctx.put("not "),
             op => todo!("Unary operator {:?} not supported!", op),
         };
         let ctx = self.visit_expression(ctx, &expr.expression)?;
