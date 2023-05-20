@@ -260,6 +260,7 @@ pub enum Expression {
     Reference(DotExpression),
     Call(CallExpression),
     Tuple(Tuple),
+    Tuple1(Box<Expression>),
     Table(Table),
     Vector(Vector),
     Number(Number),

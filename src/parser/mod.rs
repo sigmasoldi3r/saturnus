@@ -138,7 +138,7 @@ peg::parser! {
             e:vector_expr() { Expression::Vector(e) }
             e:table_expr() { Expression::Table(e) }
             e:tuple_expr() { Expression::Tuple(e) }
-            "(" _ e:expression() _ ")" { e }
+            "(" _ e:expression() _ ")" { Expression::Tuple1(Box::new(e)) }
         }
 
         rule dot_expr() -> DotExpression

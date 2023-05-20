@@ -18,3 +18,9 @@ fn bop_arithmetic() {
     assert_that!(compile_expr("x / y")).is_equal_to("x / y".to_string());
     assert_that!(compile_expr("x ** y")).is_equal_to("x ** y".to_string());
 }
+
+#[test]
+fn bop_nesting_with_parentheses() {
+    assert_that!(compile_expr("x ** y and (b < c) or (j and (not k or b))"))
+        .is_equal_to("x ** y and (b < c) or (j and (not k or b))".to_string());
+}

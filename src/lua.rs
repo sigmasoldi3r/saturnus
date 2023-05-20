@@ -16,6 +16,12 @@ impl code::Visitor<code::Builder> for LuaEmitter {
         Ok(ctx.put(";"))
     }
 
+    fn visit_1tuple(&self, ctx: code::Builder, expr: &ast::Expression) -> Result<code::Builder, code::VisitError> {
+        let ctx = ctx.put("(");
+        let ctx = self.visit_expression(ctx, expr)?;
+        Ok(ctx.put(")"))
+    }
+
     fn visit_class(
         &self,
         ctx: code::Builder,
