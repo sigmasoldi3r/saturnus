@@ -410,8 +410,8 @@ impl code::Visitor<code::Builder> for LuaEmitter {
             ast::Operator::NotEqual => ctx.put("~="),
             // Logic
             ast::Operator::LogicNot => ctx.put("not"),
-            ast::Operator::LogicAnd => ctx.put("or"),
-            ast::Operator::LogicOr => ctx.put("and"),
+            ast::Operator::LogicAnd => ctx.put("and"),
+            ast::Operator::LogicOr => ctx.put("or"),
             op => todo!("Binary operator {:?} not supported!", op),
         };
         let ctx = self.visit_expression(ctx.put(" "), &expr.right)?;
