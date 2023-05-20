@@ -1,5 +1,7 @@
 # Saturnus
 
+![Saturnus provisional logo](saturnus_realist.png)
+
 **Saturnus** is a programming language that aims to have a simplified mix of
 [Rust programming language](https://www.rust-lang.org/) and [Lua](https://www.lua.org/).
 
