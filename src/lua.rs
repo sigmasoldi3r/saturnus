@@ -418,6 +418,13 @@ impl code::Visitor<code::Builder> for LuaEmitter {
             ast::Operator::LogicNot => ctx.put("not"),
             ast::Operator::LogicAnd => ctx.put("and"),
             ast::Operator::LogicOr => ctx.put("or"),
+            // Logic
+            ast::Operator::BWiseAnd => ctx.put("&"),
+            ast::Operator::BWiseOr => ctx.put("|"),
+            ast::Operator::BWiseLShift => ctx.put("<<"),
+            ast::Operator::BWiseLShiftRoundtrip => ctx.put("<<<"),
+            ast::Operator::BWiseRShift => ctx.put(">>"),
+            ast::Operator::BWiseRShiftRoundtrip => ctx.put(">>>"),
             op => todo!("Binary operator {:?} not supported!", op),
         };
         let ctx = self.visit_expression(ctx.put(" "), &expr.right)?;
@@ -432,6 +439,7 @@ impl code::Visitor<code::Builder> for LuaEmitter {
         let ctx = match expr.operator.clone() {
             ast::Operator::Minus => ctx.put("-"),
             ast::Operator::LogicNot => ctx.put("not "),
+            ast::Operator::Count => ctx.put("#"),
             op => todo!("Unary operator {:?} not supported!", op),
         };
         let ctx = self.visit_expression(ctx, &expr.expression)?;
@@ -610,9 +618,9 @@ impl code::Visitor<code::Builder> for LuaEmitter {
 
     fn visit_match(
         &self,
-        ctx: code::Builder,
-        expr: &ast::Match,
+        _ctx: code::Builder,
+        _expr: &ast::Match,
     ) -> Result<code::Builder, code::VisitError> {
-        todo!()
+        todo!("Match code generation not implemented yet.")
     }
 }

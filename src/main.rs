@@ -2,6 +2,7 @@ use std::{fs::File, io::Write, path::Path};
 
 use clap::Parser;
 use code::Visitor;
+use console::style;
 
 #[cfg(test)]
 #[macro_use]
@@ -52,6 +53,7 @@ fn get_default_output(str: &Path) -> String {
 }
 
 fn main() {
+    // Configure environment
     let args = Args::parse();
     let indent = if args.use_tabs {
         "\t".to_string()
@@ -59,18 +61,64 @@ fn main() {
         " ".repeat(args.indentation)
     };
     use std::fs::read_to_string;
+
+    // Read input files
     let in_path = Path::new(&args.input);
     println!("Compiling {:?}...", in_path);
     let out_path = args.output.unwrap_or(get_default_output(in_path));
     let input = read_to_string(in_path).unwrap();
-    let output = lua::LuaEmitter
-        .visit_script(
-            code::Builder::new(indent)
-                .put("-- Compiled by Saturnus compiler, warning: Changes may be discarded!"),
-            &parser::Script::parse(input).unwrap(),
-        )
-        .unwrap()
-        .collect();
-    let mut out_file = File::create(out_path).unwrap();
-    out_file.write_all(output.as_bytes()).unwrap();
+
+    // Handle parsing errors
+    match parser::Script::parse(input.clone()) {
+        Ok(result) => {
+            let output = lua::LuaEmitter
+                .visit_script(
+                    code::Builder::new(indent).put(
+                        "-- Compiled by Saturnus compiler, warning: Changes may be discarded!",
+                    ),
+                    &result,
+                )
+                .unwrap()
+                .collect();
+            let mut out_file = File::create(out_path).unwrap();
+            out_file.write_all(output.as_bytes()).unwrap();
+        }
+        Err(err) => {
+            eprintln!("Failed to parse {} file!", args.input);
+            let line = err.location.line;
+            let col = err.location.column;
+            let ep = err
+                .expected
+                .tokens()
+                .map(|x| String::from(x))
+                .reduce(|a, b| format!("{}, {}", a, b));
+            eprintln!("At {}:{}:{}", args.input, line, col);
+            let lines = input.lines();
+            let mut i = 0_usize;
+            let mut pos = 0_usize;
+            for line_str in lines {
+                pos += 1;
+                if pos >= line - 3 && pos < line + 5 {
+                    let n = pos.to_string();
+                    let numeric = format!("{:>4}", n);
+                    let numeric = style(numeric).blue();
+                    let divider = style("|").green().bold();
+                    eprintln!("{} {} {}", numeric, divider, line_str);
+                    if line == pos {
+                        let ted = line_str.len() - col;
+                        let premark = style("     |").red().bold();
+                        let spanner = format!(" {:2$}{:^<3$}", " ", "^", col - 2, ted);
+                        let spanner = style(spanner).red();
+                        let here = style("here").red();
+                        eprintln!("{} {} {here}", premark, spanner);
+                    }
+                    i += 1;
+                }
+                if i > 5 {
+                    break;
+                }
+            }
+            panic!("Compilation failed");
+        }
+    }
 }

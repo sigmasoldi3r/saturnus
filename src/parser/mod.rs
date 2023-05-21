@@ -74,6 +74,7 @@ peg::parser! {
             "+" _ expression:@ { UnaryExpression { expression, operator: Operator::Plus }.into() }
             "#?" _ expression:@ { UnaryExpression { expression, operator: Operator::Count }.into() }
             "not" _ expression:@ { UnaryExpression { expression, operator: Operator::LogicNot }.into() }
+            "¬" _ expression:@ { UnaryExpression { expression, operator: Operator::BWiseNot }.into() }
             "!" _ expression:@ { UnaryExpression { expression, operator: Operator::Exclamation }.into() }
             "~" _ expression:@ { UnaryExpression { expression, operator: Operator::Tilde }.into() }
             "¬" _ expression:@ { UnaryExpression { expression, operator: Operator::Bolted }.into() }
@@ -108,6 +109,17 @@ peg::parser! {
             left:(@) _ "nand" _ right:@ { BinaryExpression { left, right, operator: Operator::LogicNand }.into() }
             left:(@) _ "nor" _ right:@ { BinaryExpression { left, right, operator: Operator::LogicNor }.into() }
             --
+            left:(@) _ "&" _ right:@ { BinaryExpression { left, right, operator: Operator::BWiseAnd }.into() }
+            left:(@) _ "|" _ right:@ { BinaryExpression { left, right, operator: Operator::BWiseOr }.into() }
+            left:(@) _ "<<<" _ right:@ { BinaryExpression { left, right, operator: Operator::BWiseLShiftRoundtrip }.into() }
+            left:(@) _ "<<" _ right:@ { BinaryExpression { left, right, operator: Operator::BWiseLShift }.into() }
+            left:(@) _ ">>>" _ right:@ { BinaryExpression { left, right, operator: Operator::BWiseRShiftRoundtrip }.into() }
+            left:(@) _ ">>" _ right:@ { BinaryExpression { left, right, operator: Operator::BWiseRShift }.into() }
+            // Extra logic:
+            // left:(@) _ "^" _ right:@ { BinaryExpression { left, right, operator: Operator::LogicXOr }.into() }
+            // left:(@) _ "¬&" _ right:@ { BinaryExpression { left, right, operator: Operator::LogicNand }.into() }
+            // left:(@) _ "¬|" _ right:@ { BinaryExpression { left, right, operator: Operator::LogicNor }.into() }
+            --
             left:(@) _ "<~>" _ right:@ { BinaryExpression { left, right, operator: Operator::Elastic }.into() }
             left:(@) _ "<~" _ right:@ { BinaryExpression { left, right, operator: Operator::ElasticLeft }.into() }
             left:(@) _ "~>" _ right:@ { BinaryExpression { left, right, operator: Operator::ElasticRight }.into() }
@@ -132,12 +144,12 @@ peg::parser! {
             e:string() { Expression::String(e) }
             e:number() { Expression::Number(e) }
             e:lambda() { Expression::Lambda(Box::new(e)) }
-            e:call_expr()  { Expression::Call(e) }
-            e:dot_expr() { Expression::Reference(e) }
-            unit() { Expression::Unit }
             e:vector_expr() { Expression::Vector(e) }
             e:table_expr() { Expression::Table(e) }
             e:tuple_expr() { Expression::Tuple(e) }
+            e:call_expr()  { Expression::Call(e) }
+            e:dot_expr() { Expression::Reference(e) }
+            unit() { Expression::Unit }
             "(" _ e:expression() _ ")" { Expression::Tuple1(Box::new(e)) }
         }
 
@@ -161,10 +173,10 @@ peg::parser! {
             { CallExpression { target, static_target, arguments } }
             / target:dot_expr() static_target:(_ "::" _ e:identifier(){e})? _ arg:table_expr()
             { CallExpression { target, static_target, arguments: vec![Expression::Table(arg)] } }
-            / target:dot_expr() static_target:(_ "::" _ e:identifier(){e})? _ arg:vector_expr()
-            { CallExpression { target, static_target, arguments: vec![Expression::Vector(arg)] } }
-            / target:dot_expr() static_target:(_ "::" _ e:identifier(){e})? _ arg:string()
-            { CallExpression { target, static_target, arguments: vec![Expression::String(arg)] } }
+            // / target:dot_expr() static_target:(_ "::" _ e:identifier(){e})? _ arg:vector_expr()
+            // { CallExpression { target, static_target, arguments: vec![Expression::Vector(arg)] } }
+            // / target:dot_expr() static_target:(_ "::" _ e:identifier(){e})? _ arg:string()
+            // { CallExpression { target, static_target, arguments: vec![Expression::String(arg)] } }
 
         // Literals
         rule number() -> Number
@@ -311,59 +323,30 @@ peg::parser! {
         }
 }
 
-pub struct ParseFailure {
-    pub parse_error: Option<peg::error::ParseError<peg::str::LineCol>>,
-    pub fragment: String,
-}
-impl std::fmt::Debug for ParseFailure {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let line = self.fragment.clone();
-        let loc = self.parse_error.as_ref().unwrap().location.clone();
-        let wave = " ".repeat(loc.column) + "^ here";
-        f.write_fmt(format_args!(
-            "Parse Failed! {:?}\n at {}:{},\n   {}\n  {}\n",
-            self.parse_error.as_ref().unwrap(),
-            loc.line,
-            loc.column,
-            line,
-            wave
-        ))
-    }
-}
-impl ParseFailure {
-    fn new(e: peg::error::ParseError<peg::str::LineCol>, fragment: &String) -> Self {
-        ParseFailure {
-            parse_error: Some(e.clone()),
-            fragment: fragment
-                .split("\n")
-                .skip(e.location.line - 1)
-                .next()
-                .unwrap()
-                .to_string(),
-        }
-    }
-}
+pub type ParseResult = Result<Script, peg::error::ParseError<peg::str::LineCol>>;
 
 #[derive(Debug, Clone)]
 pub struct Script {
     pub statements: Vec<Statement>,
 }
 impl Script {
-    pub fn parse<I>(input: I) -> Result<Self, ParseFailure>
+    pub fn parse<I>(input: I) -> ParseResult
     where
         I: Into<String>,
     {
         let fragment: String = input.into();
-        saturnus_script::script(&fragment).map_err(|e| ParseFailure::new(e, &fragment))
+        saturnus_script::script(&fragment)
     }
 
     // This function is used only in tests for now.
     #[cfg(test)]
-    pub fn parse_expression<I>(input: I) -> Result<Expression, ParseFailure>
+    pub fn parse_expression<I>(
+        input: I,
+    ) -> Result<ast::Expression, peg::error::ParseError<peg::str::LineCol>>
     where
         I: Into<String>,
     {
         let fragment: String = input.into();
-        saturnus_script::expression(&fragment).map_err(|e| ParseFailure::new(e, &fragment))
+        saturnus_script::expression(&fragment)
     }
 }

@@ -7,7 +7,7 @@ class Greeter {
   
   // A simple method:
   fn greet(self) {
-    return "Hello " .. self.name .. "!";
+    return "Hello " ++ self.name ++ "!";
   }
 
   // Static methods just don't use the "self" param:
@@ -17,7 +17,7 @@ class Greeter {
 
   // Operator overload also is here!
   operator +(self, other) {
-    return Greeter::new(self.name .. " & " .. other.name);
+    return Greeter::new(self.name ++ " & " ++ other.name);
   }
 }
 

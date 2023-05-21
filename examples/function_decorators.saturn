@@ -2,7 +2,7 @@
 
 fn Test() {
     return fn(target, name) {
-        print("Adding " .. name .. " to the test suite!");
+        print("Adding " ++ name ++ " to the test suite!");
     };
 }
 
