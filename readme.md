@@ -30,10 +30,6 @@ janus --help
 saturnus --help
 ```
 
-Example of error reporting:
-
-![error report example](docs/error_example.png)
-
 ### Introducing Janus!
 
 Now _Saturnus_ has a simple build system, meet Janus: The official _Saturnus_
