@@ -1,6 +1,6 @@
 # Saturnus
 
-![Saturnus provisional logo](saturnus_realist.png)
+![Saturnus provisional logo](docs/logo_realistic.png)
 
 **Saturnus** is a programming language that aims to have a simplified mix of
 [Rust programming language](https://www.rust-lang.org/) and [Lua](https://www.lua.org/).
@@ -29,6 +29,10 @@ use the `--help` (Or `-h`) flag, like:
 janus --help
 saturnus --help
 ```
+
+Example of error reporting:
+
+![error report example](docs/error_example.png)
 
 ### Introducing Janus!
 
