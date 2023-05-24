@@ -32,13 +32,14 @@ pub struct Tuple(pub Vec<Expression>);
 pub struct Identifier(pub String);
 
 #[derive(Debug, Clone)]
-pub enum DotSegment {
-    Identifier(Identifier),
+pub enum MemberSegment {
+    ArrayAccess(Expression),
     Expression(Expression),
+    Identifier(Identifier),
 }
 
 #[derive(Debug, Clone)]
-pub struct DotExpression(pub Vec<DotSegment>);
+pub struct MemberExpression(pub Vec<MemberSegment>);
 
 #[derive(Debug, Clone)]
 pub struct Let {
@@ -48,7 +49,7 @@ pub struct Let {
 
 #[derive(Debug, Clone)]
 pub struct Assignment {
-    pub target: DotExpression,
+    pub target: MemberExpression,
     pub value: Expression,
     pub extra: Option<Operator>,
 }
@@ -62,7 +63,7 @@ pub struct Class {
 
 #[derive(Debug, Clone)]
 pub struct CallExpression {
-    pub target: DotExpression,
+    pub target: MemberExpression,
     pub static_target: Option<Identifier>,
     pub arguments: Vec<Expression>,
 }
@@ -257,7 +258,7 @@ pub enum TableKeyExpression {
 #[derive(Debug, Clone)]
 pub enum Expression {
     Lambda(Box<Lambda>),
-    Reference(DotExpression),
+    Reference(MemberExpression),
     Call(CallExpression),
     Tuple(Tuple),
     Tuple1(Box<Expression>),

@@ -94,3 +94,9 @@ end"
         .to_string(),
     );
 }
+
+#[test]
+fn multi_target_call() {
+    let out = compile_expr("test.random['chatter']::here().and_there('yes')");
+    assert_that!(out).is_equal_to("test.random['chatter'].here():and_there('yes')".to_string());
+}
