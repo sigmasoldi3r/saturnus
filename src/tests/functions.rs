@@ -36,7 +36,7 @@ end"
 
 #[test]
 fn inline_lambda() {
-    let out = compile_expr("fn(a, b): a + b");
+    let out = compile_expr("(a, b) => a + b");
     assert_that!(out).is_equal_to(
         "function(a, b)
   return a + b;
@@ -47,7 +47,7 @@ end"
 
 #[test]
 fn inline_empty_lambda() {
-    let out = compile_expr("fn(a, b) {}");
+    let out = compile_expr("(a, b) => {}");
     assert_that!(out).is_equal_to(
         "function(a, b)
 end"
@@ -59,7 +59,7 @@ end"
 fn block_lambda() {
     let out = compile_expr(
         "
-        fn(a, b) {
+        (a, b) => {
             return a + b;
         }
     "
@@ -78,7 +78,7 @@ fn nested_lambda_code() {
     let out = compile(
         "
     fn factory(a) {
-        return fn(b) {
+        return (b) => {
             return a + b;
         };
     }

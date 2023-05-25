@@ -1,6 +1,6 @@
 use crate::{
     code::{self, VisitError},
-    parser::ast::{self},
+    parser::ast::{self, StringLiteral},
 };
 
 pub struct LuaEmitter;
@@ -415,9 +415,14 @@ impl code::Visitor<code::Builder> for LuaEmitter {
     fn visit_string(
         &self,
         ctx: code::Builder,
-        expr: &String,
+        expr: &StringLiteral,
     ) -> Result<code::Builder, code::VisitError> {
-        Ok(ctx.put("\"").put(expr.clone()).put("\""))
+        let ctx = match expr {
+            StringLiteral::Double(s) => ctx.put("\"").put(s.clone()).put("\""),
+            StringLiteral::Single(s) => ctx.put("'").put(s.clone()).put("'"),
+            StringLiteral::Special(_) => todo!(),
+        };
+        Ok(ctx)
     }
 
     fn visit_unit(&self, ctx: code::Builder) -> Result<code::Builder, code::VisitError> {

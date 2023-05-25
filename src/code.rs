@@ -18,7 +18,7 @@ pub trait Visitor<T> {
     fn visit_call(&self, ctx: T, expr: &CallExpression) -> Result<T, VisitError>;
     fn visit_tuple(&self, ctx: T, expr: &Tuple) -> Result<T, VisitError>;
     fn visit_number(&self, ctx: T, expr: &Number) -> Result<T, VisitError>;
-    fn visit_string(&self, ctx: T, expr: &String) -> Result<T, VisitError>;
+    fn visit_string(&self, ctx: T, expr: &StringLiteral) -> Result<T, VisitError>;
     fn visit_unit(&self, ctx: T) -> Result<T, VisitError>;
     fn visit_binary(&self, ctx: T, expr: &BinaryExpression) -> Result<T, VisitError>;
     fn visit_unary(&self, ctx: T, expr: &UnaryExpression) -> Result<T, VisitError>;

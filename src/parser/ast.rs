@@ -281,6 +281,13 @@ pub enum TableKeyExpression {
 }
 
 #[derive(Debug, Clone)]
+pub enum StringLiteral {
+    Double(String),
+    Single(String),
+    Special(String),
+}
+
+#[derive(Debug, Clone)]
 pub enum Expression {
     Lambda(Box<Lambda>),
     Reference(Box<MemberExpression>),
@@ -291,7 +298,7 @@ pub enum Expression {
     Table(Table),
     Vector(Vector),
     Number(Number),
-    String(String),
+    String(StringLiteral),
     Binary(Box<BinaryExpression>),
     Unary(Box<UnaryExpression>),
     Unit,

@@ -201,9 +201,9 @@ peg::parser! {
 
         rule atom() -> Expression
             = e:call_expression() { Expression::Call(Box::new(e)) }
+            / lambda_expression()
             / string_expression()
             / number_expression()
-            / lambda_expression()
             / vector_expression()
             / table_expression()
             / tuple_expression()
@@ -223,11 +223,11 @@ peg::parser! {
             = "(" _ e:expression() _ ")" { Expression::Tuple1(Box::new(e)) }
 
         rule lambda_literal() -> Lambda
-            = FN() _ arguments:argument_list() _ "{" body:script() "}"
+            = arguments:argument_list() _ "=>" _ "{" body:script() "}"
             { Lambda { arguments, body: ScriptOrExpression::Script(body) } }
-            / FN() _ arguments:argument_list() _ ":" _ expr:expression()
+            / arguments:argument_list() _ "=>" _ expr:expression()
             { Lambda { arguments, body: ScriptOrExpression::Expression(expr) } }
-            / FN() _ arguments:argument_list() _ "{" _ "}"
+            / arguments:argument_list() _ "=>" _ "{" _ "}"
             { Lambda { arguments, body: ScriptOrExpression::Script(Script { statements: vec![] }) } }
 
         // Literals
@@ -236,9 +236,9 @@ peg::parser! {
             / value:$(DIGIT()+) { Number::Integer(value.parse().unwrap()) }
             / expected!("Number literal")
 
-        rule string_literal() -> String
-            = "\"" value:$((!"\"" ANY())*) "\"" { value.into() }
-            / "'" value:$((!"'" ANY())*) "'" { value.into() }
+        rule string_literal() -> StringLiteral
+            = "\"" value:$((!"\"" ANY())*) "\"" { StringLiteral::Double(value.into()) }
+            / "'" value:$((!"'" ANY())*) "'" { StringLiteral::Single(value.into()) }
             / expected!("String literal")
 
         rule vector_literal() -> Vector
