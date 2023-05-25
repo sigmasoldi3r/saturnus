@@ -3,7 +3,7 @@ use spectral::prelude::*;
 
 #[test]
 fn simple_array_access_read() {
-    let out = compile("foo = bar.[baz];");
+    let out = compile("foo = bar[baz];");
     assert_that!(out).is_equal_to(
         "
 foo = bar[baz];"

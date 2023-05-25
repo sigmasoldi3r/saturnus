@@ -31,27 +31,32 @@ peg::parser! {
               else_branch:("}" _ "else" _ "{" e:script() {e})?
               "}"
             { If { condition, body, branches, else_branch } }
+            / expected!("If statement")
 
         rule for_each() -> For
             = "for" __ handler:identifier() __ "in" __ target:expression() _ "{"
               body:script() "}"
             { For { handler, target, body } }
+            / expected!("For loop")
 
         rule while_loop() -> While
             = "while" __ c:expression() _ "{" body:script() "}"
             { While { condition: ExpressionOrLet::Expression(c), body } }
             / "while" __ c:let_expression() _ "{" body:script() "}"
             { While { condition: ExpressionOrLet::Let(c), body } }
+            / expected!("While loop")
 
         rule loop_loop() -> Loop
             = "loop" _ "{" body:script() "}"
             { Loop { body } }
+            / expected!("Loop")
 
         rule func() -> Function
             = decorators:decorator_list() FN() __ name:identifier() _ arguments:argument_list() _ "{" body:script() "}"
             { Function { name, decorators, body, arguments } }
             / decorators:decorator_list() FN() __ name:identifier() _ arguments:argument_list() _ "{" _ "}"
             { Function { name, decorators, body: Script { statements: vec![] }, arguments } }
+            / expected!("Function declaration")
 
         rule class() -> Class
             = decorators:decorator_list() CLASS()
@@ -59,9 +64,11 @@ peg::parser! {
               fields:(_ f:class_fields() _ {f})*
               _ "}"
             { Class { name, fields, decorators } }
+            / expected!("Class declaration")
 
         rule declare_var() -> Let
             = e:let_expression() _ EOS() { e }
+            / expected!("Variable declaration")
 
         rule assignment() -> Assignment
             = target:member_expression() _ extra:assign_extra()? "=" _ value:expression() _ EOS()
@@ -73,27 +80,46 @@ peg::parser! {
 
         // Expressions
         pub rule expression() -> Expression
-            = call_expression()
+            = e:call_expression() { Expression::Call(Box::new(e)) }
             / binary_expression()
 
-        rule call_expression() -> Expression
-            = target:member_expression() _ "(" _ arguments() _ ")"
-            { Expression::Call(CallExpression { target, static_target: None, arguments: vec![] }) }
+        rule member_expression() -> MemberExpression
+            = head:primary()
+            tail:(
+                _ "[" _ e:expression() _ "]" { MemberSegment::Computed(e) }
+                / _ ("."/"::") _ i:identifier() { MemberSegment::Identifier(i) }
+            )*
+            { MemberExpression { head, tail } }
+
+        rule call_expression() -> CallExpression
+            = head:(
+                callee:member_expression() _ arguments:call_arguments()
+                { CallSubExpression { callee: Some(callee), arguments }.into() }
+            )
+            tail:(
+                _ arguments:call_arguments() { CallSubExpression { callee: None, arguments }.into() }
+                / _ "[" _ prop:expression() _ "]" { MemberSegment::Computed(prop).into() }
+                / _ "." _ prop:identifier() { MemberSegment::Identifier(prop).into() }
+            )*
+            { CallExpression { head, tail } }
 
         rule primary() -> Expression
-            = string_expression()
+            = i:identifier() { Expression::Identifier(i) }
+            / string_expression()
             / number_expression()
             / table_expression()
             / vector_expression()
             / tuple_expression()
+            / lambda_expression()
             / enclosed_expression()
 
-        rule member_expression() -> MemberExpression
-            = primary() (_ "[" _ expression() _ "]")+ { MemberExpression(vec![]) }
-            / primary() (_ "." _ primary())+ { MemberExpression(vec![]) }
-            / e:identifier() { MemberExpression(vec![MemberSegment::Identifier(e)]) }
+        rule call_arguments() -> Vec<Expression>
+            = "(" _ args:(e:call_argument_list() _ { e })? ")"
+            { args.unwrap_or(vec![]) }
 
-        rule arguments() = "a"
+        rule call_argument_list() -> Vec<Expression>
+            = args:expression() ** (_ "," _)
+            { args }
 
         rule binary_expression() -> Expression = precedence! {
             "-" _ expression:@ { UnaryExpression { expression, operator: Operator::Minus }.into() }
@@ -103,7 +129,7 @@ peg::parser! {
             "~^" _ expression:@ { UnaryExpression { expression, operator: Operator::BWiseNot }.into() }
             // "!" _ expression:@ { UnaryExpression { expression, operator: Operator::Exclamation }.into() }
             "~" _ expression:@ { UnaryExpression { expression, operator: Operator::Tilde }.into() }
-            "¬" _ expression:@ { UnaryExpression { expression, operator: Operator::Bolted }.into() }
+            // "¬" _ expression:@ { UnaryExpression { expression, operator: Operator::Bolted }.into() }
             "$" _ expression:@ { UnaryExpression { expression, operator: Operator::Dollar }.into() }
             "!?" _ expression:@ { UnaryExpression { expression, operator: Operator::ExclamationQuestion }.into() }
             --
@@ -177,7 +203,7 @@ peg::parser! {
             / vector_expression()
             / table_expression()
             / tuple_expression()
-            / e:member_expression() { Expression::Reference(e) }
+            / e:member_expression() { Expression::Reference(Box::new(e)) }
             / unit() { Expression::Unit }
             / enclosed_expression()
 
@@ -204,22 +230,27 @@ peg::parser! {
         rule number_literal() -> Number
             = value:$(DIGIT()+ "." DIGIT()+) { Number::Float(value.parse().unwrap()) }
             / value:$(DIGIT()+) { Number::Integer(value.parse().unwrap()) }
+            / expected!("Number literal")
 
         rule string_literal() -> String
             = "\"" value:$((!"\"" ANY())*) "\"" { value.into() }
             / "'" value:$((!"'" ANY())*) "'" { value.into() }
+            / expected!("String literal")
 
         rule vector_literal() -> Vector
             = "[" _ expressions:comma_expr() _ "]"
             { Vector { expressions } }
+            / expected!("Vector literal")
 
         rule table_literal() -> Table
             = "{" _ key_values:table_kvs() _ "}"
             { Table { key_values } }
+            / expected!("Table literal")
 
         rule tuple_literal() -> Tuple
             = "(" _ e:expression() **<2,> (_ "," _) _ ")"
             { Tuple(e) }
+            / expected!("Tuple literal")
 
         // Auxiliaries and sub-expressions
         rule let_expression() -> Let
@@ -252,10 +283,12 @@ peg::parser! {
 
         rule decorator() -> Decorator
             = "@" _ target:call_expression() { Decorator { target } }
+            / expected!("Decorator")
 
         rule identifier() -> Identifier
             = value:$(IDENT())
             { Identifier(value.into()) }
+            / expected!("Identifier")
 
         rule wrapped_comma_expr() -> Vec<Expression>
             = "(" _ e:comma_expr() _ ")" { e }
@@ -263,19 +296,19 @@ peg::parser! {
         rule comma_expr() -> Vec<Expression>
             = e:expression() ** (_ "," _) { e }
 
-        rule table_kvs() -> Vec<(TableKeyExpression, Expression)>
+        rule table_kvs() -> Vec<(TableKeyExpression, Option<Expression>)>
             = kv:table_kv_pair() ** (_ "," _)
             { kv }
 
-        rule table_kv_pair() -> (TableKeyExpression, Expression)
+        rule table_kv_pair() -> (TableKeyExpression, Option<Expression>)
             = k:identifier() _ ":" _ v:expression()
-            { (TableKeyExpression::Identifier(k), v) }
+            { (TableKeyExpression::Identifier(k), Some(v)) }
             / "[" _ k:expression() _ "]" _ ":" _ v:expression()
-            { (TableKeyExpression::Expression(k), v) }
+            { (TableKeyExpression::Expression(k), Some(v)) }
             / k:identifier()
             { (
                 TableKeyExpression::Implicit(k.clone()),
-                Expression::Reference(MemberExpression(vec![]))
+                None
             ) }
 
         rule unit() -> Expression = "()" { Expression::Unit }
@@ -287,15 +320,15 @@ peg::parser! {
         rule CLASS() = "class"
         rule END() = "end"
         rule FN() = "fn"
-        rule ANY() = [_]
-        rule BLANK() = ['\t'|' ']
+        rule ANY() = quiet!{ [_] } / expected!("Any character")
+        rule BLANK() = ['\t'|' '] / expected!("White space")
         rule WS() = BLANK() / LINE_COMMENT() / BLOCK_COMMENT() / EOL()
-        rule LINE_COMMENT() = "//" (!EOL() ANY())* EOL()
-        rule BLOCK_COMMENT() = "/*" (!"*/" ANY())* "*/"
-        rule EOL() = ['\r'|'\n']
-        rule EOS() = EOL() / ";"
-        rule ALPHA() = ['A'..='Z'|'a'..='z'|'_']
-        rule DIGIT() = ['0'..='9']
+        rule LINE_COMMENT() = quiet!{ "//" (!EOL() ANY())* EOL() } / expected!("Line comment")
+        rule BLOCK_COMMENT() = quiet!{ "/*" (!"*/" ANY())* "*/" } / expected!("Block comment")
+        rule EOL() = quiet!{ ['\r'|'\n'] } / expected!("End of line")
+        rule EOS() = quiet!{ EOL() / ";" } / expected!("End of statement")
+        rule ALPHA() = quiet!{ ['A'..='Z'|'a'..='z'|'_'] } / expected!("Alphanumeric")
+        rule DIGIT() = quiet!{ ['0'..='9'] } / expected!("Digit")
         rule _ = WS()*
         rule __ = WS()+
 

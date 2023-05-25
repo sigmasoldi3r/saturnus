@@ -2,7 +2,7 @@ use super::Script;
 
 #[derive(Debug, Clone)]
 pub struct Decorator {
-    pub target: Expression,
+    pub target: CallExpression,
 }
 
 #[derive(Debug, Clone)]
@@ -33,13 +33,20 @@ pub struct Identifier(pub String);
 
 #[derive(Debug, Clone)]
 pub enum MemberSegment {
-    ArrayAccess(Expression),
-    Expression(Expression),
+    Computed(Expression),
     Identifier(Identifier),
+}
+impl Into<CallExpressionVariant> for MemberSegment {
+    fn into(self) -> CallExpressionVariant {
+        CallExpressionVariant::Member(self)
+    }
 }
 
 #[derive(Debug, Clone)]
-pub struct MemberExpression(pub Vec<MemberSegment>);
+pub struct MemberExpression {
+    pub head: Expression,
+    pub tail: Vec<MemberSegment>,
+}
 
 #[derive(Debug, Clone)]
 pub struct Let {
@@ -62,10 +69,27 @@ pub struct Class {
 }
 
 #[derive(Debug, Clone)]
-pub struct CallExpression {
-    pub target: MemberExpression,
-    pub static_target: Option<Identifier>,
+pub struct CallSubExpression {
+    pub callee: Option<MemberExpression>,
+    // pub static_target: Option<Identifier>,
     pub arguments: Vec<Expression>,
+}
+impl Into<CallExpressionVariant> for CallSubExpression {
+    fn into(self) -> CallExpressionVariant {
+        CallExpressionVariant::Call(self)
+    }
+}
+
+#[derive(Debug, Clone)]
+pub enum CallExpressionVariant {
+    Call(CallSubExpression),
+    Member(MemberSegment),
+}
+
+#[derive(Debug, Clone)]
+pub struct CallExpression {
+    pub head: CallSubExpression,
+    pub tail: Vec<CallExpressionVariant>,
 }
 
 #[derive(Debug, Clone)]
@@ -195,7 +219,7 @@ pub enum Operator {
     ArrowStandRight,
     ArrowStandLeft,
     ArrowStandBoth,
-    Exclamation,
+    // Exclamation,
     Tilde,
     Disjoin,
     Elastic,
@@ -210,7 +234,7 @@ pub enum Operator {
     PipeLeft,
     AskRight,
     AskLeft,
-    Bolted,
+    // Bolted,
     Dollar,
     ExclamationQuestion,
 }
@@ -245,7 +269,7 @@ pub struct Vector {
 
 #[derive(Debug, Clone)]
 pub struct Table {
-    pub key_values: Vec<(TableKeyExpression, Expression)>,
+    pub key_values: Vec<(TableKeyExpression, Option<Expression>)>,
 }
 
 #[derive(Debug, Clone)]
@@ -258,8 +282,9 @@ pub enum TableKeyExpression {
 #[derive(Debug, Clone)]
 pub enum Expression {
     Lambda(Box<Lambda>),
-    Reference(MemberExpression),
-    Call(CallExpression),
+    Reference(Box<MemberExpression>),
+    Identifier(Identifier),
+    Call(Box<CallExpression>),
     Tuple(Tuple),
     Tuple1(Box<Expression>),
     Table(Table),

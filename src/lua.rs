@@ -16,10 +16,22 @@ impl code::Visitor<code::Builder> for LuaEmitter {
         Ok(ctx.put(";"))
     }
 
-    fn visit_1tuple(&self, ctx: code::Builder, expr: &ast::Expression) -> Result<code::Builder, code::VisitError> {
+    fn visit_1tuple(
+        &self,
+        ctx: code::Builder,
+        expr: &ast::Expression,
+    ) -> Result<code::Builder, code::VisitError> {
         let ctx = ctx.put("(");
         let ctx = self.visit_expression(ctx, expr)?;
         Ok(ctx.put(")"))
+    }
+
+    fn visit_identifier(
+        &self,
+        ctx: code::Builder,
+        expr: &ast::Identifier,
+    ) -> Result<code::Builder, code::VisitError> {
+        Ok(ctx.put(expr.0.clone()))
     }
 
     fn visit_class(
@@ -139,7 +151,7 @@ impl code::Visitor<code::Builder> for LuaEmitter {
             };
             let ctx = stmt.decorators.iter().fold(Ok(ctx), |ctx, dec| {
                 let ctx = ctx?.line();
-                let ctx = self.visit_expression(ctx, &dec.target)?;
+                let ctx = self.visit_call(ctx, &dec.target)?;
                 let ctx = ctx.put(format!(
                     "({}, \"{}\");",
                     stmt.name.0.clone(),
@@ -177,7 +189,7 @@ impl code::Visitor<code::Builder> for LuaEmitter {
         let ctx = ctx.pop().unwrap().line().put("end");
         let ctx = stmt.decorators.iter().fold(Ok(ctx), |ctx, dec| {
             let ctx = ctx?.line();
-            let ctx = self.visit_expression(ctx, &dec.target)?;
+            let ctx = self.visit_call(ctx, &dec.target)?;
             let ctx = ctx.put(format!(
                 "({}, \"{}\");",
                 stmt.name.0.clone(),
@@ -193,14 +205,16 @@ impl code::Visitor<code::Builder> for LuaEmitter {
         ctx: code::Builder,
         stmt: &ast::Assignment,
     ) -> Result<code::Builder, code::VisitError> {
-        let segment = self.visit_reference(ctx.clone_like(), &stmt.target)?.collect();
+        let segment = self
+            .visit_reference(ctx.clone_like(), &stmt.target)?
+            .collect();
         let ctx = ctx.line().put(segment).put(" = ");
         let ctx = if let Some(extra) = stmt.extra.as_ref() {
             let ast::Assignment { target, value, .. } = stmt.clone();
             self.visit_binary(
                 ctx,
                 &ast::BinaryExpression {
-                    left: ast::Expression::Reference(target),
+                    left: ast::Expression::Reference(Box::new(target)),
                     operator: extra.clone(),
                     right: value,
                 },
@@ -264,32 +278,17 @@ impl code::Visitor<code::Builder> for LuaEmitter {
     fn visit_reference(
         &self,
         ctx: code::Builder,
-        expr: &ast::DotExpression,
+        expr: &ast::MemberExpression,
     ) -> Result<code::Builder, code::VisitError> {
-        let ctx = if let Some(first) = expr.0.first() {
-            match first {
-                ast::DotSegment::Identifier(e) => 
-                ctx.put(e.0.clone()),
-                ast::DotSegment::Expression(_) => panic!("Found an array access segment as first item! Perhaps you forgot to wrap [] between parens? ([])"),
+        let ctx = self.visit_expression(ctx, &expr.head)?;
+        let ctx = expr.tail.iter().fold(Ok(ctx), |ctx, elem| match elem {
+            ast::MemberSegment::Computed(c) => {
+                let ctx = ctx?.put("[");
+                let ctx = self.visit_expression(ctx, c)?;
+                Ok(ctx.put("]"))
             }
-        } else {
-            ctx
-        };
-        let ctx = expr
-            .0
-            .iter()
-            .skip(1)
-            .fold(Ok(ctx), |ctx, target| {
-                match target {
-                    ast::DotSegment::Identifier(e) =>
-                        Ok(ctx?.put(".").put(e.0.clone())),
-                    ast::DotSegment::Expression(e) => {
-                        let ctx = ctx?.put("[");
-                        let ctx = self.visit_expression(ctx, e)?;
-                        Ok(ctx.put("]"))
-                    },
-                }
-            })?;
+            ast::MemberSegment::Identifier(i) => Ok(ctx?.put(".").put(i.0.clone())),
+        })?;
         Ok(ctx)
     }
 
@@ -298,47 +297,45 @@ impl code::Visitor<code::Builder> for LuaEmitter {
         ctx: code::Builder,
         expr: &ast::CallExpression,
     ) -> Result<code::Builder, code::VisitError> {
-        let segment = self.visit_reference(ctx.clone_like(),
-            &ast::DotExpression(
-                expr.target
-                    .0
-                    .iter()
-                    .rev()
-                    .skip(1)
-                    .rev()
-                    .map(|x| x.clone())
-                    .collect(),
-            ))?.collect();
-        let ctx = ctx.put(segment.clone());
-        let last = expr.target.0.last();
-        let ctx = if let Some(sc) = expr.static_target.as_ref() {
-            let ctx = if let Some(last) = last {
-                let ctx = if segment.len() > 0 {
-                    ctx.put(".")
-                } else {ctx};
-                self.visit_reference(ctx, &ast::DotExpression(vec![last.clone()]))?
-            } else {ctx};
-            ctx.put(".").put(sc.0.clone())
+        let ctx = if let Some(callee) = expr.head.callee.clone() {
+            self.visit_expression(ctx, &callee.head)?
         } else {
-            if let Some(last) = last {
-                let ctx = if segment.len() > 0 {
-                    ctx.put(":")
-                } else {ctx};
-                self.visit_reference(ctx, &ast::DotExpression(vec![last.clone()]))?
-            } else {
-                ctx
-            }
+            ctx
         };
         let ctx = ctx.put("(");
-        let ctx = if let Some(first) = expr.arguments.first() {
+        let ctx = if let Some(first) = expr.head.arguments.first() {
             self.visit_expression(ctx, first)?
         } else {
             ctx
         };
-        let ctx = expr.arguments.iter().skip(1).fold(Ok(ctx), |ctx, expr| {
-            self.visit_expression(ctx.map(|b| b.put(", "))?, expr)
+        let ctx = expr
+            .head
+            .arguments
+            .iter()
+            .skip(1)
+            .fold(Ok(ctx), |ctx, elem| {
+                let ctx = ctx?.put(", ");
+                self.visit_expression(ctx, elem)
+            })?;
+        let ctx = ctx.put(")");
+        let ctx = expr.tail.iter().fold(Ok(ctx), |ctx, elem| match elem {
+            ast::CallExpressionVariant::Call(c) => self.visit_call(
+                ctx?,
+                &ast::CallExpression {
+                    head: c.clone(),
+                    tail: vec![],
+                },
+            ),
+            ast::CallExpressionVariant::Member(m) => match m {
+                ast::MemberSegment::Computed(c) => {
+                    let ctx = ctx?.put("[");
+                    let ctx = self.visit_expression(ctx, c)?;
+                    Ok(ctx.put("]"))
+                }
+                ast::MemberSegment::Identifier(i) => Ok(ctx?.put(".").put(i.0.clone())),
+            },
         })?;
-        Ok(ctx.put(")"))
+        Ok(ctx)
     }
 
     fn visit_tuple(
@@ -482,19 +479,15 @@ impl code::Visitor<code::Builder> for LuaEmitter {
             match k {
                 ast::TableKeyExpression::Identifier(k) => {
                     let ctx = ctx.put(k.0.clone()).put(" = ");
-                    self.visit_expression(ctx, v)
+                    self.visit_expression(ctx, &v.clone().unwrap())
                 }
                 ast::TableKeyExpression::Expression(k) => {
                     let ctx = self.visit_expression(ctx, k)?.put(" = ");
-                    self.visit_expression(ctx, v)
+                    self.visit_expression(ctx, &v.clone().unwrap())
                 }
                 ast::TableKeyExpression::Implicit(k) => {
-                    let ctx = ctx.put(k.0.clone()).put(" = ");
-                    self.visit_expression(
-                        ctx,
-                        &ast::Expression::Reference(
-                            ast::DotExpression(vec![ast::DotSegment::Identifier(k.clone())])),
-                    )
+                    let ctx = ctx.put(k.0.clone()).put(" = ").put(k.0.clone());
+                    Ok(ctx)
                 }
             }?
         } else {
@@ -509,20 +502,16 @@ impl code::Visitor<code::Builder> for LuaEmitter {
                 match k {
                     ast::TableKeyExpression::Identifier(k) => {
                         let ctx = ctx.put(k.0.clone()).put(" = ");
-                        self.visit_expression(ctx, v)
+                        self.visit_expression(ctx, &v.clone().unwrap())
                     }
                     ast::TableKeyExpression::Expression(k) => {
                         let ctx = ctx.put("[");
                         let ctx = self.visit_expression(ctx, k)?.put("] = ");
-                        self.visit_expression(ctx, v)
+                        self.visit_expression(ctx, &v.clone().unwrap())
                     }
                     ast::TableKeyExpression::Implicit(k) => {
-                        let ctx = ctx.put(k.0.clone()).put(" = ");
-                        self.visit_expression(
-                            ctx,
-                            &ast::Expression::Reference(
-                                ast::DotExpression(vec![ast::DotSegment::Identifier(k.clone())])),
-                        )
+                        let ctx = ctx.put(k.0.clone()).put(" = ").put(k.0.clone());
+                        Ok(ctx)
                     }
                 }
             })?;
@@ -587,7 +576,10 @@ impl code::Visitor<code::Builder> for LuaEmitter {
                 let ctx = self.visit_assignment(
                     ctx,
                     &ast::Assignment {
-                        target: ast::DotExpression(vec![ast::DotSegment::Identifier(e.target.clone())]),
+                        target: ast::MemberExpression {
+                            head: ast::Expression::Identifier(e.target.clone()),
+                            tail: vec![],
+                        },
                         value: e.value.clone().unwrap(),
                         extra: None,
                     },
