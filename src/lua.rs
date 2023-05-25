@@ -1,5 +1,5 @@
 use crate::{
-    code::{self},
+    code::{self, VisitError},
     parser::ast::{self},
 };
 
@@ -287,7 +287,8 @@ impl code::Visitor<code::Builder> for LuaEmitter {
                 let ctx = self.visit_expression(ctx, c)?;
                 Ok(ctx.put("]"))
             }
-            ast::MemberSegment::Identifier(i) => Ok(ctx?.put(".").put(i.0.clone())),
+            ast::MemberSegment::IdentifierDynamic(i) => Ok(ctx?.put(".").put(i.0.clone())),
+            ast::MemberSegment::IdentifierStatic(i) => Err(VisitError),
         })?;
         Ok(ctx)
     }
@@ -298,7 +299,40 @@ impl code::Visitor<code::Builder> for LuaEmitter {
         expr: &ast::CallExpression,
     ) -> Result<code::Builder, code::VisitError> {
         let ctx = if let Some(callee) = expr.head.callee.clone() {
-            self.visit_expression(ctx, &callee.head)?
+            let ctx = self.visit_expression(ctx, &callee.head)?;
+            let ctx = callee
+                .tail
+                .iter()
+                .rev()
+                .skip(1)
+                .rev()
+                .fold(Ok(ctx), |ctx, elem| {
+                    let ctx = ctx?;
+                    let ctx = match elem {
+                        ast::MemberSegment::Computed(c) => {
+                            let ctx = ctx.put("[");
+                            let ctx = self.visit_expression(ctx, c)?;
+                            ctx.put("]")
+                        }
+                        ast::MemberSegment::IdentifierDynamic(c) => ctx.put(".").put(c.0.clone()),
+                        ast::MemberSegment::IdentifierStatic(_) => Err(VisitError)?,
+                    };
+                    Ok(ctx)
+                })?;
+            let ctx = if let Some(last) = callee.tail.last() {
+                match last {
+                    ast::MemberSegment::Computed(c) => {
+                        let ctx = ctx.put("[");
+                        let ctx = self.visit_expression(ctx, c)?;
+                        ctx.put("]")
+                    }
+                    ast::MemberSegment::IdentifierDynamic(c) => ctx.put(":").put(c.0.clone()),
+                    ast::MemberSegment::IdentifierStatic(c) => ctx.put(".").put(c.0.clone()),
+                }
+            } else {
+                ctx
+            };
+            ctx
         } else {
             ctx
         };
@@ -332,7 +366,8 @@ impl code::Visitor<code::Builder> for LuaEmitter {
                     let ctx = self.visit_expression(ctx, c)?;
                     Ok(ctx.put("]"))
                 }
-                ast::MemberSegment::Identifier(i) => Ok(ctx?.put(".").put(i.0.clone())),
+                ast::MemberSegment::IdentifierStatic(i) => Ok(ctx?.put(".").put(i.0.clone())),
+                ast::MemberSegment::IdentifierDynamic(i) => Ok(ctx?.put(":").put(i.0.clone())),
             },
         })?;
         Ok(ctx)

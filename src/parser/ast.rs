@@ -34,7 +34,8 @@ pub struct Identifier(pub String);
 #[derive(Debug, Clone)]
 pub enum MemberSegment {
     Computed(Expression),
-    Identifier(Identifier),
+    IdentifierDynamic(Identifier),
+    IdentifierStatic(Identifier),
 }
 impl Into<CallExpressionVariant> for MemberSegment {
     fn into(self) -> CallExpressionVariant {
