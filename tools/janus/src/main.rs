@@ -110,7 +110,7 @@ fn process_build() -> Option<()> {
     let pb = ProgressBar::new(sources.len() as u64);
     for source in sources {
         let result = Command::new("saturnus")
-            .args(vec!["-i", source.as_str()])
+            .args(vec!["-c", source.as_str()])
             .output();
         if result.is_err() {
             eprintln!(

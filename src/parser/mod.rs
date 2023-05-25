@@ -1,7 +1,6 @@
 pub mod ast;
 
 use ast::*;
-use std::vec;
 
 peg::parser! {
     grammar saturnus_script() for str {
@@ -22,33 +21,42 @@ peg::parser! {
             / e:return_stmt() { Statement::Return(e) }
             / e:expression() _ EOS() { Statement::Expression(e) }
 
+        rule macro_call() -> ()
+            = target:identifier() "!"
+            {  }
+
         rule if_stmt() -> If
             = "if" __ condition:expression() __ "{" body:script()
               branches:("}" _ "else" __ "if" __ c:expression() __ "{" s:script() { (c, s) })*
               else_branch:("}" _ "else" _ "{" e:script() {e})?
               "}"
             { If { condition, body, branches, else_branch } }
+            / expected!("If statement")
 
         rule for_each() -> For
             = "for" __ handler:identifier() __ "in" __ target:expression() _ "{"
               body:script() "}"
             { For { handler, target, body } }
+            / expected!("For loop")
 
         rule while_loop() -> While
             = "while" __ c:expression() _ "{" body:script() "}"
             { While { condition: ExpressionOrLet::Expression(c), body } }
             / "while" __ c:let_expression() _ "{" body:script() "}"
             { While { condition: ExpressionOrLet::Let(c), body } }
+            / expected!("While loop")
 
         rule loop_loop() -> Loop
             = "loop" _ "{" body:script() "}"
             { Loop { body } }
+            / expected!("Loop")
 
         rule func() -> Function
             = decorators:decorator_list() FN() __ name:identifier() _ arguments:argument_list() _ "{" body:script() "}"
             { Function { name, decorators, body, arguments } }
             / decorators:decorator_list() FN() __ name:identifier() _ arguments:argument_list() _ "{" _ "}"
             { Function { name, decorators, body: Script { statements: vec![] }, arguments } }
+            / expected!("Function declaration")
 
         rule class() -> Class
             = decorators:decorator_list() CLASS()
@@ -56,12 +64,14 @@ peg::parser! {
               fields:(_ f:class_fields() _ {f})*
               _ "}"
             { Class { name, fields, decorators } }
+            / expected!("Class declaration")
 
         rule declare_var() -> Let
             = e:let_expression() _ EOS() { e }
+            / expected!("Variable declaration")
 
         rule assignment() -> Assignment
-            = target:dot_expr() _ extra:assign_extra()? "=" _ value:expression() _ EOS()
+            = target:member_expression() _ extra:assign_extra()? "=" _ value:expression() _ EOS()
             { Assignment { target, value, extra } }
 
         rule return_stmt() -> Return
@@ -69,15 +79,60 @@ peg::parser! {
             { Return { value } }
 
         // Expressions
-        pub rule expression() -> Expression = precedence! {
+        pub rule expression() -> Expression
+            = binary_expression()
+
+        rule member_expression() -> MemberExpression
+            = head:primary()
+            tail:(
+                _ "[" _ e:expression() _ "]" { MemberSegment::Computed(e) }
+                / _ "." _ i:identifier() { MemberSegment::IdentifierDynamic(i) }
+                / _ "::" _ i:identifier() { MemberSegment::IdentifierStatic(i) }
+            )*
+            { MemberExpression { head, tail } }
+
+        rule call_expression() -> CallExpression
+            = head:(
+                callee:member_expression() _ arguments:call_arguments()
+                { CallSubExpression { callee: Some(callee), arguments }.into() }
+                / callee:member_expression() _ arg:table_expression()
+                { CallSubExpression { callee: Some(callee), arguments: vec![arg] } }
+            )
+            tail:(
+                  _ "[" _ prop:expression() _ "]" { MemberSegment::Computed(prop).into() }
+                / _ "." _ prop:identifier() { MemberSegment::IdentifierDynamic(prop).into() }
+                / _ "::" _ prop:identifier() { MemberSegment::IdentifierStatic(prop).into() }
+                / _ arguments:call_arguments() { CallSubExpression { callee: None, arguments }.into() }
+            )*
+            { CallExpression { head, tail } }
+
+        rule primary() -> Expression
+            = i:identifier() { Expression::Identifier(i) }
+            / string_expression()
+            / number_expression()
+            / table_expression()
+            / vector_expression()
+            / tuple_expression()
+            / lambda_expression()
+            / enclosed_expression()
+
+        rule call_arguments() -> Vec<Expression>
+            = "(" _ args:(e:call_argument_list() _ { e })? ")"
+            { args.unwrap_or(vec![]) }
+
+        rule call_argument_list() -> Vec<Expression>
+            = args:expression() ** (_ "," _)
+            { args }
+
+        rule binary_expression() -> Expression = precedence! {
             "-" _ expression:@ { UnaryExpression { expression, operator: Operator::Minus }.into() }
             "+" _ expression:@ { UnaryExpression { expression, operator: Operator::Plus }.into() }
             "#?" _ expression:@ { UnaryExpression { expression, operator: Operator::Count }.into() }
             "not" _ expression:@ { UnaryExpression { expression, operator: Operator::LogicNot }.into() }
-            "¬" _ expression:@ { UnaryExpression { expression, operator: Operator::BWiseNot }.into() }
-            "!" _ expression:@ { UnaryExpression { expression, operator: Operator::Exclamation }.into() }
+            "~^" _ expression:@ { UnaryExpression { expression, operator: Operator::BWiseNot }.into() }
+            // "!" _ expression:@ { UnaryExpression { expression, operator: Operator::Exclamation }.into() }
             "~" _ expression:@ { UnaryExpression { expression, operator: Operator::Tilde }.into() }
-            "¬" _ expression:@ { UnaryExpression { expression, operator: Operator::Bolted }.into() }
+            // "¬" _ expression:@ { UnaryExpression { expression, operator: Operator::Bolted }.into() }
             "$" _ expression:@ { UnaryExpression { expression, operator: Operator::Dollar }.into() }
             "!?" _ expression:@ { UnaryExpression { expression, operator: Operator::ExclamationQuestion }.into() }
             --
@@ -119,81 +174,87 @@ peg::parser! {
             // left:(@) _ "^" _ right:@ { BinaryExpression { left, right, operator: Operator::LogicXOr }.into() }
             // left:(@) _ "¬&" _ right:@ { BinaryExpression { left, right, operator: Operator::LogicNand }.into() }
             // left:(@) _ "¬|" _ right:@ { BinaryExpression { left, right, operator: Operator::LogicNor }.into() }
+            // --
+            // left:(@) _ "<~>" _ right:@ { BinaryExpression { left, right, operator: Operator::Elastic }.into() }
+            // left:(@) _ "<~" _ right:@ { BinaryExpression { left, right, operator: Operator::ElasticLeft }.into() }
+            // left:(@) _ "~>" _ right:@ { BinaryExpression { left, right, operator: Operator::ElasticRight }.into() }
+            // left:(@) _ "<:>" _ right:@ { BinaryExpression { left, right, operator: Operator::PinguBoth }.into() }
+            // left:(@) _ "<:" _ right:@ { BinaryExpression { left, right, operator: Operator::PinguLeft }.into() }
+            // left:(@) _ ":>" _ right:@ { BinaryExpression { left, right, operator: Operator::PinguRight }.into() }
+            // left:(@) _ "<-|->" _ right:@ { BinaryExpression { left, right, operator: Operator::ArrowStandBoth }.into() }
+            // left:(@) _ "<-|" _ right:@ { BinaryExpression { left, right, operator: Operator::ArrowStandLeft }.into() }
+            // left:(@) _ "|->" _ right:@ { BinaryExpression { left, right, operator: Operator::ArrowStandRight }.into() }
+            // left:(@) _ "<->" _ right:@ { BinaryExpression { left, right, operator: Operator::BothWays }.into() }
+            // left:(@) _ "<-" _ right:@ { BinaryExpression { left, right, operator: Operator::ArrowLeft }.into() }
+            // left:(@) _ "->" _ right:@ { BinaryExpression { left, right, operator: Operator::ArrowRight }.into() }
+            // left:(@) _ "<|>" _ right:@ { BinaryExpression { left, right, operator: Operator::Disjoin }.into() }
+            // left:(@) _ "<|" _ right:@ { BinaryExpression { left, right, operator: Operator::PipeLeft }.into() }
+            // left:(@) _ "|>" _ right:@ { BinaryExpression { left, right, operator: Operator::PipeRight }.into() }
+            // left:(@) _ "<?" _ right:@ { BinaryExpression { left, right, operator: Operator::AskRight }.into() }
+            // left:(@) _ "?>" _ right:@ { BinaryExpression { left, right, operator: Operator::AskLeft }.into() }
+            // --
+            // left:(@) _ "?:" _ right:@ { BinaryExpression { left, right, operator: Operator::Elvis }.into() }
+            // left:(@) _ "??" _ right:@ { BinaryExpression { left, right, operator: Operator::Coalesce }.into() }
             --
-            left:(@) _ "<~>" _ right:@ { BinaryExpression { left, right, operator: Operator::Elastic }.into() }
-            left:(@) _ "<~" _ right:@ { BinaryExpression { left, right, operator: Operator::ElasticLeft }.into() }
-            left:(@) _ "~>" _ right:@ { BinaryExpression { left, right, operator: Operator::ElasticRight }.into() }
-            left:(@) _ "<:>" _ right:@ { BinaryExpression { left, right, operator: Operator::PinguBoth }.into() }
-            left:(@) _ "<:" _ right:@ { BinaryExpression { left, right, operator: Operator::PinguLeft }.into() }
-            left:(@) _ ":>" _ right:@ { BinaryExpression { left, right, operator: Operator::PinguRight }.into() }
-            left:(@) _ "<-|->" _ right:@ { BinaryExpression { left, right, operator: Operator::ArrowStandBoth }.into() }
-            left:(@) _ "<-|" _ right:@ { BinaryExpression { left, right, operator: Operator::ArrowStandLeft }.into() }
-            left:(@) _ "|->" _ right:@ { BinaryExpression { left, right, operator: Operator::ArrowStandRight }.into() }
-            left:(@) _ "<->" _ right:@ { BinaryExpression { left, right, operator: Operator::BothWays }.into() }
-            left:(@) _ "<-" _ right:@ { BinaryExpression { left, right, operator: Operator::ArrowLeft }.into() }
-            left:(@) _ "->" _ right:@ { BinaryExpression { left, right, operator: Operator::ArrowRight }.into() }
-            left:(@) _ "<|>" _ right:@ { BinaryExpression { left, right, operator: Operator::Disjoin }.into() }
-            left:(@) _ "<|" _ right:@ { BinaryExpression { left, right, operator: Operator::PipeLeft }.into() }
-            left:(@) _ "|>" _ right:@ { BinaryExpression { left, right, operator: Operator::PipeRight }.into() }
-            left:(@) _ "<?" _ right:@ { BinaryExpression { left, right, operator: Operator::AskRight }.into() }
-            left:(@) _ "?>" _ right:@ { BinaryExpression { left, right, operator: Operator::AskLeft }.into() }
-            --
-            left:(@) _ "?:" _ right:@ { BinaryExpression { left, right, operator: Operator::Elvis }.into() }
-            left:(@) _ "??" _ right:@ { BinaryExpression { left, right, operator: Operator::Coalesce }.into() }
-            --
-            e:string() { Expression::String(e) }
-            e:number() { Expression::Number(e) }
-            e:lambda() { Expression::Lambda(Box::new(e)) }
-            e:vector_expr() { Expression::Vector(e) }
-            e:table_expr() { Expression::Table(e) }
-            e:tuple_expr() { Expression::Tuple(e) }
-            e:call_expr()  { Expression::Call(e) }
-            e:dot_expr() { Expression::Reference(e) }
-            unit() { Expression::Unit }
-            "(" _ e:expression() _ ")" { Expression::Tuple1(Box::new(e)) }
+            e:atom() { e }
         }
 
-        rule dot_expr() -> DotExpression
-            = value:dot_segment() ++ (_ "." _) { DotExpression(value) }
+        rule atom() -> Expression
+            = e:call_expression() { Expression::Call(Box::new(e)) }
+            / lambda_expression()
+            / string_expression()
+            / number_expression()
+            / vector_expression()
+            / table_expression()
+            / tuple_expression()
+            / e:member_expression() { Expression::Reference(Box::new(e)) }
+            / unit() { Expression::Unit }
+            / enclosed_expression()
 
-        rule dot_segment() -> DotSegment
-            = e:identifier() { DotSegment::Identifier(e) }
-            / e:("[" _ e:expression() _ "]" {e}) { DotSegment::Expression(e) }
+        // Literal-to-expression
+        rule string_expression() -> Expression = e:string_literal() { Expression::String(e) }
+        rule number_expression() -> Expression = e:number_literal() { Expression::Number(e) }
+        rule lambda_expression() -> Expression = e:lambda_literal() { Expression::Lambda(Box::new(e)) }
+        rule vector_expression() -> Expression = e:vector_literal() { Expression::Vector(e) }
+        rule table_expression() -> Expression = e:table_literal() { Expression::Table(e) }
+        rule tuple_expression() -> Expression = e:tuple_literal() { Expression::Tuple(e) }
 
-        rule lambda() -> Lambda
-            = FN() _ arguments:argument_list() _ "{" body:script() "}"
+        rule enclosed_expression() -> Expression
+            = "(" _ e:expression() _ ")" { Expression::Tuple1(Box::new(e)) }
+
+        rule lambda_literal() -> Lambda
+            = arguments:argument_list() _ "=>" _ "{" body:script() "}"
             { Lambda { arguments, body: ScriptOrExpression::Script(body) } }
-            / FN() _ arguments:argument_list() _ ":" _ expr:expression()
+            / arguments:argument_list() _ "=>" _ expr:expression()
             { Lambda { arguments, body: ScriptOrExpression::Expression(expr) } }
-            / FN() _ arguments:argument_list() _ "{" _ "}"
+            / arguments:argument_list() _ "=>" _ "{" _ "}"
             { Lambda { arguments, body: ScriptOrExpression::Script(Script { statements: vec![] }) } }
 
-        rule call_expr() -> CallExpression
-            = target:dot_expr() static_target:(_ "::" _ e:identifier(){e})? _ arguments:wrapped_comma_expr()
-            { CallExpression { target, static_target, arguments } }
-            / target:dot_expr() static_target:(_ "::" _ e:identifier(){e})? _ arg:table_expr()
-            { CallExpression { target, static_target, arguments: vec![Expression::Table(arg)] } }
-            // / target:dot_expr() static_target:(_ "::" _ e:identifier(){e})? _ arg:vector_expr()
-            // { CallExpression { target, static_target, arguments: vec![Expression::Vector(arg)] } }
-            // / target:dot_expr() static_target:(_ "::" _ e:identifier(){e})? _ arg:string()
-            // { CallExpression { target, static_target, arguments: vec![Expression::String(arg)] } }
-
         // Literals
-        rule number() -> Number
+        rule number_literal() -> Number
             = value:$(DIGIT()+ "." DIGIT()+) { Number::Float(value.parse().unwrap()) }
             / value:$(DIGIT()+) { Number::Integer(value.parse().unwrap()) }
+            / expected!("Number literal")
 
-        rule string() -> String
-            = "\"" value:$((!"\"" ANY())*) "\"" { value.into() }
-            / "'" value:$((!"'" ANY())*) "'" { value.into() }
+        rule string_literal() -> StringLiteral
+            = "\"" value:$((!"\"" ANY())*) "\"" { StringLiteral::Double(value.into()) }
+            / "'" value:$((!"'" ANY())*) "'" { StringLiteral::Single(value.into()) }
+            / expected!("String literal")
 
-        rule vector_expr() -> Vector
+        rule vector_literal() -> Vector
             = "[" _ expressions:comma_expr() _ "]"
             { Vector { expressions } }
+            / expected!("Vector literal")
 
-        rule table_expr() -> Table
+        rule table_literal() -> Table
             = "{" _ key_values:table_kvs() _ "}"
             { Table { key_values } }
+            / expected!("Table literal")
+
+        rule tuple_literal() -> Tuple
+            = "(" _ e:expression() **<2,> (_ "," _) _ ")"
+            { Tuple(e) }
+            / expected!("Tuple literal")
 
         // Auxiliaries and sub-expressions
         rule let_expression() -> Let
@@ -225,12 +286,13 @@ peg::parser! {
             / { vec![] }
 
         rule decorator() -> Decorator
-            = "@" _ e:call_expr() { Decorator { target: Expression::Call(e) } }
-            / "@" _ e:dot_expr() { Decorator { target: Expression::Reference(e) } }
+            = "@" _ target:call_expression() { Decorator { target } }
+            / expected!("Decorator")
 
         rule identifier() -> Identifier
             = value:$(IDENT())
             { Identifier(value.into()) }
+            / expected!("Identifier")
 
         rule wrapped_comma_expr() -> Vec<Expression>
             = "(" _ e:comma_expr() _ ")" { e }
@@ -238,24 +300,20 @@ peg::parser! {
         rule comma_expr() -> Vec<Expression>
             = e:expression() ** (_ "," _) { e }
 
-        rule table_kvs() -> Vec<(TableKeyExpression, Expression)>
+        rule table_kvs() -> Vec<(TableKeyExpression, Option<Expression>)>
             = kv:table_kv_pair() ** (_ "," _)
             { kv }
 
-        rule table_kv_pair() -> (TableKeyExpression, Expression)
+        rule table_kv_pair() -> (TableKeyExpression, Option<Expression>)
             = k:identifier() _ ":" _ v:expression()
-            { (TableKeyExpression::Identifier(k), v) }
+            { (TableKeyExpression::Identifier(k), Some(v)) }
             / "[" _ k:expression() _ "]" _ ":" _ v:expression()
-            { (TableKeyExpression::Expression(k), v) }
+            { (TableKeyExpression::Expression(k), Some(v)) }
             / k:identifier()
             { (
                 TableKeyExpression::Implicit(k.clone()),
-                Expression::Reference(DotExpression(vec![DotSegment::Identifier(k)]))
+                None
             ) }
-
-        rule tuple_expr() -> Tuple
-            = "(" _ e:expression() **<2,> (_ "," _) _ ")"
-            { Tuple(e) }
 
         rule unit() -> Expression = "()" { Expression::Unit }
 
@@ -266,15 +324,15 @@ peg::parser! {
         rule CLASS() = "class"
         rule END() = "end"
         rule FN() = "fn"
-        rule ANY() = [_]
-        rule BLANK() = ['\t'|' ']
+        rule ANY() = quiet!{ [_] } / expected!("Any character")
+        rule BLANK() = ['\t'|' '] / expected!("White space")
         rule WS() = BLANK() / LINE_COMMENT() / BLOCK_COMMENT() / EOL()
-        rule LINE_COMMENT() = "//" (!EOL() ANY())* EOL()
-        rule BLOCK_COMMENT() = "/*" (!"*/" ANY())* "*/"
-        rule EOL() = ['\r'|'\n']
-        rule EOS() = EOL() / ";"
-        rule ALPHA() = ['A'..='Z'|'a'..='z'|'_']
-        rule DIGIT() = ['0'..='9']
+        rule LINE_COMMENT() = quiet!{ "//" (!EOL() ANY())* EOL() } / expected!("Line comment")
+        rule BLOCK_COMMENT() = quiet!{ "/*" (!"*/" ANY())* "*/" } / expected!("Block comment")
+        rule EOL() = quiet!{ ['\r'|'\n'] } / expected!("End of line")
+        rule EOS() = quiet!{ EOL() / ";" } / expected!("End of statement")
+        rule ALPHA() = quiet!{ ['A'..='Z'|'a'..='z'|'_'] } / expected!("Alphanumeric")
+        rule DIGIT() = quiet!{ ['0'..='9'] } / expected!("Digit")
         rule _ = WS()*
         rule __ = WS()+
 

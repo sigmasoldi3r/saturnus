@@ -3,7 +3,7 @@ use spectral::prelude::*;
 
 #[test]
 fn simple_array_access_read() {
-    let out = compile("foo = bar.[baz];");
+    let out = compile("foo = bar[baz];");
     assert_that!(out).is_equal_to(
         "
 foo = bar[baz];"
@@ -13,7 +13,7 @@ foo = bar[baz];"
 
 #[test]
 fn simple_array_access_write() {
-    let out = compile("foo.[bar] = baz;");
+    let out = compile("foo[bar] = baz;");
     assert_that!(out).is_equal_to(
         "
 foo[bar] = baz;"
@@ -23,7 +23,7 @@ foo[bar] = baz;"
 
 #[test]
 fn complex_mangled_array_access() {
-    let out = compile("some.[complex].input = some.[foo].[2+2].bar;");
+    let out = compile("some[complex].input = some[foo][2+2].bar;");
     assert_that!(out).is_equal_to(
         "
 some[complex].input = some[foo][2 + 2].bar;"

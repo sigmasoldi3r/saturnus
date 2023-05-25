@@ -14,11 +14,11 @@ pub trait Visitor<T> {
     fn visit_declaration(&self, ctx: T, stmt: &Let) -> Result<T, VisitError>;
     fn visit_expression_statement(&self, ctx: T, stmt: &Expression) -> Result<T, VisitError>;
     fn visit_lambda(&self, ctx: T, expr: &Lambda) -> Result<T, VisitError>;
-    fn visit_reference(&self, ctx: T, expr: &DotExpression) -> Result<T, VisitError>;
+    fn visit_reference(&self, ctx: T, expr: &MemberExpression) -> Result<T, VisitError>;
     fn visit_call(&self, ctx: T, expr: &CallExpression) -> Result<T, VisitError>;
     fn visit_tuple(&self, ctx: T, expr: &Tuple) -> Result<T, VisitError>;
     fn visit_number(&self, ctx: T, expr: &Number) -> Result<T, VisitError>;
-    fn visit_string(&self, ctx: T, expr: &String) -> Result<T, VisitError>;
+    fn visit_string(&self, ctx: T, expr: &StringLiteral) -> Result<T, VisitError>;
     fn visit_unit(&self, ctx: T) -> Result<T, VisitError>;
     fn visit_binary(&self, ctx: T, expr: &BinaryExpression) -> Result<T, VisitError>;
     fn visit_unary(&self, ctx: T, expr: &UnaryExpression) -> Result<T, VisitError>;
@@ -30,6 +30,7 @@ pub trait Visitor<T> {
     fn visit_loop(&self, ctx: T, expr: &Loop) -> Result<T, VisitError>;
     fn visit_match(&self, ctx: T, expr: &Match) -> Result<T, VisitError>;
     fn visit_1tuple(&self, ctx: T, expr: &Expression) -> Result<T, VisitError>;
+    fn visit_identifier(&self, ctx: T, expr: &Identifier) -> Result<T, VisitError>;
 
     // Generically implementable matching patterns:
     fn visit_expression(&self, ctx: T, expression: &Expression) -> Result<T, VisitError> {
@@ -46,6 +47,7 @@ pub trait Visitor<T> {
             Expression::Table(e) => self.visit_table(ctx, e),
             Expression::Vector(e) => self.visit_vector(ctx, e),
             Expression::Tuple1(e) => self.visit_1tuple(ctx, e),
+            Expression::Identifier(e) => self.visit_identifier(ctx, e),
         }
     }
     fn visit_script(&self, ctx: T, script: &Script) -> Result<T, VisitError> {
@@ -146,6 +148,12 @@ impl Builder {
     {
         Builder {
             buffer: format!("{}{}", self.buffer, fragment.into()),
+            ..self
+        }
+    }
+    pub fn and(self, other: Self) -> Self {
+        Builder {
+            buffer: format!("{}{}", self.buffer, other.buffer),
             ..self
         }
     }

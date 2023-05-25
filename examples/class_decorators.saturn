@@ -3,7 +3,7 @@
 fn MakeArcane() {
   // You return a function,
   // and that will decorate the target class.
-  return fn(target) {
+  return (target) => {
     target.prototype.kind = "ARCANE";
   };
 }
