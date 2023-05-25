@@ -136,11 +136,8 @@ Imagine that you have static functions (aka do not belong to an object):
 ```rs
 some_function(1, 2, 3);
 let b = fetch("some url");
-// Note that like in lua, you can pass [], {} and "" without parentheses:
-let module = require! "Mods";
-let bar = joining! [1, 2, 3];
+// Note that like in lua, you can pass {} without parentheses:
 let c = Foo { bar };
-// etc
 ```
 
 Those will be dispatched statically, and everyone will be safe & sound. But in
@@ -254,13 +251,13 @@ fn some_func(a, b) {
 }
 
 // Oh, you can also have anonymous functions by the way!
-let anon = fn(a, b) {
+let anon = (a, b) => {
   return a + b;
 };
 
 // And if an anonymous function ONLY has one expression inside (Without ";"),
 // that expression is an implicit return statement:
-collections::reduce([1, 2, 3], fn(a, b) { a + b });
+collections::reduce([1, 2, 3], (a, b) => a + b);
 // Pretty cool
 ```
 
@@ -346,7 +343,7 @@ aspects of the language:
 - [ ] Ennumeration structures
 - [ ] Match structure
 - [x] ~~Add loops (for, while and "loop")~~
-- [ ] Decorator code generation
+- [x] Decorator code generation
 - [x] ~~Operator overload~~
 - [ ] Bitwise operators (This one is easy)
 - [ ] Custom operator dispatch code generation
