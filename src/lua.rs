@@ -1,9 +1,42 @@
 use crate::{
     code::{self, VisitError},
-    parser::ast::{self, StringLiteral},
+    parser::ast::{self},
 };
 
 pub struct LuaEmitter;
+
+impl LuaEmitter {
+    pub fn escape_reference(
+        &self,
+        ctx: code::Builder,
+        ident: &ast::Identifier,
+    ) -> Result<code::Builder, VisitError> {
+        let ctx = match &ident.0 {
+            a if a == "then" => ctx.put("['then']"),
+            ident => ctx.put(".").put(ident.clone()),
+        };
+        Ok(ctx)
+    }
+    pub fn generate_member_segment<S>(
+        &self,
+        s: &S,
+        ctx: code::Builder,
+        elem: &ast::MemberSegment,
+    ) -> Result<code::Builder, VisitError>
+    where
+        S: code::Visitor<code::Builder>,
+    {
+        match elem {
+            ast::MemberSegment::Computed(c) => {
+                let ctx = ctx.put("[");
+                let ctx = s.visit_expression(ctx, &c)?;
+                Ok(ctx.put("]"))
+            }
+            ast::MemberSegment::IdentifierDynamic(i) => self.escape_reference(ctx, i),
+            ast::MemberSegment::IdentifierStatic(_) => Err(VisitError),
+        }
+    }
+}
 
 impl code::Visitor<code::Builder> for LuaEmitter {
     fn visit_return(
@@ -281,14 +314,8 @@ impl code::Visitor<code::Builder> for LuaEmitter {
         expr: &ast::MemberExpression,
     ) -> Result<code::Builder, code::VisitError> {
         let ctx = self.visit_expression(ctx, &expr.head)?;
-        let ctx = expr.tail.iter().fold(Ok(ctx), |ctx, elem| match elem {
-            ast::MemberSegment::Computed(c) => {
-                let ctx = ctx?.put("[");
-                let ctx = self.visit_expression(ctx, c)?;
-                Ok(ctx.put("]"))
-            }
-            ast::MemberSegment::IdentifierDynamic(i) => Ok(ctx?.put(".").put(i.0.clone())),
-            ast::MemberSegment::IdentifierStatic(i) => Err(VisitError),
+        let ctx = expr.tail.iter().fold(Ok(ctx), |ctx, elem| {
+            self.generate_member_segment(self, ctx?, elem)
         })?;
         Ok(ctx)
     }
@@ -311,7 +338,7 @@ impl code::Visitor<code::Builder> for LuaEmitter {
                     let ctx = match elem {
                         ast::MemberSegment::Computed(c) => {
                             let ctx = ctx.put("[");
-                            let ctx = self.visit_expression(ctx, c)?;
+                            let ctx = self.visit_expression(ctx, &c)?;
                             ctx.put("]")
                         }
                         ast::MemberSegment::IdentifierDynamic(c) => ctx.put(".").put(c.0.clone()),
@@ -323,7 +350,7 @@ impl code::Visitor<code::Builder> for LuaEmitter {
                 match last {
                     ast::MemberSegment::Computed(c) => {
                         let ctx = ctx.put("[");
-                        let ctx = self.visit_expression(ctx, c)?;
+                        let ctx = self.visit_expression(ctx, &c)?;
                         ctx.put("]")
                     }
                     ast::MemberSegment::IdentifierDynamic(c) => ctx.put(":").put(c.0.clone()),
@@ -363,7 +390,7 @@ impl code::Visitor<code::Builder> for LuaEmitter {
             ast::CallExpressionVariant::Member(m) => match m {
                 ast::MemberSegment::Computed(c) => {
                     let ctx = ctx?.put("[");
-                    let ctx = self.visit_expression(ctx, c)?;
+                    let ctx = self.visit_expression(ctx, &c)?;
                     Ok(ctx.put("]"))
                 }
                 ast::MemberSegment::IdentifierStatic(i) => Ok(ctx?.put(".").put(i.0.clone())),
@@ -415,12 +442,12 @@ impl code::Visitor<code::Builder> for LuaEmitter {
     fn visit_string(
         &self,
         ctx: code::Builder,
-        expr: &StringLiteral,
+        expr: &ast::StringLiteral,
     ) -> Result<code::Builder, code::VisitError> {
         let ctx = match expr {
-            StringLiteral::Double(s) => ctx.put("\"").put(s.clone()).put("\""),
-            StringLiteral::Single(s) => ctx.put("'").put(s.clone()).put("'"),
-            StringLiteral::Special(_) => todo!(),
+            ast::StringLiteral::Double(s) => ctx.put("\"").put(s.clone()).put("\""),
+            ast::StringLiteral::Single(s) => ctx.put("'").put(s.clone()).put("'"),
+            ast::StringLiteral::Special(_) => todo!(),
         };
         Ok(ctx)
     }
@@ -522,7 +549,7 @@ impl code::Visitor<code::Builder> for LuaEmitter {
                     self.visit_expression(ctx, &v.clone().unwrap())
                 }
                 ast::TableKeyExpression::Expression(k) => {
-                    let ctx = self.visit_expression(ctx, k)?.put(" = ");
+                    let ctx = self.visit_expression(ctx, &k)?.put(" = ");
                     self.visit_expression(ctx, &v.clone().unwrap())
                 }
                 ast::TableKeyExpression::Implicit(k) => {
@@ -546,7 +573,7 @@ impl code::Visitor<code::Builder> for LuaEmitter {
                     }
                     ast::TableKeyExpression::Expression(k) => {
                         let ctx = ctx.put("[");
-                        let ctx = self.visit_expression(ctx, k)?.put("] = ");
+                        let ctx = self.visit_expression(ctx, &k)?.put("] = ");
                         self.visit_expression(ctx, &v.clone().unwrap())
                     }
                     ast::TableKeyExpression::Implicit(k) => {

@@ -223,7 +223,11 @@ peg::parser! {
             = "(" _ e:expression() _ ")" { Expression::Tuple1(Box::new(e)) }
 
         rule lambda_literal() -> Lambda
-            = arguments:argument_list() _ "=>" _ "{" body:script() "}"
+            = name:identifier() _ "=>" _ "{" body:script() "}"
+            { Lambda { arguments: vec![Argument { name, decorators: vec![] }], body: ScriptOrExpression::Script(body) } }
+            / name:identifier() _ "=>" _ body:expression()
+            { Lambda { arguments: vec![Argument { name, decorators: vec![] }], body: ScriptOrExpression::Expression(body) } }
+            / arguments:argument_list() _ "=>" _ "{" body:script() "}"
             { Lambda { arguments, body: ScriptOrExpression::Script(body) } }
             / arguments:argument_list() _ "=>" _ expr:expression()
             { Lambda { arguments, body: ScriptOrExpression::Expression(expr) } }
