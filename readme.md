@@ -125,8 +125,8 @@ let foo = this_is_a_tuple._0;
 let ten = this_is_a_tuple._1;
 let bar = this_is_a_tuple._2;
 
-// Array access can be weird compared to others (It has an extra dot):
-let foo = bar.[key].value;
+// Array access
+let foo = bar[key].value;
 ```
 
 Now, function calls can be something more complex.
