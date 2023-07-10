@@ -320,6 +320,14 @@ impl code::Visitor<code::Builder> for LuaEmitter {
         Ok(ctx)
     }
 
+    fn enter_script(
+        &self,
+        ctx: code::Builder,
+        _script: &crate::parser::Script,
+    ) -> Result<code::Builder, VisitError> {
+        Ok(ctx.line().put("local argv = {...};"))
+    }
+
     fn visit_call(
         &self,
         ctx: code::Builder,

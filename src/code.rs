@@ -31,6 +31,12 @@ pub trait Visitor<T> {
     fn visit_match(&self, ctx: T, expr: &Match) -> Result<T, VisitError>;
     fn visit_1tuple(&self, ctx: T, expr: &Expression) -> Result<T, VisitError>;
     fn visit_identifier(&self, ctx: T, expr: &Identifier) -> Result<T, VisitError>;
+    fn enter_script(&self, ctx: T, _script: &Script) -> Result<T, VisitError> {
+        Ok(ctx)
+    }
+    fn exit_script(&self, ctx: T, _script: &Script) -> Result<T, VisitError> {
+        Ok(ctx)
+    }
 
     // Generically implementable matching patterns:
     fn visit_expression(&self, ctx: T, expression: &Expression) -> Result<T, VisitError> {
@@ -51,7 +57,8 @@ pub trait Visitor<T> {
         }
     }
     fn visit_script(&self, ctx: T, script: &Script) -> Result<T, VisitError> {
-        script
+        let ctx = self.enter_script(ctx, script)?;
+        let ctx = script
             .statements
             .iter()
             .fold(Ok(ctx), |ctx, stmt| match stmt {
@@ -66,7 +73,8 @@ pub trait Visitor<T> {
                 ast::Statement::Let(e) => self.visit_declaration(ctx?, e),
                 ast::Statement::Match(e) => self.visit_match(ctx?, e),
                 ast::Statement::Expression(e) => self.visit_expression_statement(ctx?, e),
-            })
+            })?;
+        self.exit_script(ctx, script)
     }
 }
 
