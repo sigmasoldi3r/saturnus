@@ -100,6 +100,7 @@ fn main() {
             }
         }
         Err(err) => {
+            let err = report_error(args.input.clone(), input.clone(), err);
             if args.compile {
                 println!("Compiling {:?}...", in_path);
                 if !args.print {
@@ -108,7 +109,7 @@ fn main() {
                     out_file.write_all(output.as_bytes()).unwrap();
                 }
             }
-            report_error(args.input.clone(), input.clone(), err);
+            eprintln!("{}", err);
             panic!("Compilation failed");
         }
     }
