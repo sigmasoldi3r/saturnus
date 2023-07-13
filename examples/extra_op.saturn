@@ -1,9 +1,12 @@
 // Example usage of extra operators:
 
-fn __elastic_right(left, right) {
+fn __pipe_right(left, right) {
   return right(left);
 }
 
-let r = 101 ~> a => a + 10;
+let r = 101
+  |> (a => a + 10)
+  |> (a => a * 2)
+  |> tostring;
 
-print("Result = " ++ r);
+print("Result = " ++ r ++ " (" ++ type(r) ++ ")");

@@ -518,7 +518,7 @@ impl code::Visitor<code::Builder> for LuaEmitter {
                     _ => panic!(),
                 };
                 let ctx = self.visit_expression(ctx, &expr.left)?.put(", ");
-                self.visit_expression(ctx, &expr.right)?
+                self.visit_expression(ctx, &expr.right)?.put(")")
             }
             _ => {
                 // Then if not, match extra logic (Indirect operation expansion)
