@@ -217,6 +217,11 @@ impl code::Visitor<code::Builder> for LuaEmitter {
             .iter()
             .skip(1)
             .fold(ctx, |ctx, ident| ctx.put(", ").put(ident.name.0.clone()));
+        let ctx = if stmt.arguments.len() > 0 {
+            ctx.put(", ...")
+        } else {
+            ctx.put("...")
+        };
         let ctx = ctx.put(")").push();
         let ctx = self.visit_script(ctx, &stmt.body)?;
         let ctx = ctx.pop().unwrap().line().put("end");
@@ -298,6 +303,11 @@ impl code::Visitor<code::Builder> for LuaEmitter {
             .iter()
             .skip(1)
             .fold(ctx, |ctx, ident| ctx.put(", ").put(ident.name.0.clone()));
+        let ctx = if expr.arguments.len() > 0 {
+            ctx.put(", ...")
+        } else {
+            ctx.put("...")
+        };
         let ctx = ctx.put(")").push();
         let ctx = match &expr.body {
             ast::ScriptOrExpression::Script(e) => self.visit_script(ctx, e)?,
