@@ -1,0 +1,9 @@
+// Example usage of extra operators:
+
+fn __elastic_right(left, right) {
+  return right(left);
+}
+
+let r = 101 ~> a => a + 10;
+
+print("Result = " ++ r);

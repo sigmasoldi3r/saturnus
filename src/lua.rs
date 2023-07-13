@@ -479,37 +479,92 @@ impl code::Visitor<code::Builder> for LuaEmitter {
         ctx: code::Builder,
         expr: &ast::BinaryExpression,
     ) -> Result<code::Builder, code::VisitError> {
-        let ctx = self.visit_expression(ctx, &expr.left)?.put(" ");
+        // Match direct function translation first
         let ctx = match expr.operator.clone() {
-            // Basic math
-            ast::Operator::Plus => ctx.put("+"),
-            ast::Operator::Minus => ctx.put("-"),
-            ast::Operator::Product => ctx.put("*"),
-            ast::Operator::Quotient => ctx.put("/"),
-            ast::Operator::Remainder => ctx.put("%"),
-            ast::Operator::Power => ctx.put("**"),
-            ast::Operator::Concat => ctx.put(".."),
-            // Comparison
-            ast::Operator::Greater => ctx.put(">"),
-            ast::Operator::GreaterEqual => ctx.put(">="),
-            ast::Operator::Less => ctx.put("<"),
-            ast::Operator::LessEqual => ctx.put("<="),
-            ast::Operator::Equal => ctx.put("=="),
-            ast::Operator::NotEqual => ctx.put("~="),
-            // Logic
-            ast::Operator::LogicNot => ctx.put("not"),
-            ast::Operator::LogicAnd => ctx.put("and"),
-            ast::Operator::LogicOr => ctx.put("or"),
-            // Logic
-            ast::Operator::BWiseAnd => ctx.put("&"),
-            ast::Operator::BWiseOr => ctx.put("|"),
-            ast::Operator::BWiseLShift => ctx.put("<<"),
-            ast::Operator::BWiseLShiftRoundtrip => ctx.put("<<<"),
-            ast::Operator::BWiseRShift => ctx.put(">>"),
-            ast::Operator::BWiseRShiftRoundtrip => ctx.put(">>>"),
-            op => todo!("Binary operator {:?} not supported!", op),
+            ast::Operator::Elastic
+            | ast::Operator::ElasticLeft
+            | ast::Operator::ElasticRight
+            | ast::Operator::PinguBoth
+            | ast::Operator::PinguLeft
+            | ast::Operator::PinguRight
+            | ast::Operator::ArrowStandBoth
+            | ast::Operator::ArrowStandLeft
+            | ast::Operator::ArrowStandRight
+            | ast::Operator::ArrowLeft
+            | ast::Operator::ArrowRight
+            | ast::Operator::Disjoin
+            | ast::Operator::PipeLeft
+            | ast::Operator::PipeRight
+            | ast::Operator::AskRight
+            | ast::Operator::AskLeft => {
+                let ctx = match expr.operator.clone() {
+                    ast::Operator::Elastic => ctx.put("__elastic("),
+                    ast::Operator::ElasticLeft => ctx.put("__elastic_left("),
+                    ast::Operator::ElasticRight => ctx.put("__elastic_right("),
+                    ast::Operator::PinguBoth => ctx.put("__pingu_both("),
+                    ast::Operator::PinguLeft => ctx.put("__pingu_left("),
+                    ast::Operator::PinguRight => ctx.put("__pingu_right("),
+                    ast::Operator::ArrowStandBoth => ctx.put("__arrow_stand_both("),
+                    ast::Operator::ArrowStandLeft => ctx.put("__arrow_stand_left("),
+                    ast::Operator::ArrowStandRight => ctx.put("__arrow_stand_right("),
+                    ast::Operator::BothWays => ctx.put("__both_ways("),
+                    ast::Operator::ArrowLeft => ctx.put("__arrow_left("),
+                    ast::Operator::ArrowRight => ctx.put("__arrow_right("),
+                    ast::Operator::Disjoin => ctx.put("__disjoin("),
+                    ast::Operator::PipeLeft => ctx.put("__pipe_left("),
+                    ast::Operator::PipeRight => ctx.put("__pipe_right("),
+                    ast::Operator::AskRight => ctx.put("__ask_right("),
+                    ast::Operator::AskLeft => ctx.put("__ask_left("),
+                    _ => panic!(),
+                };
+                let ctx = self.visit_expression(ctx, &expr.left)?.put(", ");
+                self.visit_expression(ctx, &expr.right)?
+            }
+            _ => {
+                // Then if not, match extra logic (Indirect operation expansion)
+                if let ast::Operator::Coalesce = expr.operator.clone() {
+                    let ctx = self.visit_expression(ctx, &expr.left)?.put(" == nil and ");
+                    let ctx = self.visit_expression(ctx, &expr.right)?.put(" or ");
+                    return self.visit_expression(ctx, &expr.left);
+                } else if let ast::Operator::Elvis = expr.operator.clone() {
+                    let ctx = self.visit_expression(ctx, &expr.left)?.put(" or ");
+                    return self.visit_expression(ctx, &expr.right);
+                }
+                // If all fails, translate native operators or panic.
+                let ctx = self.visit_expression(ctx, &expr.left)?.put(" ");
+                let ctx = match expr.operator.clone() {
+                    // Basic math
+                    ast::Operator::Plus => ctx.put("+"),
+                    ast::Operator::Minus => ctx.put("-"),
+                    ast::Operator::Product => ctx.put("*"),
+                    ast::Operator::Quotient => ctx.put("/"),
+                    ast::Operator::Remainder => ctx.put("%"),
+                    ast::Operator::Power => ctx.put("**"),
+                    ast::Operator::Concat => ctx.put(".."),
+                    // Comparison
+                    ast::Operator::Greater => ctx.put(">"),
+                    ast::Operator::GreaterEqual => ctx.put(">="),
+                    ast::Operator::Less => ctx.put("<"),
+                    ast::Operator::LessEqual => ctx.put("<="),
+                    ast::Operator::Equal => ctx.put("=="),
+                    ast::Operator::NotEqual => ctx.put("~="),
+                    // Logic
+                    ast::Operator::LogicNot => ctx.put("not"),
+                    ast::Operator::LogicAnd => ctx.put("and"),
+                    ast::Operator::LogicOr => ctx.put("or"),
+                    // Logic
+                    ast::Operator::BWiseAnd => ctx.put("&"),
+                    ast::Operator::BWiseOr => ctx.put("|"),
+                    ast::Operator::BWiseLShift => ctx.put("<<"),
+                    ast::Operator::BWiseLShiftRoundtrip => ctx.put("<<<"),
+                    ast::Operator::BWiseRShift => ctx.put(">>"),
+                    ast::Operator::BWiseRShiftRoundtrip => ctx.put(">>>"),
+                    op => todo!("Binary operator {:?} not supported!", op),
+                };
+                let ctx = self.visit_expression(ctx.put(" "), &expr.right)?;
+                return Ok(ctx);
+            }
         };
-        let ctx = self.visit_expression(ctx.put(" "), &expr.right)?;
         Ok(ctx)
     }
 

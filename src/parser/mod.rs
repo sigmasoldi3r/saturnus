@@ -21,10 +21,6 @@ peg::parser! {
             / e:return_stmt() { Statement::Return(e) }
             / e:expression() _ EOS() { Statement::Expression(e) }
 
-        rule macro_call() -> ()
-            = target:identifier() "!"
-            {  }
-
         rule if_stmt() -> If
             = "if" __ condition:expression() __ "{" body:script()
               branches:("}" _ "else" __ "if" __ c:expression() __ "{" s:script() { (c, s) })*
@@ -93,16 +89,16 @@ peg::parser! {
 
         rule call_expression() -> CallExpression
             = head:(
-                callee:member_expression() _ arguments:call_arguments()
-                { CallSubExpression { callee: Some(callee), arguments }.into() }
+                callee:member_expression() m:"!"? _ arguments:call_arguments()
+                { CallSubExpression { callee: Some(callee), is_macro: m.is_some(), arguments }.into() }
                 / callee:member_expression() _ arg:table_expression()
-                { CallSubExpression { callee: Some(callee), arguments: vec![arg] } }
+                { CallSubExpression { callee: Some(callee), is_macro: false, arguments: vec![arg] } }
             )
             tail:(
                   _ "[" _ prop:expression() _ "]" { MemberSegment::Computed(prop).into() }
                 / _ "." _ prop:identifier() { MemberSegment::IdentifierDynamic(prop).into() }
                 / _ "::" _ prop:identifier() { MemberSegment::IdentifierStatic(prop).into() }
-                / _ arguments:call_arguments() { CallSubExpression { callee: None, arguments }.into() }
+                / _ arguments:call_arguments() { CallSubExpression { callee: None, is_macro: false, arguments }.into() }
             )*
             { CallExpression { head, tail } }
 
@@ -171,30 +167,30 @@ peg::parser! {
             left:(@) _ ">>>" _ right:@ { BinaryExpression { left, right, operator: Operator::BWiseRShiftRoundtrip }.into() }
             left:(@) _ ">>" _ right:@ { BinaryExpression { left, right, operator: Operator::BWiseRShift }.into() }
             // Extra logic:
-            // left:(@) _ "^" _ right:@ { BinaryExpression { left, right, operator: Operator::LogicXOr }.into() }
-            // left:(@) _ "¬&" _ right:@ { BinaryExpression { left, right, operator: Operator::LogicNand }.into() }
-            // left:(@) _ "¬|" _ right:@ { BinaryExpression { left, right, operator: Operator::LogicNor }.into() }
-            // --
-            // left:(@) _ "<~>" _ right:@ { BinaryExpression { left, right, operator: Operator::Elastic }.into() }
-            // left:(@) _ "<~" _ right:@ { BinaryExpression { left, right, operator: Operator::ElasticLeft }.into() }
-            // left:(@) _ "~>" _ right:@ { BinaryExpression { left, right, operator: Operator::ElasticRight }.into() }
-            // left:(@) _ "<:>" _ right:@ { BinaryExpression { left, right, operator: Operator::PinguBoth }.into() }
-            // left:(@) _ "<:" _ right:@ { BinaryExpression { left, right, operator: Operator::PinguLeft }.into() }
-            // left:(@) _ ":>" _ right:@ { BinaryExpression { left, right, operator: Operator::PinguRight }.into() }
-            // left:(@) _ "<-|->" _ right:@ { BinaryExpression { left, right, operator: Operator::ArrowStandBoth }.into() }
-            // left:(@) _ "<-|" _ right:@ { BinaryExpression { left, right, operator: Operator::ArrowStandLeft }.into() }
-            // left:(@) _ "|->" _ right:@ { BinaryExpression { left, right, operator: Operator::ArrowStandRight }.into() }
-            // left:(@) _ "<->" _ right:@ { BinaryExpression { left, right, operator: Operator::BothWays }.into() }
-            // left:(@) _ "<-" _ right:@ { BinaryExpression { left, right, operator: Operator::ArrowLeft }.into() }
-            // left:(@) _ "->" _ right:@ { BinaryExpression { left, right, operator: Operator::ArrowRight }.into() }
-            // left:(@) _ "<|>" _ right:@ { BinaryExpression { left, right, operator: Operator::Disjoin }.into() }
-            // left:(@) _ "<|" _ right:@ { BinaryExpression { left, right, operator: Operator::PipeLeft }.into() }
-            // left:(@) _ "|>" _ right:@ { BinaryExpression { left, right, operator: Operator::PipeRight }.into() }
-            // left:(@) _ "<?" _ right:@ { BinaryExpression { left, right, operator: Operator::AskRight }.into() }
-            // left:(@) _ "?>" _ right:@ { BinaryExpression { left, right, operator: Operator::AskLeft }.into() }
-            // --
-            // left:(@) _ "?:" _ right:@ { BinaryExpression { left, right, operator: Operator::Elvis }.into() }
-            // left:(@) _ "??" _ right:@ { BinaryExpression { left, right, operator: Operator::Coalesce }.into() }
+            left:(@) _ "^" _ right:@ { BinaryExpression { left, right, operator: Operator::LogicXOr }.into() }
+            left:(@) _ "¬&" _ right:@ { BinaryExpression { left, right, operator: Operator::LogicNand }.into() }
+            left:(@) _ "¬|" _ right:@ { BinaryExpression { left, right, operator: Operator::LogicNor }.into() }
+            --
+            left:(@) _ "<~>" _ right:@ { BinaryExpression { left, right, operator: Operator::Elastic }.into() }
+            left:(@) _ "<~" _ right:@ { BinaryExpression { left, right, operator: Operator::ElasticLeft }.into() }
+            left:(@) _ "~>" _ right:@ { BinaryExpression { left, right, operator: Operator::ElasticRight }.into() }
+            left:(@) _ "<:>" _ right:@ { BinaryExpression { left, right, operator: Operator::PinguBoth }.into() }
+            left:(@) _ "<:" _ right:@ { BinaryExpression { left, right, operator: Operator::PinguLeft }.into() }
+            left:(@) _ ":>" _ right:@ { BinaryExpression { left, right, operator: Operator::PinguRight }.into() }
+            left:(@) _ "<-|->" _ right:@ { BinaryExpression { left, right, operator: Operator::ArrowStandBoth }.into() }
+            left:(@) _ "<-|" _ right:@ { BinaryExpression { left, right, operator: Operator::ArrowStandLeft }.into() }
+            left:(@) _ "|->" _ right:@ { BinaryExpression { left, right, operator: Operator::ArrowStandRight }.into() }
+            left:(@) _ "<->" _ right:@ { BinaryExpression { left, right, operator: Operator::BothWays }.into() }
+            left:(@) _ "<-" _ right:@ { BinaryExpression { left, right, operator: Operator::ArrowLeft }.into() }
+            left:(@) _ "->" _ right:@ { BinaryExpression { left, right, operator: Operator::ArrowRight }.into() }
+            left:(@) _ "<|>" _ right:@ { BinaryExpression { left, right, operator: Operator::Disjoin }.into() }
+            left:(@) _ "<|" _ right:@ { BinaryExpression { left, right, operator: Operator::PipeLeft }.into() }
+            left:(@) _ "|>" _ right:@ { BinaryExpression { left, right, operator: Operator::PipeRight }.into() }
+            left:(@) _ "<?" _ right:@ { BinaryExpression { left, right, operator: Operator::AskRight }.into() }
+            left:(@) _ "?>" _ right:@ { BinaryExpression { left, right, operator: Operator::AskLeft }.into() }
+            --
+            left:(@) _ "?:" _ right:@ { BinaryExpression { left, right, operator: Operator::Elvis }.into() }
+            left:(@) _ "??" _ right:@ { BinaryExpression { left, right, operator: Operator::Coalesce }.into() }
             --
             e:atom() { e }
         }

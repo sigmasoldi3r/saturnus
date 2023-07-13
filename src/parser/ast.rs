@@ -74,6 +74,7 @@ pub struct CallSubExpression {
     pub callee: Option<MemberExpression>,
     // pub static_target: Option<Identifier>,
     pub arguments: Vec<Expression>,
+    pub is_macro: bool,
 }
 impl Into<CallExpressionVariant> for CallSubExpression {
     fn into(self) -> CallExpressionVariant {
