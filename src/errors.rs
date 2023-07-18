@@ -6,7 +6,7 @@ pub fn report_error(
     err: peg::error::ParseError<peg::str::LineCol>,
 ) -> String {
     let mut result = String::new();
-    result += format!("Failed to parse {} file!", file).as_str();
+    result += format!("Failed to parse {} file!\n", file).as_str();
     let line = err.location.line;
     let col = err.location.column;
     let ep = err
@@ -16,7 +16,7 @@ pub fn report_error(
         .reduce(|a, b| format!("{}, {}", a, b));
     result += format!("At {}:{}:{}", file, line, col).as_str();
     if let Some(ep) = ep {
-        result += format!("Expected: one of {}", ep).as_str();
+        result += format!("Expected: one of {}\n", ep).as_str();
     }
     let lines = input.lines();
     let mut i = 0_usize;
@@ -29,14 +29,14 @@ pub fn report_error(
             let numeric = format!("{:>4}", n);
             let numeric = style(numeric).blue();
             let divider = style("|").green().bold();
-            result += format!("{} {} {}", numeric, divider, line_str).as_str();
+            result += format!("{} {} {}\n", numeric, divider, line_str).as_str();
             if line == pos {
                 let ted = line_str.len() - col;
                 let premark = style("     |").red().bold();
                 let spanner = format!(" {:2$}{:^<3$}", " ", "^", col - 2, ted);
                 let spanner = style(spanner).red();
                 let here = style("here").red();
-                result += format!("{} {} {here}", premark, spanner).as_str();
+                result += format!("{} {} {here}\n", premark, spanner).as_str();
             }
             i += 1;
         }

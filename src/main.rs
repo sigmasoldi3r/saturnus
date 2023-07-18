@@ -105,7 +105,7 @@ fn main() {
                 println!("Compiling {:?}...", in_path);
                 if !args.print {
                     let mut out_file = File::create(out_path).unwrap();
-                    let output = format!("error[=====[{:?}]=====]", err);
+                    let output = format!("error[=====[{}]=====]", err);
                     out_file.write_all(output.as_bytes()).unwrap();
                 }
             }
