@@ -30,7 +30,7 @@ peg::parser! {
             / expected!("If statement")
 
         rule for_each() -> For
-            = "for" __ handler:identifier() __ "in" __ target:expression() _ "{"
+            = "for" __ handler:assignment_target() __ "in" __ target:expression() _ "{"
               body:script() "}"
             { For { handler, target, body } }
             / expected!("For loop")
@@ -258,8 +258,20 @@ peg::parser! {
 
         // Auxiliaries and sub-expressions
         rule let_expression() -> Let
-            = "let" __ target:identifier() value:(_ "=" _ e:expression(){e})?
+            = "let" __ target:assignment_target() value:(_ "=" _ e:expression(){e})?
             { Let { target, value } }
+
+        rule assignment_target() -> AssignmentTarget
+            = e:identifier() { AssignmentTarget::Identifier(e) }
+            / e:destructure_expression() { AssignmentTarget::Destructuring(e) }
+
+        rule destructure_expression() -> Destructuring
+            = "{" _ targets:(name:identifier() ** (_ "," _) { name }) _ "}"
+                { Destructuring(targets, DestructureOrigin::Table) }
+            / "(" _ targets:(name:identifier() ** (_ "," _) { name }) _ ")"
+                { Destructuring(targets, DestructureOrigin::Tuple) }
+            / "[" _ targets:(name:identifier() ** (_ "," _) { name }) _ "]"
+                { Destructuring(targets, DestructureOrigin::Array) }
 
         rule class_fields() -> ClassField
             = e:declare_var() { ClassField::Let(e) }

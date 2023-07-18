@@ -36,6 +36,44 @@ impl LuaEmitter {
             ast::MemberSegment::IdentifierStatic(_) => Err(VisitError),
         }
     }
+    pub fn generate_destructured_assignment(
+        &self,
+        ctx: code::Builder,
+        e: &ast::Destructuring,
+    ) -> Result<code::Builder, VisitError> {
+        let mut i = 0;
+        match e.1 {
+            ast::DestructureOrigin::Tuple => e.0.iter().fold(Ok(ctx), |ctx, elem| {
+                let ctx = ctx?
+                    .line()
+                    .put(elem.0.clone())
+                    .put(" = __destructure__")
+                    .put(format!("._{}", i))
+                    .put(";");
+                i += 1;
+                Ok(ctx)
+            }),
+            ast::DestructureOrigin::Array => e.0.iter().fold(Ok(ctx), |ctx, elem| {
+                let ctx = ctx?
+                    .line()
+                    .put(elem.0.clone())
+                    .put(" = __destructure__")
+                    .put(format!("[{}]", i))
+                    .put(";");
+                i += 1;
+                Ok(ctx)
+            }),
+            ast::DestructureOrigin::Table => e.0.iter().fold(Ok(ctx), |ctx, elem| {
+                let ctx = ctx?
+                    .line()
+                    .put(elem.0.clone())
+                    .put(" = __destructure__.")
+                    .put(elem.0.clone())
+                    .put(";");
+                Ok(ctx)
+            }),
+        }
+    }
 }
 
 impl code::Visitor<code::Builder> for LuaEmitter {
@@ -137,11 +175,16 @@ impl code::Visitor<code::Builder> for LuaEmitter {
                     ctx.put(";")
                 }
                 ast::ClassField::Let(f) => {
-                    let ctx = ctx.put(format!(
-                        "{}.prototype.{} = ",
-                        stmt.name.0.clone(),
-                        f.target.0.clone()
-                    ));
+                    let ctx = match &f.target {
+                        ast::AssignmentTarget::Destructuring(_) => {
+                            panic!("Can't destructure that!")
+                        }
+                        ast::AssignmentTarget::Identifier(e) => ctx.put(format!(
+                            "{}.prototype.{} = ",
+                            stmt.name.0.clone(),
+                            e.0.clone()
+                        )),
+                    };
                     let ctx = if let Some(value) = f.value.as_ref() {
                         self.visit_expression(ctx, value)?
                     } else {
@@ -269,13 +312,36 @@ impl code::Visitor<code::Builder> for LuaEmitter {
         ctx: code::Builder,
         stmt: &ast::Let,
     ) -> Result<code::Builder, code::VisitError> {
-        let ctx = ctx
-            .line()
-            .put("local ")
-            .put(stmt.target.0.clone())
-            .put(" = ");
-        let ctx = self.visit_expression(ctx, stmt.value.as_ref().unwrap())?;
-        let ctx = ctx.put(";");
+        let ctx = match &stmt.target {
+            ast::AssignmentTarget::Destructuring(e) => {
+                let ctx = ctx.line().put("local ");
+                let ctx = ctx.put(e.0.get(0).unwrap().0.clone());
+                let ctx =
+                    e.0.iter()
+                        .skip(1)
+                        .fold(ctx, |ctx, elem| ctx.put(", ").put(elem.0.clone()));
+                let ctx = ctx
+                    .put(";")
+                    .line()
+                    .put("do")
+                    .push()
+                    .line()
+                    .put("local __destructure__ = ");
+                let ctx = self
+                    .visit_expression(ctx, stmt.value.as_ref().unwrap())?
+                    .put(";");
+                self.generate_destructured_assignment(ctx, &e)?
+                    .pop()
+                    .unwrap()
+                    .line()
+                    .put("end")
+            }
+            ast::AssignmentTarget::Identifier(e) => {
+                let ctx = ctx.line().put("local ").put(e.0.clone()).put(" = ");
+                let ctx = self.visit_expression(ctx, stmt.value.as_ref().unwrap())?;
+                ctx.put(";")
+            }
+        };
         Ok(ctx)
     }
 
@@ -682,13 +748,23 @@ impl code::Visitor<code::Builder> for LuaEmitter {
         ctx: code::Builder,
         expr: &ast::For,
     ) -> Result<code::Builder, code::VisitError> {
-        let ctx = ctx
-            .line()
-            .put(format!("for {} in ", expr.handler.0.clone()));
-        let ctx = self.visit_expression(ctx, &expr.target)?;
-        let ctx = ctx.put(" do").push();
-        let ctx = self.visit_script(ctx, &expr.body)?;
-        let ctx = ctx.pop().unwrap().line().put("end");
+        let ctx = match &expr.handler {
+            ast::AssignmentTarget::Destructuring(e) => {
+                let ctx = ctx.line().put("for __destructuring__ in ");
+                let ctx = self.visit_expression(ctx, &expr.target)?;
+                let ctx = ctx.put(" do").push();
+                let ctx = self.generate_destructured_assignment(ctx, &e)?;
+                let ctx = self.visit_script(ctx, &expr.body)?;
+                ctx.pop().unwrap().line().put("end")
+            }
+            ast::AssignmentTarget::Identifier(e) => {
+                let ctx = ctx.line().put(format!("for {} in ", e.0.clone()));
+                let ctx = self.visit_expression(ctx, &expr.target)?;
+                let ctx = ctx.put(" do").push();
+                let ctx = self.visit_script(ctx, &expr.body)?;
+                ctx.pop().unwrap().line().put("end")
+            }
+        };
         Ok(ctx)
     }
 
@@ -706,32 +782,33 @@ impl code::Visitor<code::Builder> for LuaEmitter {
                 ctx.pop().unwrap().line().put("end")
             }
             ast::ExpressionOrLet::Let(e) => {
-                let ctx = ctx.line().put("do").push();
-                let ctx = self.visit_declaration(ctx, e)?;
-                let ctx = ctx
-                    .line()
-                    .put(format!("while {} do", e.target.0.clone()))
-                    .push();
-                let ctx = self.visit_script(ctx, &expr.body)?;
-                let ctx = self.visit_assignment(
-                    ctx,
-                    &ast::Assignment {
-                        target: ast::MemberExpression {
-                            head: ast::Expression::Identifier(e.target.clone()),
-                            tail: vec![],
+                if let ast::AssignmentTarget::Identifier(id) = &e.target {
+                    let ctx = ctx.line().put("do").push();
+                    let ctx = self.visit_declaration(ctx, e)?;
+                    let ctx = ctx.line().put(format!("while {} do", id.0.clone())).push();
+                    let ctx = self.visit_script(ctx, &expr.body)?;
+                    let ctx = self.visit_assignment(
+                        ctx,
+                        &ast::Assignment {
+                            target: ast::MemberExpression {
+                                head: ast::Expression::Identifier(id.clone()),
+                                tail: vec![],
+                            },
+                            value: e.value.clone().unwrap(),
+                            extra: None,
                         },
-                        value: e.value.clone().unwrap(),
-                        extra: None,
-                    },
-                )?;
-                ctx.pop()
-                    .unwrap()
-                    .line()
-                    .put("end")
-                    .pop()
-                    .unwrap()
-                    .line()
-                    .put("end")
+                    )?;
+                    ctx.pop()
+                        .unwrap()
+                        .line()
+                        .put("end")
+                        .pop()
+                        .unwrap()
+                        .line()
+                        .put("end")
+                } else {
+                    panic!("Destructured while-let not supported");
+                }
             }
         };
         Ok(ctx)
