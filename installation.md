@@ -2,10 +2,10 @@
 
 ## Installation
 
-To install the Saturnus toolkit, you have to compile this project (`cargo build`),
-and the project inside `tools/janus`.
+Simplest way is to run `cargo install --path .` and
+`cargo install --path janus`.
 
-Then the provided build executable files should be
-visible system-wide.
+Or use `cargo build` and link the binaries to wher they can be used. Then the
+provided build executable files should be visible system-wide.
 
-A more detailed tutorial will be comming soon.
+Feel free to open any PR/Issues for clarification.

@@ -50,8 +50,24 @@ pub struct MemberExpression {
 }
 
 #[derive(Debug, Clone)]
+pub enum DestructureOrigin {
+    Tuple,
+    Array,
+    Table,
+}
+
+#[derive(Debug, Clone)]
+pub struct Destructuring(pub Vec<Identifier>, pub DestructureOrigin);
+
+#[derive(Debug, Clone)]
+pub enum AssignmentTarget {
+    Destructuring(Destructuring),
+    Identifier(Identifier),
+}
+
+#[derive(Debug, Clone)]
 pub struct Let {
-    pub target: Identifier,
+    pub target: AssignmentTarget,
     pub value: Option<Expression>,
 }
 
@@ -74,6 +90,7 @@ pub struct CallSubExpression {
     pub callee: Option<MemberExpression>,
     // pub static_target: Option<Identifier>,
     pub arguments: Vec<Expression>,
+    pub is_macro: bool,
 }
 impl Into<CallExpressionVariant> for CallSubExpression {
     fn into(self) -> CallExpressionVariant {
@@ -114,7 +131,7 @@ pub struct If {
 
 #[derive(Debug, Clone)]
 pub struct For {
-    pub handler: Identifier,
+    pub handler: AssignmentTarget,
     pub target: Expression,
     pub body: Script,
 }

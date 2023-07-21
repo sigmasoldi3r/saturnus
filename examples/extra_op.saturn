@@ -1,0 +1,12 @@
+// Example usage of extra operators:
+
+fn __pipe_right(left, right) {
+  return right(left);
+}
+
+let r = 101
+  |> (a => a + 10)
+  |> (a => a * 2)
+  |> tostring;
+
+print("Result = " ++ r ++ " (" ++ type(r) ++ ")");

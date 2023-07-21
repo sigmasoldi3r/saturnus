@@ -100,7 +100,16 @@ fn main() {
             }
         }
         Err(err) => {
-            report_error(args.input.clone(), input.clone(), err);
+            let err = report_error(args.input.clone(), input.clone(), err);
+            if args.compile {
+                println!("Compiling {:?}...", in_path);
+                if !args.print {
+                    let mut out_file = File::create(out_path).unwrap();
+                    let output = format!("error[=====[{}]=====]", err);
+                    out_file.write_all(output.as_bytes()).unwrap();
+                }
+            }
+            eprintln!("{}", err);
             panic!("Compilation failed");
         }
     }
