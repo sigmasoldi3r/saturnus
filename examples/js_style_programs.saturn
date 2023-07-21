@@ -1,0 +1,47 @@
+/// This is just an example, not a real future/promise.
+class Future {
+  // The identity function
+  let call_chain = (value) => value;
+
+  // Then, just add it to the chain.
+  fn map(self, callback) {
+    return Future {
+      call_chain: (value) => callback(self::call_chain(value))
+    };
+  }
+
+  // A friendly resolve
+  fn resolve(self, value) {
+    return self::call_chain(value);
+  }
+
+  // A classic, rust-style new() function.
+  fn new() {
+    return Future {
+      call_chain: (value) => value
+    };
+  }
+}
+
+// Do the things:
+fn some_future() {
+  return Future::new();
+}
+
+// Emulate the JS env: (Oh, Lua's "then" word is reserved... my bad! So moving to rust style)
+let promise = some_future()
+  .map(foo => foo ++ " bar")
+  .map(foobar => [foobar])
+  .map(arr => arr[1])
+  .map(a => (a, a ++ "!", a ++ " man!"))
+  .map(b => {
+    print(b._0);
+    return b;
+  });
+
+let result = promise.resolve("Foo");
+print("result._0 = " ++ result._0);
+print("result._1 = " ++ result._1);
+print("result._2 = " ++ result._2);
+// Is like a wizard came here to bless us.
+// Or that is what I like to think, uh, maybe.

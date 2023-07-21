@@ -1,3 +1,9 @@
+[workspace]
+members = [
+  "janus",
+  "."
+]
+
 [package]
 name = "saturnus"
 version = "0.1.0"
@@ -6,6 +12,8 @@ edition = "2021"
 [dependencies]
 peg = "0.8.1"
 clap = { version = "4.2", features = ["derive"] }
+console = "0.15.6"
+rlua = "0.19.4"
 
 [dev-dependencies]
 spectral = "0.6.0"

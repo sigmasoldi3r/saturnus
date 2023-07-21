@@ -1,0 +1,9 @@
+
+let { foo, bar } = something;
+let ( x, y ) = some_other;
+let [ one, two ] = some_more;
+
+for (k, v) in tuple_pairs(foo) {
+  print(k ++ " => " ++ v);
+}
+

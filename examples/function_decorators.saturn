@@ -1,8 +1,8 @@
 
 
 fn Test() {
-    return fn(target, name) {
-        print("Adding " .. name .. " to the test suite!");
+    return (target, name) => {
+        print("Adding " ++ name ++ " to the test suite!");
     };
 }
 

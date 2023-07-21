@@ -1,7 +1,12 @@
 # Saturnus
 
+![Saturnus provisional logo](docs/logo_realistic.png)
+
+[**PRs are welcome! See "contributing.md"**](contributing.md)
+
 **Saturnus** is a programming language that aims to have a simplified mix of
-[Rust programming language](https://www.rust-lang.org/) and [Lua](https://www.lua.org/).
+[Rust programming language](https://www.rust-lang.org/) and
+[Lua](https://www.lua.org/).
 
 The main target for Saturnus compiler is **Lua**, but multi-target compilation
 will arrive in the future, so stay tuned if you like the language.
@@ -50,18 +55,10 @@ Tweak the fields according to your needs. Now by default, the only compile mode
 available is the module-less, compile-in-place mode. This will produce `.lua`
 files next to your `.saturn` files.
 
-A little bit of Janus todo would be:
-
-- [ ] Define more build modes
-- [ ] Add flags to target other platforms
-- [ ] Create different module system strategies
-- [ ] File I/O directories customization
-- [ ] Compiler flags
-
 ### Where to get the binaries?
 
-Currently the CD is disabled, however you can grab the latest [artifacts from
-the nightly branch][nightly], **BUT!**
+Currently the CD is disabled, however you can grab the latest
+[artifacts from the nightly branch][nightly], **BUT!**
 
 [nightly]: https://github.com/sigmasoldi3r/Saturnus/actions/workflows/build-artifacts.yml
 
@@ -82,14 +79,13 @@ Then you will have the executable at `target/release/saturnus`. (You need the
 
 > **Note**
 >
-> Some structures will be pretty similar to Rust, so this assumes you
-> have some knowledge about OOP languages, and you're familiar with the Lua
-> runtime.
+> Some structures will be pretty similar to Rust, so this assumes you have some
+> knowledge about OOP languages, and you're familiar with the Lua runtime.
 
 > **Warning**
 >
-> An important remark about the syntax: Unlike Lua, here each
-> statement that is **not** a block, it must end with a **semicolon** (`;`).
+> An important remark about the syntax: Unlike Lua, here each statement that is
+> **not** a block, it must end with a **semicolon** (`;`).
 
 Declarations and function calls:
 
@@ -123,8 +119,8 @@ let foo = this_is_a_tuple._0;
 let ten = this_is_a_tuple._1;
 let bar = this_is_a_tuple._2;
 
-// Array access can be weird compared to others (It has an extra dot):
-let foo = bar.[key].value;
+// Array access
+let foo = bar[key].value;
 ```
 
 Now, function calls can be something more complex.
@@ -134,11 +130,8 @@ Imagine that you have static functions (aka do not belong to an object):
 ```rs
 some_function(1, 2, 3);
 let b = fetch("some url");
-// Note that like in lua, you can pass [], {} and "" without parentheses:
-let module = require! "Mods";
-let bar = joining! [1, 2, 3];
+// Note that like in lua, you can pass {} without parentheses:
 let c = Foo { bar };
-// etc
 ```
 
 Those will be dispatched statically, and everyone will be safe & sound. But in
@@ -242,8 +235,8 @@ if a {
 
 Functions!
 
-Functions are declared like Lua ones, using `fn` keyword, but with a catch:
-They are **always** local, never global (That is forbidden by design).
+Functions are declared like Lua ones, using `fn` keyword, but with a catch: They
+are **always** local, never global (That is forbidden by design).
 
 ```rs
 // Fair enough:
@@ -252,19 +245,19 @@ fn some_func(a, b) {
 }
 
 // Oh, you can also have anonymous functions by the way!
-let anon = fn(a, b) {
+let anon = (a, b) => {
   return a + b;
 };
 
 // And if an anonymous function ONLY has one expression inside (Without ";"),
 // that expression is an implicit return statement:
-collections::reduce([1, 2, 3], fn(a, b) { a + b });
+collections::reduce([1, 2, 3], (a, b) => a + b);
 // Pretty cool
 ```
 
 Time for some object oriented programming! Yes, _Saturnus_ has classes, of
-course, but we forbid inheritance by design, which does not eliminate
-at all polymorphism (see below).
+course, but we forbid inheritance by design, which does not eliminate at all
+polymorphism (see below).
 
 ```rs
 class Person {
@@ -336,16 +329,5 @@ aspects of the language:
 - Terser loops.
 - Built-in operator overloading.
 - Custom operators.
-- Some [RTTI](https://en.wikipedia.org/wiki/Run-time_type_information) (Which enables reflection).
-
-## The MVP release to-do list:
-
-- [x] ~~Implement a simple build system~~ **Janus** comes to the rescue!
-- [ ] Ennumeration structures
-- [ ] Match structure
-- [x] ~~Add loops (for, while and "loop")~~
-- [ ] Decorator code generation
-- [x] ~~Operator overload~~
-- [ ] Bitwise operators (This one is easy)
-- [ ] Custom operator dispatch code generation
-- [ ] Destructuring assignment
+- Some [RTTI](https://en.wikipedia.org/wiki/Run-time_type_information) (Which
+  enables reflection).
