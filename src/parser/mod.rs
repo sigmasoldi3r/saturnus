@@ -121,76 +121,56 @@ peg::parser! {
             { args }
 
         rule binary_expression() -> Expression = precedence! {
-            "-" _ expression:@ { UnaryExpression { expression, operator: Operator::Minus }.into() }
-            "+" _ expression:@ { UnaryExpression { expression, operator: Operator::Plus }.into() }
-            "#?" _ expression:@ { UnaryExpression { expression, operator: Operator::Count }.into() }
-            "not" _ expression:@ { UnaryExpression { expression, operator: Operator::LogicNot }.into() }
-            "~^" _ expression:@ { UnaryExpression { expression, operator: Operator::BWiseNot }.into() }
-            // "!" _ expression:@ { UnaryExpression { expression, operator: Operator::Exclamation }.into() }
-            "~" _ expression:@ { UnaryExpression { expression, operator: Operator::Tilde }.into() }
-            // "¬" _ expression:@ { UnaryExpression { expression, operator: Operator::Bolted }.into() }
-            "$" _ expression:@ { UnaryExpression { expression, operator: Operator::Dollar }.into() }
-            "!?" _ expression:@ { UnaryExpression { expression, operator: Operator::ExclamationQuestion }.into() }
+            value:$("-") _ expression:@ { UnaryExpression { expression, operator: Operator(value.into()) }.into() }
+            value:$("+") _ expression:@ { UnaryExpression { expression, operator: Operator(value.into()) }.into() }
+            value:$("#?") _ expression:@ { UnaryExpression { expression, operator: Operator(value.into()) }.into() }
+            value:$("not") _ expression:@ { UnaryExpression { expression, operator: Operator(value.into()) }.into() }
+            value:$("~^") _ expression:@ { UnaryExpression { expression, operator: Operator(value.into()) }.into() }
+            // value:$("!" _ expression:@ { UnaryExpression { expression, operator: Operator(value.into()) }.into() }
+            value:$("~") _ expression:@ { UnaryExpression { expression, operator: Operator(value.into()) }.into() }
+            // value:$("¬" _ expression:@ { UnaryExpression { expression, operator: Operator(value.into()) }.into() }
+            value:$("$") _ expression:@ { UnaryExpression { expression, operator: Operator(value.into()) }.into() }
+            value:$("!?") _ expression:@ { UnaryExpression { expression, operator: Operator(value.into()) }.into() }
             --
-            left:(@) _ "++" _ right:@ { BinaryExpression { left, right, operator: Operator::Concat }.into() }
-            left:(@) _ ".." _ right:@ { BinaryExpression { left, right, operator: Operator::Range }.into() }
+            left:(@) _ value:$("++") _ right:@ { BinaryExpression { left, right, operator: Operator(value.into()) }.into() }
+            left:(@) _ value:$("..") _ right:@ { BinaryExpression { left, right, operator: Operator(value.into()) }.into() }
 
-            left:(@) _ "+" _ right:@ { BinaryExpression { left, right, operator: Operator::Plus }.into() }
-            left:(@) _ "-" _ right:@ { BinaryExpression { left, right, operator: Operator::Minus }.into() }
+            left:(@) _ value:$("+") _ right:@ { BinaryExpression { left, right, operator: Operator(value.into()) }.into() }
+            left:(@) _ value:$("-") _ right:@ { BinaryExpression { left, right, operator: Operator(value.into()) }.into() }
             --
-            left:(@) _ "*" _ right:@ { BinaryExpression { left, right, operator: Operator::Product }.into() }
-            left:(@) _ "/" _ right:@ { BinaryExpression { left, right, operator: Operator::Quotient }.into() }
+            left:(@) _ value:$("*") _ right:@ { BinaryExpression { left, right, operator: Operator(value.into()) }.into() }
+            left:(@) _ value:$("/") _ right:@ { BinaryExpression { left, right, operator: Operator(value.into()) }.into() }
             --
-            left:@ _ "**" _ right:(@) { BinaryExpression { left, right, operator: Operator::Power }.into() }
+            left:@ _ value:$("**") _ right:(@) { BinaryExpression { left, right, operator: Operator(value.into()) }.into() }
             --
-            left:(@) _ "%" _ right:@ { BinaryExpression { left, right, operator: Operator::Remainder }.into() }
+            left:(@) _ value:$("%") _ right:@ { BinaryExpression { left, right, operator: Operator(value.into()) }.into() }
             --
-            left:(@) _ ">=<" _ right:@ { BinaryExpression { left, right, operator: Operator::Funnel }.into() }
-            left:(@) _ ">=" _ right:@ { BinaryExpression { left, right, operator: Operator::GreaterEqual }.into() }
-            left:(@) _ ">" _ right:@ { BinaryExpression { left, right, operator: Operator::Greater }.into() }
-            left:(@) _ "<=>" _ right:@ { BinaryExpression { left, right, operator: Operator::Starship }.into() }
-            left:(@) _ "<=" _ right:@ { BinaryExpression { left, right, operator: Operator::LessEqual }.into() }
-            left:(@) _ "<>" _ right:@ { BinaryExpression { left, right, operator: Operator::NotEqual }.into() }
-            left:(@) _ "<" _ right:@ { BinaryExpression { left, right, operator: Operator::Less }.into() }
-            left:(@) _ "==" _ right:@ { BinaryExpression { left, right, operator: Operator::Equal }.into() }
+            left:(@) _ value:$(">=<") _ right:@ { BinaryExpression { left, right, operator: Operator(value.into()) }.into() }
+            left:(@) _ value:$(">=") _ right:@ { BinaryExpression { left, right, operator: Operator(value.into()) }.into() }
+            left:(@) _ value:$(">") _ right:@ { BinaryExpression { left, right, operator: Operator(value.into()) }.into() }
+            left:(@) _ value:$("<=>") _ right:@ { BinaryExpression { left, right, operator: Operator(value.into()) }.into() }
+            left:(@) _ value:$("<=") _ right:@ { BinaryExpression { left, right, operator: Operator(value.into()) }.into() }
+            left:(@) _ value:$("<>") _ right:@ { BinaryExpression { left, right, operator: Operator(value.into()) }.into() }
+            left:(@) _ value:$("<") _ right:@ { BinaryExpression { left, right, operator: Operator(value.into()) }.into() }
+            left:(@) _ value:$("==") _ right:@ { BinaryExpression { left, right, operator: Operator(value.into()) }.into() }
             --
-            left:(@) _ "and" _ right:@ { BinaryExpression { left, right, operator: Operator::LogicAnd }.into() }
-            left:(@) _ "or" _ right:@ { BinaryExpression { left, right, operator: Operator::LogicOr }.into() }
-            left:(@) _ "xor" _ right:@ { BinaryExpression { left, right, operator: Operator::LogicXOr }.into() }
-            left:(@) _ "nand" _ right:@ { BinaryExpression { left, right, operator: Operator::LogicNand }.into() }
-            left:(@) _ "nor" _ right:@ { BinaryExpression { left, right, operator: Operator::LogicNor }.into() }
+            left:(@) _ value:$("and") _ right:@ { BinaryExpression { left, right, operator: Operator(value.into()) }.into() }
+            left:(@) _ value:$("or") _ right:@ { BinaryExpression { left, right, operator: Operator(value.into()) }.into() }
+            left:(@) _ value:$("xor") _ right:@ { BinaryExpression { left, right, operator: Operator(value.into()) }.into() }
+            left:(@) _ value:$("nand") _ right:@ { BinaryExpression { left, right, operator: Operator(value.into()) }.into() }
+            left:(@) _ value:$("nor") _ right:@ { BinaryExpression { left, right, operator: Operator(value.into()) }.into() }
             --
-            left:(@) _ "&" _ right:@ { BinaryExpression { left, right, operator: Operator::BWiseAnd }.into() }
-            left:(@) _ "|" _ right:@ { BinaryExpression { left, right, operator: Operator::BWiseOr }.into() }
-            left:(@) _ "<<<" _ right:@ { BinaryExpression { left, right, operator: Operator::BWiseLShiftRoundtrip }.into() }
-            left:(@) _ "<<" _ right:@ { BinaryExpression { left, right, operator: Operator::BWiseLShift }.into() }
-            left:(@) _ ">>>" _ right:@ { BinaryExpression { left, right, operator: Operator::BWiseRShiftRoundtrip }.into() }
-            left:(@) _ ">>" _ right:@ { BinaryExpression { left, right, operator: Operator::BWiseRShift }.into() }
+            left:(@) _ value:$("&") _ right:@ { BinaryExpression { left, right, operator: Operator(value.into()) }.into() }
+            left:(@) _ value:$("|") _ right:@ { BinaryExpression { left, right, operator: Operator(value.into()) }.into() }
+            left:(@) _ value:$("<<<") _ right:@ { BinaryExpression { left, right, operator: Operator(value.into()) }.into() }
+            left:(@) _ value:$("<<") _ right:@ { BinaryExpression { left, right, operator: Operator(value.into()) }.into() }
+            left:(@) _ value:$(">>>") _ right:@ { BinaryExpression { left, right, operator: Operator(value.into()) }.into() }
+            left:(@) _ value:$(">>") _ right:@ { BinaryExpression { left, right, operator: Operator(value.into()) }.into() }
+            --
             // Extra logic:
-            left:(@) _ "^" _ right:@ { BinaryExpression { left, right, operator: Operator::LogicXOr }.into() }
-            left:(@) _ "¬&" _ right:@ { BinaryExpression { left, right, operator: Operator::LogicNand }.into() }
-            left:(@) _ "¬|" _ right:@ { BinaryExpression { left, right, operator: Operator::LogicNor }.into() }
-            --
-            left:(@) _ "<~>" _ right:@ { BinaryExpression { left, right, operator: Operator::Elastic }.into() }
-            left:(@) _ "<~" _ right:@ { BinaryExpression { left, right, operator: Operator::ElasticLeft }.into() }
-            left:(@) _ "~>" _ right:@ { BinaryExpression { left, right, operator: Operator::ElasticRight }.into() }
-            left:(@) _ "<:>" _ right:@ { BinaryExpression { left, right, operator: Operator::PinguBoth }.into() }
-            left:(@) _ "<:" _ right:@ { BinaryExpression { left, right, operator: Operator::PinguLeft }.into() }
-            left:(@) _ ":>" _ right:@ { BinaryExpression { left, right, operator: Operator::PinguRight }.into() }
-            left:(@) _ "<-|->" _ right:@ { BinaryExpression { left, right, operator: Operator::ArrowStandBoth }.into() }
-            left:(@) _ "<-|" _ right:@ { BinaryExpression { left, right, operator: Operator::ArrowStandLeft }.into() }
-            left:(@) _ "|->" _ right:@ { BinaryExpression { left, right, operator: Operator::ArrowStandRight }.into() }
-            left:(@) _ "<->" _ right:@ { BinaryExpression { left, right, operator: Operator::BothWays }.into() }
-            left:(@) _ "<-" _ right:@ { BinaryExpression { left, right, operator: Operator::ArrowLeft }.into() }
-            left:(@) _ "->" _ right:@ { BinaryExpression { left, right, operator: Operator::ArrowRight }.into() }
-            left:(@) _ "<|>" _ right:@ { BinaryExpression { left, right, operator: Operator::Disjoin }.into() }
-            left:(@) _ "<|" _ right:@ { BinaryExpression { left, right, operator: Operator::PipeLeft }.into() }
-            left:(@) _ "|>" _ right:@ { BinaryExpression { left, right, operator: Operator::PipeRight }.into() }
-            left:(@) _ "<?" _ right:@ { BinaryExpression { left, right, operator: Operator::AskRight }.into() }
-            left:(@) _ "?>" _ right:@ { BinaryExpression { left, right, operator: Operator::AskLeft }.into() }
-            --
-            left:(@) _ "?:" _ right:@ { BinaryExpression { left, right, operator: Operator::Elvis }.into() }
-            left:(@) _ "??" _ right:@ { BinaryExpression { left, right, operator: Operator::Coalesce }.into() }
+            left:(@) _ value:$(['^'|'+'|'-'|'*'|'/'|'.'|'|'|'>'|'<'|'='|'?'|'!'|'~'|'%'|'&'|'#'|'$']+) _ right:@ {
+                BinaryExpression { left, right, operator: Operator(value.into()) }.into()
+            }
             --
             e:atom() { e }
         }
@@ -280,11 +260,11 @@ peg::parser! {
             { ClassField::Operator(OperatorOverload { operator, arguments, body }) }
 
         rule assign_extra() -> Operator
-            = "+" { Operator::Plus }
-            / "-" { Operator::Minus }
-            / "*" { Operator::Product }
-            / "/" { Operator::Quotient }
-            / "++" { Operator::Concat }
+            = value:$("+") { Operator(value.into()) }
+            / value:$("-") { Operator(value.into()) }
+            / value:$("*") { Operator(value.into()) }
+            / value:$("/") { Operator(value.into()) }
+            / value:$("++") { Operator(value.into()) }
 
         rule argument_list() -> Vec<Argument>
             = "(" _ args:argument() ** (_ "," _) _ ")" { args }
@@ -350,46 +330,46 @@ peg::parser! {
 
         // Special matching rule: Any Binary Operator
         rule any_operator() -> Operator
-            = "++" { Operator::Concat }
-            / ".." { Operator::Range }
-            / "+" { Operator::Plus }
-            / "-" { Operator::Minus }
-            / "*" { Operator::Product }
-            / "/" { Operator::Quotient }
-            / "**" { Operator::Power }
-            / "%" { Operator::Remainder }
-            / ">=<" { Operator::Funnel }
-            / ">=" { Operator::GreaterEqual }
-            / "<=>" { Operator::Starship }
-            / "<=" { Operator::LessEqual }
-            / "<>" { Operator::NotEqual }
-            / "==" { Operator::Equal }
-            / "and" { Operator::LogicAnd }
-            / "or" { Operator::LogicOr }
-            / "xor" { Operator::LogicXOr }
-            / "nand" { Operator::LogicNand }
-            / "nor" { Operator::LogicNor }
-            / "<~>" { Operator::Elastic }
-            / "<~" { Operator::ElasticLeft }
-            / "~>" { Operator::ElasticRight }
-            / "<:>" { Operator::PinguBoth }
-            / "<:" { Operator::PinguLeft }
-            / ":>" { Operator::PinguRight }
-            / "<-|->" { Operator::ArrowStandBoth }
-            / "<-|" { Operator::ArrowStandLeft }
-            / "|->" { Operator::ArrowStandRight }
-            / "<->" { Operator::BothWays }
-            / "<-" { Operator::ArrowLeft }
-            / "->" { Operator::ArrowRight }
-            / "<|>" { Operator::Disjoin }
-            / "<|" { Operator::PipeLeft }
-            / "|>" { Operator::PipeRight }
-            / "?>" { Operator::AskRight }
-            / "<?" { Operator::AskLeft }
-            / "?:" { Operator::Elvis }
-            / "??" { Operator::Coalesce }
-            / ">" { Operator::Greater }
-            / "<" { Operator::Less }
+            = value:$("++") { Operator(value.into()) }
+            / value:$("..") { Operator(value.into()) }
+            / value:$("+") { Operator(value.into()) }
+            / value:$("-") { Operator(value.into()) }
+            / value:$("*") { Operator(value.into()) }
+            / value:$("/") { Operator(value.into()) }
+            / value:$("**") { Operator(value.into()) }
+            / value:$("%") { Operator(value.into()) }
+            / value:$(">=<") { Operator(value.into()) }
+            / value:$(">=") { Operator(value.into()) }
+            / value:$("<=>") { Operator(value.into()) }
+            / value:$("<=") { Operator(value.into()) }
+            / value:$("<>") { Operator(value.into()) }
+            / value:$("==") { Operator(value.into()) }
+            / value:$("and") { Operator(value.into()) }
+            / value:$("or") { Operator(value.into()) }
+            / value:$("xor") { Operator(value.into()) }
+            / value:$("nand") { Operator(value.into()) }
+            / value:$("nor") { Operator(value.into()) }
+            / value:$("<~>") { Operator(value.into()) }
+            / value:$("<~") { Operator(value.into()) }
+            / value:$("~>") { Operator(value.into()) }
+            / value:$("<:>") { Operator(value.into()) }
+            / value:$("<:") { Operator(value.into()) }
+            / value:$(":>") { Operator(value.into()) }
+            / value:$("<-|->") { Operator(value.into()) }
+            / value:$("<-|") { Operator(value.into()) }
+            / value:$("|->") { Operator(value.into()) }
+            / value:$("<->") { Operator(value.into()) }
+            / value:$("<-") { Operator(value.into()) }
+            / value:$("->") { Operator(value.into()) }
+            / value:$("<|>") { Operator(value.into()) }
+            / value:$("<|") { Operator(value.into()) }
+            / value:$("|>") { Operator(value.into()) }
+            / value:$("?>") { Operator(value.into()) }
+            / value:$("<?") { Operator(value.into()) }
+            / value:$("?:") { Operator(value.into()) }
+            / value:$("??") { Operator(value.into()) }
+            / value:$(">") { Operator(value.into()) }
+            / value:$("<") { Operator(value.into()) }
         }
 }
 

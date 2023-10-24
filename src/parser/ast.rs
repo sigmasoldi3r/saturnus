@@ -195,67 +195,7 @@ pub enum ClassField {
 }
 
 #[derive(Debug, Clone)]
-pub enum Operator {
-    // Arithmetic
-    Plus,
-    Minus,
-    Quotient,
-    Product,
-    Power,
-    Remainder,
-    Concat,
-    Range,
-    // Comparison
-    Equal,
-    Less,
-    LessEqual,
-    Greater,
-    GreaterEqual,
-    NotEqual,
-    Starship,
-    Funnel,
-    // Logic
-    LogicOr,
-    LogicAnd,
-    LogicNor,
-    LogicNand,
-    LogicXOr,
-    LogicNot,
-    // Binary
-    BWiseAnd,
-    BWiseOr,
-    BWiseNot,
-    BWiseLShift,
-    BWiseRShift,
-    BWiseLShiftRoundtrip,
-    BWiseRShiftRoundtrip,
-    // Special operators (No native equivalent for these)
-    Count, // Except this, in Lua.
-    ArrowRight,
-    ArrowLeft,
-    BothWays,
-    ArrowStandRight,
-    ArrowStandLeft,
-    ArrowStandBoth,
-    // Exclamation,
-    Tilde,
-    Disjoin,
-    Elastic,
-    ElasticRight,
-    ElasticLeft,
-    Elvis,
-    Coalesce,
-    PinguRight,
-    PinguLeft,
-    PinguBoth,
-    PipeRight,
-    PipeLeft,
-    AskRight,
-    AskLeft,
-    // Bolted,
-    Dollar,
-    ExclamationQuestion,
-}
+pub struct Operator(pub String);
 
 #[derive(Debug, Clone)]
 pub struct BinaryExpression {

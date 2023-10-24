@@ -1,12 +1,18 @@
-// Example usage of extra operators:
-
-fn __pipe_right(left, right) {
+// Define your operators
+fn __pipe_greater(left, right) {
   return right(left);
 }
+fn __less_pipe(left, right) {
+  return left(right);
+}
+
+// Example usage of extra operators:
 
 let r = 101
   |> (a => a + 10)
   |> (a => a * 2)
   |> tostring;
 
-print("Result = " ++ r ++ " (" ++ type(r) ++ ")");
+let kind = type <| r |> a => "(" ++ a ++ ")";
+
+print("Result = " ++ r ++ " " ++ kind);
