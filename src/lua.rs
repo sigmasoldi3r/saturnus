@@ -27,6 +27,7 @@ fn translate_operator(ctx: code::Builder, op: String) -> code::Builder {
                 b'#' => "bang",
                 b'$' => "dollar",
                 b'^' => "power",
+                b':' => "colon",
                 _ => panic!(
                     "Error! Unexpected operator {} to be translated as a function!",
                     ch

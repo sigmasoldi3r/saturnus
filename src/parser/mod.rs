@@ -168,7 +168,7 @@ peg::parser! {
             left:(@) _ value:$(">>") _ right:@ { BinaryExpression { left, right, operator: Operator(value.into()) }.into() }
             --
             // Extra logic:
-            left:(@) _ value:$(['^'|'+'|'-'|'*'|'/'|'.'|'|'|'>'|'<'|'='|'?'|'!'|'~'|'%'|'&'|'#'|'$']+) _ right:@ {
+            left:(@) _ value:$(['^'|'+'|'-'|'*'|'/'|'.'|'|'|'>'|'<'|'='|'?'|'!'|'~'|'%'|'&'|'#'|'$'|':']+) _ right:@ {
                 BinaryExpression { left, right, operator: Operator(value.into()) }.into()
             }
             --
