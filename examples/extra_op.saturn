@@ -1,13 +1,16 @@
-// Define your operators
-fn __pipe_greater(left, right) {
+let { operator, entries } = require('../src/assets/std');
+
+@operator("|>")
+fn pipe_right(left, right) {
   return right(left);
 }
-fn __less_pipe(left, right) {
+
+@operator("<|")
+fn pipe_left(left, right) {
   return left(right);
 }
 
 // Example usage of extra operators:
-
 let r = 101
   |> (a => a + 10)
   |> (a => a * 2)

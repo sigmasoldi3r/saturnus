@@ -3,6 +3,10 @@ use crate::{
     parser::ast::{self},
 };
 
+fn escape_string(str: String) -> String {
+    return str.replace("\n", "\\n");
+}
+
 fn translate_operator(ctx: code::Builder, op: String) -> code::Builder {
     let ctx = ctx.put("__");
     let name = op
@@ -303,7 +307,19 @@ impl code::Visitor<code::Builder> for LuaEmitter {
             ctx.put("...")
         };
         let ctx = ctx.put(")").push();
-        let ctx = self.visit_script(ctx, &stmt.body)?;
+        let ctx = if let Some(native) = stmt.native.clone() {
+            let ctx = ctx.line().put("-- NATIVE CODE");
+            match native.iter().find(|(ident, _)| ident.0 == "Lua") {
+                Some((_, src)) => match src {
+                    ast::StringLiteral::Double(src) => ctx.put(src),
+                    ast::StringLiteral::Single(src) => ctx.put(src),
+                    ast::StringLiteral::Special(_) => panic!("Not implemented"),
+                },
+                None => ctx.put("error('Native function implementation not found')"),
+            }
+        } else {
+            self.visit_script(ctx, &stmt.body)?
+        };
         let ctx = ctx.pop().unwrap().line().put("end");
         let ctx = stmt.decorators.iter().fold(Ok(ctx), |ctx, dec| {
             let ctx = ctx?.line();
@@ -566,7 +582,7 @@ impl code::Visitor<code::Builder> for LuaEmitter {
         expr: &ast::StringLiteral,
     ) -> Result<code::Builder, code::VisitError> {
         let ctx = match expr {
-            ast::StringLiteral::Double(s) => ctx.put("\"").put(s.clone()).put("\""),
+            ast::StringLiteral::Double(s) => ctx.put("\"").put(escape_string(s.clone())).put("\""),
             ast::StringLiteral::Single(s) => ctx.put("'").put(s.clone()).put("'"),
             ast::StringLiteral::Special(_) => todo!(),
         };
@@ -694,7 +710,8 @@ impl code::Visitor<code::Builder> for LuaEmitter {
                     self.visit_expression(ctx, &v.clone().unwrap())
                 }
                 ast::TableKeyExpression::Expression(k) => {
-                    let ctx = self.visit_expression(ctx, &k)?.put(" = ");
+                    let ctx = ctx.put("[");
+                    let ctx = self.visit_expression(ctx, &k)?.put("] = ");
                     self.visit_expression(ctx, &v.clone().unwrap())
                 }
                 ast::TableKeyExpression::Implicit(k) => {
@@ -756,7 +773,7 @@ impl code::Visitor<code::Builder> for LuaEmitter {
     ) -> Result<code::Builder, code::VisitError> {
         let ctx = match &expr.handler {
             ast::AssignmentTarget::Destructuring(e) => {
-                let ctx = ctx.line().put("for __destructuring__ in ");
+                let ctx = ctx.line().put("for __destructure__ in ");
                 let ctx = self.visit_expression(ctx, &expr.target)?;
                 let ctx = ctx.put(" do").push();
                 let ctx = self.generate_destructured_assignment(ctx, &e)?;

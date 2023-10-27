@@ -1,0 +1,94 @@
+let expand = table.unpack ?? unpack;
+
+fn @native entries(tbl) {
+  @Lua"
+    local iter = pairs(tbl);
+    return function(_, next)
+      local k, v = iter(tbl, next and next._0);
+      if k and v then
+        return { _0 = k, _1 = v }, v;
+      end
+    end;
+  ";
+}
+
+let symbols = {
+  "+": "plus",
+  "-": "minus",
+  "*": "times",
+  "/": "slash",
+  ".": "dot",
+  "|": "pipe",
+  ">": "greater",
+  "<": "less",
+  "=": "equals",
+  "?": "interrogation",
+  "!": "exclamation",
+  "~": "tilde",
+  "%": "percent",
+  "&": "ampersand",
+  "#": "bang",
+  "$": "dollar",
+  "^": "power",
+  ":": "colon"
+};
+
+fn @native operator(symbol) {
+  @Lua"
+  local name = '_';
+  for i=1, symbol:len() do
+    local s = symbol:sub(i, i);
+    local key = symbols[s];
+    if key == nil then
+      error('You cannot declare an operator that contains the symbol ' .. tostring(s) .. '!');
+    end
+    name = name .. '_' .. key;
+  end
+  return function(target)
+    _G[name] = target;
+  end;
+  ";
+}
+
+// STD Custom operators
+
+@operator("|>")
+fn pipe_right(left, right) {
+  return right(left);
+}
+
+@operator("<|")
+fn pipe_left(left, right) {
+  return left(right);
+}
+
+@operator("..")
+fn range(start, _end) {
+  let i = start;
+  if start < _end {
+    return () => {
+      if i > _end {
+        return ();
+      }
+      let c = i;
+      i += 1;
+      return c;
+    };
+  } else {
+    return () => {
+      if i < _end {
+        return ();
+      }
+      let c = i;
+      i -= 1;
+      return c;
+    };
+  }
+}
+
+return {
+  expand,
+  entries,
+  operator,
+  range
+};

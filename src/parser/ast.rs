@@ -17,6 +17,7 @@ pub struct Function {
     pub arguments: Vec<Argument>,
     pub decorators: Vec<Decorator>,
     pub body: Script,
+    pub native: Option<Vec<(Identifier, StringLiteral)>>,
 }
 
 #[derive(Debug, Clone)]

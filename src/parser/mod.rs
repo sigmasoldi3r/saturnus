@@ -48,10 +48,14 @@ peg::parser! {
             / expected!("Loop")
 
         rule func() -> Function
-            = decorators:decorator_list() FN() __ name:identifier() _ arguments:argument_list() _ "{" body:script() "}"
-            { Function { name, decorators, body, arguments } }
+            = decorators:decorator_list() FN() __ NATIVE() __ name:identifier() _ arguments:argument_list()
+              _ "{" native:(__ "@" name:identifier() _ source:string_literal() _ EOS() { (name, source) })+ __ "}"
+            { Function { name, decorators, body: Script { statements: vec![] }, arguments, native: Some(native) } }
+            /
+            decorators:decorator_list() FN() __ name:identifier() _ arguments:argument_list() _ "{" body:script() "}"
+            { Function { name, decorators, body, arguments, native: None } }
             / decorators:decorator_list() FN() __ name:identifier() _ arguments:argument_list() _ "{" _ "}"
-            { Function { name, decorators, body: Script { statements: vec![] }, arguments } }
+            { Function { name, decorators, body: Script { statements: vec![] }, arguments, native: None } }
             / expected!("Function declaration")
 
         rule class() -> Class
@@ -299,6 +303,8 @@ peg::parser! {
         rule table_kv_pair() -> (TableKeyExpression, Option<Expression>)
             = k:identifier() _ ":" _ v:expression()
             { (TableKeyExpression::Identifier(k), Some(v)) }
+            / k:string_expression() _ ":" _ v:expression()
+            { (TableKeyExpression::Expression(k), Some(v)) }
             / "[" _ k:expression() _ "]" _ ":" _ v:expression()
             { (TableKeyExpression::Expression(k), Some(v)) }
             / k:identifier()
@@ -316,13 +322,14 @@ peg::parser! {
         rule CLASS() = "class"
         rule END() = "end"
         rule FN() = "fn"
+        rule NATIVE() = "@native"
         rule ANY() = quiet!{ [_] } / expected!("Any character")
         rule BLANK() = ['\t'|' '] / expected!("White space")
         rule WS() = BLANK() / LINE_COMMENT() / BLOCK_COMMENT() / EOL()
         rule LINE_COMMENT() = quiet!{ "//" (!EOL() ANY())* EOL() } / expected!("Line comment")
         rule BLOCK_COMMENT() = quiet!{ "/*" (!"*/" ANY())* "*/" } / expected!("Block comment")
         rule EOL() = quiet!{ ['\r'|'\n'] } / expected!("End of line")
-        rule EOS() = quiet!{ EOL() / ";" } / expected!("End of statement")
+        rule EOS() = quiet!{ ";" } / expected!("End of statement") //quiet!{ EOL() / ";" } / expected!("End of statement")
         rule ALPHA() = quiet!{ ['A'..='Z'|'a'..='z'|'_'] } / expected!("Alphanumeric")
         rule DIGIT() = quiet!{ ['0'..='9'] } / expected!("Digit")
         rule _ = WS()*
@@ -349,27 +356,7 @@ peg::parser! {
             / value:$("xor") { Operator(value.into()) }
             / value:$("nand") { Operator(value.into()) }
             / value:$("nor") { Operator(value.into()) }
-            / value:$("<~>") { Operator(value.into()) }
-            / value:$("<~") { Operator(value.into()) }
-            / value:$("~>") { Operator(value.into()) }
-            / value:$("<:>") { Operator(value.into()) }
-            / value:$("<:") { Operator(value.into()) }
-            / value:$(":>") { Operator(value.into()) }
-            / value:$("<-|->") { Operator(value.into()) }
-            / value:$("<-|") { Operator(value.into()) }
-            / value:$("|->") { Operator(value.into()) }
-            / value:$("<->") { Operator(value.into()) }
-            / value:$("<-") { Operator(value.into()) }
-            / value:$("->") { Operator(value.into()) }
-            / value:$("<|>") { Operator(value.into()) }
-            / value:$("<|") { Operator(value.into()) }
-            / value:$("|>") { Operator(value.into()) }
-            / value:$("?>") { Operator(value.into()) }
-            / value:$("<?") { Operator(value.into()) }
-            / value:$("?:") { Operator(value.into()) }
-            / value:$("??") { Operator(value.into()) }
-            / value:$(">") { Operator(value.into()) }
-            / value:$("<") { Operator(value.into()) }
+            / value:$(['^'|'+'|'-'|'*'|'/'|'.'|'|'|'>'|'<'|'='|'?'|'!'|'~'|'%'|'&'|'#'|'$'|':']+) { Operator(value.into()) }
         }
 }
 
