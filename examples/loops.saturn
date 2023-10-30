@@ -6,11 +6,12 @@ let tbl = {
   c: "x"
 };
 
+// For-each
 for (k, v) in entries(tbl) {
   print(k, v);
 }
 
-
+// Range based for
 for i in 1..4 {
   print(i);
 }

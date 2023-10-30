@@ -623,7 +623,6 @@ impl code::Visitor<code::Builder> for LuaEmitter {
             | "<"
             | "<="
             | "=="
-            | "~="
             // Logic
             | "not"
             | "and"
@@ -640,13 +639,19 @@ impl code::Visitor<code::Builder> for LuaEmitter {
                 let ctx = ctx.put(op.to_owned());
                 self.visit_expression(ctx.put(" "), &expr.right)
             }
-            "++"=> {
+            "++" => {
                 // Native-to-native operator translation
                 let ctx = self.visit_expression(ctx, &expr.left)?.put(" ");
                 let ctx = ctx.put("..".to_owned());
                 self.visit_expression(ctx.put(" "), &expr.right)
             }
-            _=> {
+            "<>" => {
+                // Native-to-native operator translation
+                let ctx = self.visit_expression(ctx, &expr.left)?.put(" ");
+                let ctx = ctx.put("~=".to_owned());
+                self.visit_expression(ctx.put(" "), &expr.right)
+            }
+            _ => {
                 // Direct function translation
                 let ctx = translate_operator(ctx, op.to_owned()).put("(");
                 let ctx = self.visit_expression(ctx, &expr.left)?.put(", ");

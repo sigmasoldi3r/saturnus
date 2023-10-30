@@ -264,11 +264,11 @@ peg::parser! {
             { ClassField::Operator(OperatorOverload { operator, arguments, body }) }
 
         rule assign_extra() -> Operator
-            = value:$("+") { Operator(value.into()) }
+            = value:$("++") { Operator(value.into()) }
+            / value:$("+") { Operator(value.into()) }
             / value:$("-") { Operator(value.into()) }
             / value:$("*") { Operator(value.into()) }
             / value:$("/") { Operator(value.into()) }
-            / value:$("++") { Operator(value.into()) }
 
         rule argument_list() -> Vec<Argument>
             = "(" _ args:argument() ** (_ "," _) _ ")" { args }
