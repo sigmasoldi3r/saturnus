@@ -1,5 +1,7 @@
 let expand = table.unpack ?? unpack;
 
+// Collections and iterators
+
 fn @native entries(tbl) {
   @Lua"
     local iter = pairs(tbl);
@@ -11,6 +13,16 @@ fn @native entries(tbl) {
     end;
   ";
 }
+
+// OOP and inheritance
+
+fn abstract() {
+  return (target, name, host) => {
+    print("Abstract!", target, name);
+  };
+}
+
+// Operators & meta
 
 let symbols = {
   "+": "plus",
@@ -62,6 +74,43 @@ fn pipe_left(left, right) {
   return left(right);
 }
 
+@operator(":::")
+fn @native merge(left, right) {
+  @Lua"
+    local u = table.unpack or unpack;
+    local tbl = { u(left) };
+    for _, v in pairs(right) do
+      tbl[#tbl + 1] = v;
+    end
+    return tbl;
+  ";
+}
+
+@operator("+?")
+fn maybe_sum(left, right) {
+  return left and (left + right) or right;
+}
+
+@operator("++?")
+fn maybe_concat(left, right) {
+  return left and (left ++ right) or right;
+}
+
+@operator("-?")
+fn maybe_subtract(left, right) {
+  return left and (left - right) or right;
+}
+
+@operator("*?")
+fn maybe_times(left, right) {
+  return left and (left * right) or right;
+}
+
+@operator("/?")
+fn maybe_divide(left, right) {
+  return left and (left / right) or right;
+}
+
 @operator("..")
 fn range(start, _end) {
   let i = start;
@@ -90,5 +139,6 @@ return {
   expand,
   entries,
   operator,
-  range
+  range,
+  abstract
 };
