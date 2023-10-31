@@ -114,6 +114,7 @@ peg::parser! {
             / vector_expression()
             / tuple_expression()
             / lambda_expression()
+            // / do_expression()
             / enclosed_expression()
 
         rule call_arguments() -> Vec<Expression>
@@ -195,6 +196,7 @@ peg::parser! {
         rule string_expression() -> Expression = e:string_literal() { Expression::String(e) }
         rule number_expression() -> Expression = e:number_literal() { Expression::Number(e) }
         rule lambda_expression() -> Expression = e:lambda_literal() { Expression::Lambda(Box::new(e)) }
+        // rule do_expression() -> Expression = e:do_literal() { Expression::Do(Box::new(e)) }
         rule vector_expression() -> Expression = e:vector_literal() { Expression::Vector(e) }
         rule table_expression() -> Expression = e:table_literal() { Expression::Table(e) }
         rule tuple_expression() -> Expression = e:tuple_literal() { Expression::Tuple(e) }
