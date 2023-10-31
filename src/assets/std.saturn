@@ -24,11 +24,40 @@ fn @native panic(message) {
 
 // OOP and inheritance
 
-fn trait() {}
+let makeTrait = (name) => () => panic("Cannot construct trait " ++ name ++ "!");
 
-fn impl(trait) {}
+fn trait() {
+  return (target, name) => {
+    target.__meta__.__call = makeTrait(name);
+  };
+}
 
-fn inherit(parent) {}
+fn impl(trait) {
+  return (target, name) => {
+    let map = {};
+    for (k, v) in entries(target.prototype) {
+      print("Foo",k,v);
+      map[k] = v;
+    }
+    for (k, v) in entries(trait.prototype) {
+      if map[k] == () {
+        panic(name ++ " must implement trait method " ++ k ++ "!");
+      }
+    }
+  };
+}
+
+fn mixin(parent) {
+  let ctor = parent.prototype.__meta__.__index;
+  if type(ctor) == "table" {
+    ctor = (key) => parent.prototype[key];
+  }
+  return (target, name) => {
+    target.prototype.__meta__.__index = (key) => {
+      return target.prototype or ctor(key);
+    };
+  };
+}
 
 let makePure = (name) => () => panic("Attempting to call abstract method " ++ name ++ "!");
 
@@ -161,5 +190,8 @@ return {
   operator,
   range,
   abstract,
+  trait,
+  impl,
+  mixin,
   panic
 };

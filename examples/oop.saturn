@@ -1,5 +1,5 @@
 // Example of OOP possible uses with std
-let { abstract, entries, inherit, trait } = require("../src/assets/std");
+let { abstract, entries, mixin, trait, impl } = require("../src/assets/std");
 
 class Simple {}
 
@@ -18,7 +18,7 @@ class Implementor {
   }
 }
 
-@inherit(Implementor)
+@mixin(Implementor)
 class Child {
   fn me(self) {
     return "The child";
@@ -27,6 +27,8 @@ class Child {
 
 let child = Child {};
 let imp = Implementor {};
+imp.foo();
+child.foo();
 
 let x = [1, 2, 3];
 let y = [4, 5, 6];

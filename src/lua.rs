@@ -281,16 +281,16 @@ impl code::Visitor<code::Builder> for LuaEmitter {
                     ctx.put(";")
                 }
             };
-            let ctx = stmt.decorators.iter().fold(Ok(ctx), |ctx, dec| {
-                let ctx = ctx?.line();
-                let ctx = self.visit_call(ctx, &dec.target)?;
-                let ctx = ctx.put(format!(
-                    "({}, \"{}\");",
-                    stmt.name.0.clone(),
-                    stmt.name.0.clone()
-                ));
-                Ok(ctx)
-            })?;
+            Ok(ctx)
+        })?;
+        let ctx = stmt.decorators.iter().fold(Ok(ctx), |ctx, dec| {
+            let ctx = ctx?.line();
+            let ctx = self.visit_call(ctx, &dec.target)?;
+            let ctx = ctx.put(format!(
+                "({}, \"{}\");",
+                stmt.name.0.clone(),
+                stmt.name.0.clone()
+            ));
             Ok(ctx)
         })?;
         Ok(ctx)
