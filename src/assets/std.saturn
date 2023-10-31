@@ -14,11 +14,31 @@ fn @native entries(tbl) {
   ";
 }
 
+// Runtime
+
+fn @native panic(message) {
+  @Lua"
+    error(message);
+  ";
+}
+
 // OOP and inheritance
 
+fn trait() {}
+
+fn impl(trait) {}
+
+fn inherit(parent) {}
+
+let makePure = (name) => () => panic("Attempting to call abstract method " ++ name ++ "!");
+
 fn abstract() {
-  return (target, name, host) => {
-    print("Abstract!", target, name);
+  return (_, name, host, label, meta) => {
+    if meta.is_static {
+      host[name] = makePure(label ++ "::" ++ name);
+    } else {
+      host.prototype[name] = makePure(label ++ "." ++ name);
+    }
   };
 }
 
@@ -140,5 +160,6 @@ return {
   entries,
   operator,
   range,
-  abstract
+  abstract,
+  panic
 };

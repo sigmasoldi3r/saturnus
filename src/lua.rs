@@ -191,16 +191,12 @@ impl code::Visitor<code::Builder> for LuaEmitter {
             let ctx = ctx?.line();
             let ctx = match field {
                 ast::ClassField::Method(f) => {
-                    let level = if let Some(first) = f.arguments.first() {
-                        if first.name.0 == "self" {
-                            ".prototype."
-                        } else {
-                            "."
-                        }
+                    let is_self = if let Some(first) = f.arguments.first() {
+                        first.name.0 == "self"
                     } else {
-                        "."
-                    }
-                    .to_string();
+                        false
+                    };
+                    let level = if is_self { ".prototype." } else { "." }.to_string();
                     let ctx = ctx
                         .put(stmt.name.0.clone())
                         .put(level)
@@ -213,7 +209,26 @@ impl code::Visitor<code::Builder> for LuaEmitter {
                             body: ast::ScriptOrExpression::Script(f.body.clone()),
                         },
                     )?;
-                    ctx.put(";")
+                    let ctx = ctx.put(";");
+                    let ctx = f.decorators.iter().fold(Ok(ctx), |ctx, dec| {
+                        let ctx = ctx?.line();
+                        let ctx = self.visit_call(ctx, &dec.target)?;
+                        let fn_ref = if is_self {
+                            format!("{}.prototype.{}", stmt.name.0.clone(), f.name.0.clone())
+                        } else {
+                            format!("{}.{}", stmt.name.0.clone(), f.name.0.clone())
+                        };
+                        let ctx = ctx.put(format!(
+                            "({}, \"{}\", {}, \"{}\", {{ is_static = {} }});",
+                            fn_ref,
+                            f.name.0.clone(),
+                            stmt.name.0.clone(),
+                            stmt.name.0.clone(),
+                            !is_self
+                        ));
+                        Ok(ctx)
+                    })?;
+                    ctx
                 }
                 ast::ClassField::Let(f) => {
                     let ctx = match &f.target {
@@ -317,6 +332,8 @@ impl code::Visitor<code::Builder> for LuaEmitter {
                 },
                 None => ctx.put("error('Native function implementation not found')"),
             }
+            .line()
+            .put("-- NATIVE CODE")
         } else {
             self.visit_script(ctx, &stmt.body)?
         };

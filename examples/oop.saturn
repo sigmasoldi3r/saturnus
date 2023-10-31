@@ -1,14 +1,32 @@
 // Example of OOP possible uses with std
-let { abstract, entries } = require("../src/assets/std");
+let { abstract, entries, inherit, trait } = require("../src/assets/std");
 
 class Simple {}
 
+@trait()
 class TraitLike {
   @abstract() fn foo(self) {}
 }
 
-let a = TraitLike {};
-a.foo();
+@impl(TraitLike)
+class Implementor {
+  fn me(self) {
+    return "Trait-like's implementation";
+  }
+  fn foo(self) {
+    print("Foo like " ++ self.me());
+  }
+}
+
+@inherit(Implementor)
+class Child {
+  fn me(self) {
+    return "The child";
+  }
+}
+
+let child = Child {};
+let imp = Implementor {};
 
 let x = [1, 2, 3];
 let y = [4, 5, 6];
