@@ -27,6 +27,11 @@ pub struct Lambda {
 }
 
 #[derive(Debug, Clone)]
+pub struct Do {
+    pub body: Script
+}
+
+#[derive(Debug, Clone)]
 pub struct Tuple(pub Vec<Expression>);
 
 #[derive(Debug, Clone)]
@@ -254,6 +259,7 @@ pub enum Expression {
     Tuple(Tuple),
     Tuple1(Box<Expression>),
     Table(Table),
+    Do(Do),
     Vector(Vector),
     Number(Number),
     String(StringLiteral),

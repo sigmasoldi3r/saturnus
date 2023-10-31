@@ -518,6 +518,12 @@ impl code::Visitor<code::Builder> for LuaEmitter {
             ctx
         };
         let ctx = ctx.put("(");
+        if expr.head.is_macro {
+            
+            let ctx = ctx.put(")");
+            return Ok(ctx);
+        }
+        // If not macro
         let ctx = if let Some(first) = expr.head.arguments.first() {
             self.visit_expression(ctx, first)?
         } else {
