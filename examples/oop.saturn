@@ -29,11 +29,3 @@ let child = Child {};
 let imp = Implementor {};
 imp.foo();
 child.foo();
-
-let x = [1, 2, 3];
-let y = [4, 5, 6];
-let z = x ::: y;
-
-for (k, v) in entries(z) {
-  print(k ++ " => " ++ v);
-}

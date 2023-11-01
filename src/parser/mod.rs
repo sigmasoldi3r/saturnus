@@ -19,6 +19,7 @@ peg::parser! {
             / e:declare_var() { Statement::Let(e) }
             / e:assignment() { Statement::Assignment(e) }
             / e:return_stmt() { Statement::Return(e) }
+            / e:do_expression() { Statement::Expression(e) }
             / e:expression() _ EOS() { Statement::Expression(e) }
 
         rule if_stmt() -> If
@@ -114,7 +115,7 @@ peg::parser! {
             / vector_expression()
             / tuple_expression()
             / lambda_expression()
-            // / do_expression()
+            / do_expression()
             / enclosed_expression()
 
         rule call_arguments() -> Vec<Expression>
@@ -188,6 +189,7 @@ peg::parser! {
             / vector_expression()
             / table_expression()
             / tuple_expression()
+            / do_expression()
             / e:member_expression() { Expression::Reference(Box::new(e)) }
             / unit() { Expression::Unit }
             / enclosed_expression()
@@ -196,10 +198,10 @@ peg::parser! {
         rule string_expression() -> Expression = e:string_literal() { Expression::String(e) }
         rule number_expression() -> Expression = e:number_literal() { Expression::Number(e) }
         rule lambda_expression() -> Expression = e:lambda_literal() { Expression::Lambda(Box::new(e)) }
-        // rule do_expression() -> Expression = e:do_literal() { Expression::Do(Box::new(e)) }
         rule vector_expression() -> Expression = e:vector_literal() { Expression::Vector(e) }
         rule table_expression() -> Expression = e:table_literal() { Expression::Table(e) }
         rule tuple_expression() -> Expression = e:tuple_literal() { Expression::Tuple(e) }
+        rule do_expression() -> Expression = e:do_literal() { Expression::Do(e) }
 
         rule enclosed_expression() -> Expression
             = "(" _ e:expression() _ ")" { Expression::Tuple1(Box::new(e)) }
@@ -241,6 +243,11 @@ peg::parser! {
             = "(" _ e:expression() **<2,> (_ "," _) _ ")"
             { Tuple(e) }
             / expected!("Tuple literal")
+
+        rule do_literal() -> Do
+            = "{" body:script() "}"
+            { Do { body } }
+            / expected!("Do block")
 
         // Auxiliaries and sub-expressions
         rule let_expression() -> Let
@@ -296,10 +303,10 @@ peg::parser! {
             = "(" _ e:comma_expr() _ ")" { e }
 
         rule comma_expr() -> Vec<Expression>
-            = e:expression() ** (_ "," _) { e }
+            = e:expression() ** (_ "," _) (_ "," _)? { e }
 
         rule table_kvs() -> Vec<(TableKeyExpression, Option<Expression>)>
-            = kv:table_kv_pair() ** (_ "," _)
+            = kv:table_kv_pair() ** (_ "," _) (_ "," _)?
             { kv }
 
         rule table_kv_pair() -> (TableKeyExpression, Option<Expression>)

@@ -128,6 +128,13 @@ impl code::Visitor<code::Builder> for LuaEmitter {
         Ok(ctx.put(";"))
     }
 
+    fn visit_do(&self, ctx: code::Builder, expr: &ast::Do) -> Result<code::Builder, VisitError> {
+        let ctx = ctx.put("(function(...)").push();
+        let ctx = self.visit_script(ctx, &expr.body)?;
+        let ctx = ctx.pop().unwrap().line().put("end)(...)");
+        Ok(ctx)
+    }
+
     fn visit_1tuple(
         &self,
         ctx: code::Builder,
@@ -519,7 +526,6 @@ impl code::Visitor<code::Builder> for LuaEmitter {
         };
         let ctx = ctx.put("(");
         if expr.head.is_macro {
-            
             let ctx = ctx.put(")");
             return Ok(ctx);
         }

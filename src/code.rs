@@ -31,6 +31,7 @@ pub trait Visitor<T> {
     fn visit_match(&self, ctx: T, expr: &Match) -> Result<T, VisitError>;
     fn visit_1tuple(&self, ctx: T, expr: &Expression) -> Result<T, VisitError>;
     fn visit_identifier(&self, ctx: T, expr: &Identifier) -> Result<T, VisitError>;
+    fn visit_do(&self, ctx: T, expr: &Do) -> Result<T, VisitError>;
     fn enter_script(&self, ctx: T, _script: &Script) -> Result<T, VisitError> {
         Ok(ctx)
     }
@@ -54,6 +55,7 @@ pub trait Visitor<T> {
             Expression::Vector(e) => self.visit_vector(ctx, e),
             Expression::Tuple1(e) => self.visit_1tuple(ctx, e),
             Expression::Identifier(e) => self.visit_identifier(ctx, e),
+            Expression::Do(e) => self.visit_do(ctx, e),
         }
     }
     fn visit_script(&self, ctx: T, script: &Script) -> Result<T, VisitError> {
