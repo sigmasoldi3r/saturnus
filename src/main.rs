@@ -12,6 +12,7 @@ mod code;
 mod errors;
 mod lua;
 mod parser;
+pub mod runtime;
 #[cfg(test)]
 mod tests;
 
@@ -91,12 +92,7 @@ fn main() {
                     out_file.write_all(output.as_bytes()).unwrap();
                 }
             } else {
-                let rt = rlua::Lua::new();
-                rt.context(move |ctx| -> rlua::Result<()> {
-                    ctx.load(&output).eval()?;
-                    Ok(())
-                })
-                .unwrap();
+                runtime::RuntimeHost.evaluate(ast).unwrap();
             }
         }
         Err(err) => {

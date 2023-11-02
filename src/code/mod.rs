@@ -1,5 +1,6 @@
 mod builder;
 mod generator;
+pub mod macros;
 mod visitor;
 
 pub use builder::Builder;
