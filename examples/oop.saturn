@@ -11,10 +11,10 @@ class TraitLike {
 @impl(TraitLike)
 class Implementor {
   fn me(self) {
-    return "Trait-like's implementation";
+    return "Implementor";
   }
   fn foo(self) {
-    print("Foo like " ++ self.me());
+    print("The foo be like: " ++ self.me());
   }
 }
 
@@ -25,7 +25,23 @@ class Child {
   }
 }
 
+class BeMe {
+  fn bar(self) {
+    return "Amogus";
+  }
+}
+
+@mixin(BeMe)
+@mixin(Child)
+class MonsterJack {
+  fn me(self) {
+    return "Sus town? " ++ self.bar();
+  }
+}
+
 let child = Child {};
 let imp = Implementor {};
+let monster = MonsterJack {};
 imp.foo();
 child.foo();
+monster.foo();

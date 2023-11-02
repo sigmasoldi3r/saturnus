@@ -24,7 +24,7 @@ fn @native panic(message) {
 
 // OOP and inheritance
 
-let makeTrait = (name) => () => panic("Cannot construct trait " ++ name ++ "!");
+let makeTrait = (name) => () => panic("Trait " ++ name ++ " is not constructible!");
 
 fn trait() {
   return (target, name) => {
@@ -36,7 +36,6 @@ fn impl(trait) {
   return (target, name) => {
     let map = {};
     for (k, v) in entries(target.prototype) {
-      print("Foo",k,v);
       map[k] = v;
     }
     for (k, v) in entries(trait.prototype) {
@@ -48,13 +47,18 @@ fn impl(trait) {
 }
 
 fn mixin(parent) {
-  let ctor = parent.prototype.__meta__.__index;
-  if type(ctor) == "table" {
-    ctor = (key) => parent.prototype[key];
+  let index = parent.prototype.__meta__.__index;
+  if type(index) == "table" {
+    index = (self, key) => parent.prototype.__meta__.__index[key];
   }
   return (target, name) => {
-    target.prototype.__meta__.__index = (key) => {
-      return target.prototype or ctor(key);
+    let prev = target.prototype.__meta__.__index;
+    if type(prev) == "table" {
+      let prev_tbl = prev;
+      prev = (self, key) => prev_tbl[key];
+    }
+    target.prototype.__meta__.__index = (self, key) => {
+      return prev(self, key) or index(self, key);
     };
   };
 }
@@ -137,26 +141,46 @@ fn @native merge(left, right) {
 
 @operator("+?")
 fn maybe_sum(left, right) {
+  return left and (left + right);
+}
+@operator("+??")
+fn maybe_sum_or(left, right) {
   return left and (left + right) or right;
 }
 
 @operator("++?")
 fn maybe_concat(left, right) {
+  return left and (left ++ right);
+}
+@operator("++??")
+fn maybe_concat_or(left, right) {
   return left and (left ++ right) or right;
 }
 
 @operator("-?")
 fn maybe_subtract(left, right) {
+  return left and (left - right);
+}
+@operator("-??")
+fn maybe_subtract_or(left, right) {
   return left and (left - right) or right;
 }
 
 @operator("*?")
 fn maybe_times(left, right) {
+  return left and (left * right);
+}
+@operator("*??")
+fn maybe_times_or(left, right) {
   return left and (left * right) or right;
 }
 
 @operator("/?")
 fn maybe_divide(left, right) {
+  return left and (left / right);
+}
+@operator("/??")
+fn maybe_divide_or(left, right) {
   return left and (left / right) or right;
 }
 
