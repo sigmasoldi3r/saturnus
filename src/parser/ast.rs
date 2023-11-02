@@ -28,7 +28,7 @@ pub struct Lambda {
 
 #[derive(Debug, Clone)]
 pub struct Do {
-    pub body: Script
+    pub body: Script,
 }
 
 #[derive(Debug, Clone)]
@@ -187,17 +187,9 @@ pub enum Statement {
 }
 
 #[derive(Debug, Clone)]
-pub struct OperatorOverload {
-    pub operator: Operator,
-    pub arguments: Vec<Argument>,
-    pub body: Script,
-}
-
-#[derive(Debug, Clone)]
 pub enum ClassField {
     Method(Function),
     Let(Let),
-    Operator(OperatorOverload),
 }
 
 #[derive(Debug, Clone)]
@@ -246,8 +238,6 @@ pub enum TableKeyExpression {
 #[derive(Debug, Clone)]
 pub enum StringLiteral {
     Double(String),
-    Single(String),
-    Special(String),
 }
 
 #[derive(Debug, Clone)]

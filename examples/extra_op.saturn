@@ -1,4 +1,4 @@
-let { operator, entries } = require('../src/assets/std');
+let { operator, entries } = require("../src/assets/std");
 
 @operator("|>")
 fn pipe_right(left, right) {

@@ -222,11 +222,11 @@ peg::parser! {
         rule number_literal() -> Number
             = value:$(DIGIT()+ "." DIGIT()+) { Number::Float(value.parse().unwrap()) }
             / value:$(DIGIT()+) { Number::Integer(value.parse().unwrap()) }
+            / "'" value:$(!"'" ANY()) "'" { Number::Integer(value.chars().nth(0).unwrap() as i64) }
             / expected!("Number literal")
 
         rule string_literal() -> StringLiteral
             = "\"" value:$((!"\"" ANY())*) "\"" { StringLiteral::Double(value.into()) }
-            / "'" value:$((!"'" ANY())*) "'" { StringLiteral::Single(value.into()) }
             / expected!("String literal")
 
         rule vector_literal() -> Vector
@@ -269,8 +269,6 @@ peg::parser! {
         rule class_fields() -> ClassField
             = e:declare_var() { ClassField::Let(e) }
             / e:func() { ClassField::Method(e) }
-            / "operator" _ operator:any_operator() _ arguments:argument_list() _ "{" body:script() "}"
-            { ClassField::Operator(OperatorOverload { operator, arguments, body }) }
 
         rule assign_extra() -> Operator
             = value:$("++") { Operator(value.into()) }

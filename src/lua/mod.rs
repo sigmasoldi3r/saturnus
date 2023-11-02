@@ -255,38 +255,6 @@ impl code::Visitor<code::Builder> for LuaEmitter {
                     };
                     ctx.put(";")
                 }
-                ast::ClassField::Operator(f) => {
-                    let target = match f.operator.0.as_str() {
-                        "+" => "__add",
-                        "-" => "__sub",
-                        "*" => "__mul",
-                        "/" => "__div",
-                        "%" => "__mod",
-                        "**" => "__pow",
-                        "==" => "__eq",
-                        "<" => "__lt",
-                        "<=" => "__le",
-                        "++" => "__concat",
-                        "#?" => "__len",
-                        _ => todo!(
-                            "Operator overload for {:?} operator not supported",
-                            f.operator.clone()
-                        ),
-                    };
-                    let ctx = ctx.put(format!(
-                        "{}.prototype.__meta__.{} = ",
-                        stmt.name.0.clone(),
-                        target
-                    ));
-                    let ctx = self.visit_lambda(
-                        ctx,
-                        &ast::Lambda {
-                            arguments: f.arguments.clone(),
-                            body: ast::ScriptOrExpression::Script(f.body.clone()),
-                        },
-                    )?;
-                    ctx.put(";")
-                }
             };
             Ok(ctx)
         })?;
@@ -334,8 +302,6 @@ impl code::Visitor<code::Builder> for LuaEmitter {
             match native.iter().find(|(ident, _)| ident.0 == "Lua") {
                 Some((_, src)) => match src {
                     ast::StringLiteral::Double(src) => ctx.put(src),
-                    ast::StringLiteral::Single(src) => ctx.put(src),
-                    ast::StringLiteral::Special(_) => panic!("Not implemented"),
                 },
                 None => ctx.put("error('Native function implementation not found')"),
             }
@@ -612,8 +578,6 @@ impl code::Visitor<code::Builder> for LuaEmitter {
     ) -> Result<code::Builder, code::VisitError> {
         let ctx = match expr {
             ast::StringLiteral::Double(s) => ctx.put("\"").put(escape_string(s.clone())).put("\""),
-            ast::StringLiteral::Single(s) => ctx.put("'").put(s.clone()).put("'"),
-            ast::StringLiteral::Special(_) => todo!(),
         };
         Ok(ctx)
     }
