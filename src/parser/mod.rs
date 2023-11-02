@@ -285,7 +285,7 @@ peg::parser! {
             { Argument { name, decorators } }
 
         rule decorator_list() -> Vec<Decorator>
-            = e:decorator() ++ __ __ { e }
+            = e:decorator() ++ _ _ { e }
             / { vec![] }
 
         rule decorator() -> Decorator

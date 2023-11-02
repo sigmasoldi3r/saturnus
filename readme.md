@@ -314,6 +314,22 @@ print(consumer.consume(foo));
 print(consumer.consume(bar));
 ```
 
+Also you can decorate the code:
+```rs
+@bar()
+class Foo {
+  @foo()
+  fn func(self) {
+    return "me";
+  }
+}
+
+@test()
+fn suite() {
+  print("Yay!");
+}
+```
+
 ## Why replace Lua?
 
 I like many aspects of Lua, specially how fast and lightweight the VM is. But
@@ -323,11 +339,13 @@ make the scripts less verbose and more easy to write.
 Aside of the [Language Basics](#language-basics) section, there are other key
 aspects of the language:
 
-- Decorators!
-- A built-in prelude library for runtime type checks.
-- ~~Nice string interpolation.~~ (Maybe not?)
-- Terser loops.
-- Built-in operator overloading.
-- Custom operators.
+- Decorators
+- Classes
+- A built-in prelude library for runtime type checks and other things.
+- Char expansion
+- Macros
+- Cooler lambdas.
+- Terser loops
+- Custom operators
 - Some [RTTI](https://en.wikipedia.org/wiki/Run-time_type_information) (Which
-  enables reflection).
+  enables reflection)
