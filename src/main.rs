@@ -73,6 +73,7 @@ fn main() {
     // Handle parsing errors
     match parser::Script::parse(input.clone()) {
         Ok(result) => {
+            // TODO: ABSTRACT!
             let output = lua::LuaEmitter
                 .visit_script(
                     code::Builder::new(indent).put(
@@ -92,7 +93,7 @@ fn main() {
                     out_file.write_all(output.as_bytes()).unwrap();
                 }
             } else {
-                runtime::RuntimeHost.evaluate(ast).unwrap();
+                runtime::RuntimeHost.evaluate(&output).unwrap();
             }
         }
         Err(err) => {

@@ -3,5 +3,7 @@ use crate::parser::ast;
 struct MacroExpander;
 
 impl MacroExpander {
-    fn expand(call: &ast::CallExpression) -> ast::ScriptOrExpression {}
+    fn expand(call: &ast::CallExpression) -> ast::ScriptOrExpression {
+        todo!()
+    }
 }
