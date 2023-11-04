@@ -5,8 +5,8 @@ fn @native entries(tbl) {
     local iter = pairs(tbl);
     return function(_, next)
       local k, v = iter(tbl, next and next._0);
-      if k and v then
-        return { _0 = k - 1, _1 = v }, v;
+      if k ~= nil and v ~= nil then
+        return { _0 = k, _1 = v }, v;
       end
     end;
   ";
