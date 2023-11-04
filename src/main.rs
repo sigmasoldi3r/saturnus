@@ -1,7 +1,6 @@
 use std::{fs::File, io::Write, path::Path};
 
 use clap::Parser;
-use code::Visitor;
 use errors::report_error;
 use runtime::RuntimeError;
 

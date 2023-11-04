@@ -92,16 +92,16 @@ peg::parser! {
 
         rule call_expression() -> CallExpression
             = head:(
-                callee:member_expression() m:"!"? _ arguments:call_arguments()
-                { CallSubExpression { callee: Some(callee), is_macro: m.is_some(), arguments }.into() }
+                callee:member_expression() _ arguments:call_arguments()
+                { CallSubExpression { callee: Some(callee), arguments }.into() }
                 / callee:member_expression() _ arg:table_expression()
-                { CallSubExpression { callee: Some(callee), is_macro: false, arguments: vec![arg] } }
+                { CallSubExpression { callee: Some(callee), arguments: vec![arg] } }
             )
             tail:(
                   _ "[" _ prop:expression() _ "]" { MemberSegment::Computed(prop).into() }
                 / _ "." _ prop:identifier() { MemberSegment::IdentifierDynamic(prop).into() }
                 / _ "::" _ prop:identifier() { MemberSegment::IdentifierStatic(prop).into() }
-                / _ arguments:call_arguments() { CallSubExpression { callee: None, is_macro: false, arguments }.into() }
+                / _ arguments:call_arguments() { CallSubExpression { callee: None, arguments }.into() }
             )*
             { CallExpression { head, tail } }
 
