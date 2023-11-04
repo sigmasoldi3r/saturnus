@@ -1,0 +1,17 @@
+let { entries } = require("../src/assets/std");
+
+let tbl = {
+  a: 1,
+  b: true,
+  c: "x"
+};
+
+// For-each
+for (k, v) in entries(tbl) {
+  print(k, v);
+}
+
+// Range based for
+for i in 1..4 {
+  print(i);
+}
