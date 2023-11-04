@@ -3,6 +3,7 @@ use std::{fs::File, io::Write, path::Path};
 use clap::Parser;
 use code::Visitor;
 use errors::report_error;
+use runtime::RuntimeError;
 
 #[cfg(test)]
 #[macro_use]
@@ -16,7 +17,7 @@ pub mod runtime;
 #[cfg(test)]
 mod tests;
 
-#[derive(Parser)]
+#[derive(Parser, Clone)]
 struct Args {
     #[arg(
         short,
@@ -55,6 +56,42 @@ fn get_default_output(str: &Path) -> String {
         .to_string()
 }
 
+struct CompilationOptions {
+    args: Args,
+    in_path: String,
+    out_path: String,
+}
+
+fn try_run(options: CompilationOptions, input: String, indent: String) -> Result<(), RuntimeError> {
+    let host = runtime::RuntimeHost::new(indent.clone());
+    let script = parser::Script::parse(input).map_err(|err| RuntimeError::ParseError(err))?;
+
+    let CompilationOptions {
+        args,
+        out_path,
+        in_path,
+    } = options;
+
+    if args.compile {
+        println!("Compiling {:?}...", in_path);
+        let output = lua::LuaEmitter
+            .visit_script(code::Builder::new(indent), &script)
+            .map_err(|err| RuntimeError::CompilationError(err))?
+            .collect();
+        if args.print {
+            println!("\n------\n\n");
+            std::io::stdout().write_all(output.as_bytes()).unwrap();
+        } else {
+            let mut out_file = File::create(out_path).unwrap();
+            out_file.write_all(output.as_bytes()).unwrap();
+        }
+    } else {
+        host.evaluate(&script)?;
+    }
+
+    Ok(())
+}
+
 fn main() {
     // Configure environment
     let args = Args::parse();
@@ -67,47 +104,28 @@ fn main() {
 
     // Read input files
     let in_path = Path::new(&args.input);
-    let out_path = args.output.unwrap_or(get_default_output(in_path));
+    let out_path = args.clone().output.unwrap_or(get_default_output(in_path));
     let input = read_to_string(in_path).unwrap();
 
-    // Handle parsing errors
-    match parser::Script::parse(input.clone()) {
-        Ok(result) => {
-            // TODO: ABSTRACT!
-            let output = lua::LuaEmitter
-                .visit_script(
-                    code::Builder::new(indent).put(
-                        "-- Compiled by Saturnus compiler, warning: Changes may be discarded!",
-                    ),
-                    &result,
-                )
-                .unwrap()
-                .collect();
-            if args.compile {
-                println!("Compiling {:?}...", in_path);
-                if args.print {
-                    println!("\n------\n\n");
-                    std::io::stdout().write_all(output.as_bytes()).unwrap();
-                } else {
-                    let mut out_file = File::create(out_path).unwrap();
-                    out_file.write_all(output.as_bytes()).unwrap();
-                }
-            } else {
-                runtime::RuntimeHost.evaluate(&output).unwrap();
-            }
-        }
-        Err(err) => {
-            let err = report_error(args.input.clone(), input.clone(), err);
-            if args.compile {
-                println!("Compiling {:?}...", in_path);
-                if !args.print {
+    let options = CompilationOptions {
+        args: args.clone(),
+        in_path: in_path.to_str().unwrap().to_owned(),
+        out_path: out_path.to_owned(),
+    };
+    match try_run(options, input.clone(), indent.clone()) {
+        Ok(_) => (),
+        Err(err) => match err {
+            RuntimeError::EvaluationError(err) => todo!(),
+            RuntimeError::ParseError(err) => {
+                let err = report_error(args.input.clone(), input.clone(), err);
+                if args.compile && !args.print {
                     let mut out_file = File::create(out_path).unwrap();
                     let output = format!("error[=====[{}]=====]", err);
                     out_file.write_all(output.as_bytes()).unwrap();
                 }
+                eprintln!("{}\nCompilation failed", err);
             }
-            eprintln!("{}", err);
-            panic!("Compilation failed");
-        }
+            RuntimeError::CompilationError(err) => todo!(),
+        },
     }
 }
