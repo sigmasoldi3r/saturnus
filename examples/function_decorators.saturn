@@ -1,12 +1,21 @@
 
 
-fn Test() {
+fn test() {
     return (target, name) => {
         print("Adding " ++ name ++ " to the test suite!");
     };
 }
 
-@Test()
+@test()
 fn my_func() {
     print("Some func");
 }
+
+fn foo() {
+    return (_, n) => print("Adding foo to", n);
+}
+fn bar() {
+    return (_, n) => print("Adding bar to", n);
+}
+
+@foo() @bar() fn testing() {}

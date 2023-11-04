@@ -12,6 +12,7 @@ mod code;
 mod errors;
 mod lua;
 mod parser;
+pub mod runtime;
 #[cfg(test)]
 mod tests;
 
@@ -72,6 +73,7 @@ fn main() {
     // Handle parsing errors
     match parser::Script::parse(input.clone()) {
         Ok(result) => {
+            // TODO: ABSTRACT!
             let output = lua::LuaEmitter
                 .visit_script(
                     code::Builder::new(indent).put(
@@ -91,12 +93,7 @@ fn main() {
                     out_file.write_all(output.as_bytes()).unwrap();
                 }
             } else {
-                let rt = rlua::Lua::new();
-                rt.context(move |ctx| -> rlua::Result<()> {
-                    ctx.load(&output).eval()?;
-                    Ok(())
-                })
-                .unwrap();
+                runtime::RuntimeHost.evaluate(&output).unwrap();
             }
         }
         Err(err) => {

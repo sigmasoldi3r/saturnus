@@ -1,0 +1,68 @@
+// Example of OOP possible uses with std
+let { abstract, entries, mixin, trait, impl } = require("../src/assets/std");
+
+// Simple abstract class example.
+class SimpleAbstract {
+  @abstract() fn example(self) {}
+  fn inherited(self) {
+    print("This was inherited " ++ self.name);
+  }
+}
+
+@mixin(SimpleAbstract)
+class Simple {
+  fn example(self) {
+    print("Won't blow.");
+  }
+  fn run() {
+    let example = Simple { name: "Simple example" };
+    example.example();
+    example.inherited();
+  }
+}
+Simple::run();
+
+// Trait example
+@trait()
+class TraitLike {
+  fn foo(self) {}
+}
+
+@impl(TraitLike)
+class Implementor {
+  fn me(self) {
+    return "Implementor";
+  }
+  fn foo(self) {
+    print("The foo be like: " ++ self.me());
+  }
+}
+
+// Mixin examples
+@mixin(Implementor)
+class Child {
+  fn me(self) {
+    return "The child";
+  }
+}
+
+class BeMe {
+  fn bar(self) {
+    return "Amogus";
+  }
+}
+
+@mixin(BeMe)
+@mixin(Child)
+class MonsterJack {
+  fn me(self) {
+    return "Sus town? " ++ self.bar();
+  }
+}
+
+let child = Child {};
+let imp = Implementor {};
+let monster = MonsterJack {};
+imp.foo();
+child.foo();
+monster.foo();

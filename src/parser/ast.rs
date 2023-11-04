@@ -17,12 +17,18 @@ pub struct Function {
     pub arguments: Vec<Argument>,
     pub decorators: Vec<Decorator>,
     pub body: Script,
+    pub native: Option<Vec<(Identifier, StringLiteral)>>,
 }
 
 #[derive(Debug, Clone)]
 pub struct Lambda {
     pub arguments: Vec<Argument>,
     pub body: ScriptOrExpression,
+}
+
+#[derive(Debug, Clone)]
+pub struct Do {
+    pub body: Script,
 }
 
 #[derive(Debug, Clone)]
@@ -181,81 +187,13 @@ pub enum Statement {
 }
 
 #[derive(Debug, Clone)]
-pub struct OperatorOverload {
-    pub operator: Operator,
-    pub arguments: Vec<Argument>,
-    pub body: Script,
-}
-
-#[derive(Debug, Clone)]
 pub enum ClassField {
     Method(Function),
     Let(Let),
-    Operator(OperatorOverload),
 }
 
 #[derive(Debug, Clone)]
-pub enum Operator {
-    // Arithmetic
-    Plus,
-    Minus,
-    Quotient,
-    Product,
-    Power,
-    Remainder,
-    Concat,
-    Range,
-    // Comparison
-    Equal,
-    Less,
-    LessEqual,
-    Greater,
-    GreaterEqual,
-    NotEqual,
-    Starship,
-    Funnel,
-    // Logic
-    LogicOr,
-    LogicAnd,
-    LogicNor,
-    LogicNand,
-    LogicXOr,
-    LogicNot,
-    // Binary
-    BWiseAnd,
-    BWiseOr,
-    BWiseNot,
-    BWiseLShift,
-    BWiseRShift,
-    BWiseLShiftRoundtrip,
-    BWiseRShiftRoundtrip,
-    // Special operators (No native equivalent for these)
-    Count, // Except this, in Lua.
-    ArrowRight,
-    ArrowLeft,
-    BothWays,
-    ArrowStandRight,
-    ArrowStandLeft,
-    ArrowStandBoth,
-    // Exclamation,
-    Tilde,
-    Disjoin,
-    Elastic,
-    ElasticRight,
-    ElasticLeft,
-    Elvis,
-    Coalesce,
-    PinguRight,
-    PinguLeft,
-    PinguBoth,
-    PipeRight,
-    PipeLeft,
-    AskRight,
-    AskLeft,
-    // Bolted,
-    Dollar,
-    ExclamationQuestion,
-}
+pub struct Operator(pub String);
 
 #[derive(Debug, Clone)]
 pub struct BinaryExpression {
@@ -300,8 +238,6 @@ pub enum TableKeyExpression {
 #[derive(Debug, Clone)]
 pub enum StringLiteral {
     Double(String),
-    Single(String),
-    Special(String),
 }
 
 #[derive(Debug, Clone)]
@@ -313,6 +249,7 @@ pub enum Expression {
     Tuple(Tuple),
     Tuple1(Box<Expression>),
     Table(Table),
+    Do(Do),
     Vector(Vector),
     Number(Number),
     String(StringLiteral),

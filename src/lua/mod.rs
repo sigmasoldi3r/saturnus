@@ -3,6 +3,47 @@ use crate::{
     parser::ast::{self},
 };
 
+fn escape_string(str: String) -> String {
+    return str.replace("\n", "\\n");
+}
+
+fn translate_operator(ctx: code::Builder, op: String) -> code::Builder {
+    let ctx = ctx.put("__");
+    let name = op
+        .into_bytes()
+        .iter()
+        .map(|ch| {
+            match ch {
+                b'+' => "plus",
+                b'-' => "minus",
+                b'*' => "times",
+                b'/' => "slash",
+                b'.' => "dot",
+                b'|' => "pipe",
+                b'>' => "greater",
+                b'<' => "less",
+                b'=' => "equals",
+                b'?' => "interrogation",
+                b'!' => "exclamation",
+                b'~' => "tilde",
+                b'%' => "percent",
+                b'&' => "ampersand",
+                b'#' => "bang",
+                b'$' => "dollar",
+                b'^' => "power",
+                b':' => "colon",
+                _ => panic!(
+                    "Error! Unexpected operator {} to be translated as a function!",
+                    ch
+                ),
+            }
+            .to_owned()
+        })
+        .collect::<Vec<String>>()
+        .join("_");
+    ctx.put(name)
+}
+
 pub struct LuaEmitter;
 
 impl LuaEmitter {
@@ -87,6 +128,13 @@ impl code::Visitor<code::Builder> for LuaEmitter {
         Ok(ctx.put(";"))
     }
 
+    fn visit_do(&self, ctx: code::Builder, expr: &ast::Do) -> Result<code::Builder, VisitError> {
+        let ctx = ctx.put("(function(...)").push();
+        let ctx = self.visit_script(ctx, &expr.body)?;
+        let ctx = ctx.pop().unwrap().line().put("end)(...)");
+        Ok(ctx)
+    }
+
     fn visit_1tuple(
         &self,
         ctx: code::Builder,
@@ -150,16 +198,12 @@ impl code::Visitor<code::Builder> for LuaEmitter {
             let ctx = ctx?.line();
             let ctx = match field {
                 ast::ClassField::Method(f) => {
-                    let level = if let Some(first) = f.arguments.first() {
-                        if first.name.0 == "self" {
-                            ".prototype."
-                        } else {
-                            "."
-                        }
+                    let is_self = if let Some(first) = f.arguments.first() {
+                        first.name.0 == "self"
                     } else {
-                        "."
-                    }
-                    .to_string();
+                        false
+                    };
+                    let level = if is_self { ".prototype." } else { "." }.to_string();
                     let ctx = ctx
                         .put(stmt.name.0.clone())
                         .put(level)
@@ -172,7 +216,26 @@ impl code::Visitor<code::Builder> for LuaEmitter {
                             body: ast::ScriptOrExpression::Script(f.body.clone()),
                         },
                     )?;
-                    ctx.put(";")
+                    let ctx = ctx.put(";");
+                    let ctx = f.decorators.iter().fold(Ok(ctx), |ctx, dec| {
+                        let ctx = ctx?.line();
+                        let ctx = self.visit_call(ctx, &dec.target)?;
+                        let fn_ref = if is_self {
+                            format!("{}.prototype.{}", stmt.name.0.clone(), f.name.0.clone())
+                        } else {
+                            format!("{}.{}", stmt.name.0.clone(), f.name.0.clone())
+                        };
+                        let ctx = ctx.put(format!(
+                            "({}, \"{}\", {}, \"{}\", {{ is_static = {} }});",
+                            fn_ref,
+                            f.name.0.clone(),
+                            stmt.name.0.clone(),
+                            stmt.name.0.clone(),
+                            !is_self
+                        ));
+                        Ok(ctx)
+                    })?;
+                    ctx
                 }
                 ast::ClassField::Let(f) => {
                     let ctx = match &f.target {
@@ -192,49 +255,17 @@ impl code::Visitor<code::Builder> for LuaEmitter {
                     };
                     ctx.put(";")
                 }
-                ast::ClassField::Operator(f) => {
-                    let target = match f.operator {
-                        ast::Operator::Plus => "__add",
-                        ast::Operator::Minus => "__sub",
-                        ast::Operator::Product => "__mul",
-                        ast::Operator::Quotient => "__div",
-                        ast::Operator::Remainder => "__mod",
-                        ast::Operator::Power => "__pow",
-                        ast::Operator::Equal => "__eq",
-                        ast::Operator::Less => "__lt",
-                        ast::Operator::LessEqual => "__le",
-                        ast::Operator::Concat => "__concat",
-                        ast::Operator::Count => "__len",
-                        _ => todo!(
-                            "Operator overload for {:?} operator not supported",
-                            f.operator.clone()
-                        ),
-                    };
-                    let ctx = ctx.put(format!(
-                        "{}.prototype.__meta__.{} = ",
-                        stmt.name.0.clone(),
-                        target
-                    ));
-                    let ctx = self.visit_lambda(
-                        ctx,
-                        &ast::Lambda {
-                            arguments: f.arguments.clone(),
-                            body: ast::ScriptOrExpression::Script(f.body.clone()),
-                        },
-                    )?;
-                    ctx.put(";")
-                }
             };
-            let ctx = stmt.decorators.iter().fold(Ok(ctx), |ctx, dec| {
-                let ctx = ctx?.line();
-                let ctx = self.visit_call(ctx, &dec.target)?;
-                let ctx = ctx.put(format!(
-                    "({}, \"{}\");",
-                    stmt.name.0.clone(),
-                    stmt.name.0.clone()
-                ));
-                Ok(ctx)
-            })?;
+            Ok(ctx)
+        })?;
+        let ctx = stmt.decorators.iter().fold(Ok(ctx), |ctx, dec| {
+            let ctx = ctx?.line();
+            let ctx = self.visit_call(ctx, &dec.target)?;
+            let ctx = ctx.put(format!(
+                "({}, \"{}\");",
+                stmt.name.0.clone(),
+                stmt.name.0.clone()
+            ));
             Ok(ctx)
         })?;
         Ok(ctx)
@@ -266,7 +297,19 @@ impl code::Visitor<code::Builder> for LuaEmitter {
             ctx.put("...")
         };
         let ctx = ctx.put(")").push();
-        let ctx = self.visit_script(ctx, &stmt.body)?;
+        let ctx = if let Some(native) = stmt.native.clone() {
+            let ctx = ctx.line().put("-- NATIVE CODE");
+            match native.iter().find(|(ident, _)| ident.0 == "Lua") {
+                Some((_, src)) => match src {
+                    ast::StringLiteral::Double(src) => ctx.put(src),
+                },
+                None => ctx.put("error('Native function implementation not found')"),
+            }
+            .line()
+            .put("-- NATIVE CODE")
+        } else {
+            self.visit_script(ctx, &stmt.body)?
+        };
         let ctx = ctx.pop().unwrap().line().put("end");
         let ctx = stmt.decorators.iter().fold(Ok(ctx), |ctx, dec| {
             let ctx = ctx?.line();
@@ -448,6 +491,11 @@ impl code::Visitor<code::Builder> for LuaEmitter {
             ctx
         };
         let ctx = ctx.put("(");
+        if expr.head.is_macro {
+            let ctx = ctx.put(")");
+            return Ok(ctx);
+        }
+        // If not macro
         let ctx = if let Some(first) = expr.head.arguments.first() {
             self.visit_expression(ctx, first)?
         } else {
@@ -529,9 +577,7 @@ impl code::Visitor<code::Builder> for LuaEmitter {
         expr: &ast::StringLiteral,
     ) -> Result<code::Builder, code::VisitError> {
         let ctx = match expr {
-            ast::StringLiteral::Double(s) => ctx.put("\"").put(s.clone()).put("\""),
-            ast::StringLiteral::Single(s) => ctx.put("'").put(s.clone()).put("'"),
-            ast::StringLiteral::Special(_) => todo!(),
+            ast::StringLiteral::Double(s) => ctx.put("\"").put(escape_string(s.clone())).put("\""),
         };
         Ok(ctx)
     }
@@ -545,93 +591,67 @@ impl code::Visitor<code::Builder> for LuaEmitter {
         ctx: code::Builder,
         expr: &ast::BinaryExpression,
     ) -> Result<code::Builder, code::VisitError> {
-        // Match direct function translation first
-        let ctx = match expr.operator.clone() {
-            ast::Operator::Elastic
-            | ast::Operator::ElasticLeft
-            | ast::Operator::ElasticRight
-            | ast::Operator::PinguBoth
-            | ast::Operator::PinguLeft
-            | ast::Operator::PinguRight
-            | ast::Operator::ArrowStandBoth
-            | ast::Operator::ArrowStandLeft
-            | ast::Operator::ArrowStandRight
-            | ast::Operator::ArrowLeft
-            | ast::Operator::ArrowRight
-            | ast::Operator::Disjoin
-            | ast::Operator::PipeLeft
-            | ast::Operator::PipeRight
-            | ast::Operator::AskRight
-            | ast::Operator::AskLeft => {
-                let ctx = match expr.operator.clone() {
-                    ast::Operator::Elastic => ctx.put("__elastic("),
-                    ast::Operator::ElasticLeft => ctx.put("__elastic_left("),
-                    ast::Operator::ElasticRight => ctx.put("__elastic_right("),
-                    ast::Operator::PinguBoth => ctx.put("__pingu_both("),
-                    ast::Operator::PinguLeft => ctx.put("__pingu_left("),
-                    ast::Operator::PinguRight => ctx.put("__pingu_right("),
-                    ast::Operator::ArrowStandBoth => ctx.put("__arrow_stand_both("),
-                    ast::Operator::ArrowStandLeft => ctx.put("__arrow_stand_left("),
-                    ast::Operator::ArrowStandRight => ctx.put("__arrow_stand_right("),
-                    ast::Operator::BothWays => ctx.put("__both_ways("),
-                    ast::Operator::ArrowLeft => ctx.put("__arrow_left("),
-                    ast::Operator::ArrowRight => ctx.put("__arrow_right("),
-                    ast::Operator::Disjoin => ctx.put("__disjoin("),
-                    ast::Operator::PipeLeft => ctx.put("__pipe_left("),
-                    ast::Operator::PipeRight => ctx.put("__pipe_right("),
-                    ast::Operator::AskRight => ctx.put("__ask_right("),
-                    ast::Operator::AskLeft => ctx.put("__ask_left("),
-                    _ => panic!(),
-                };
-                let ctx = self.visit_expression(ctx, &expr.left)?.put(", ");
-                self.visit_expression(ctx, &expr.right)?.put(")")
+        let op = expr.operator.0.as_str();
+        // Extra logic (Indirect operation expansion)
+        if op == "??" {
+            let ctx = self.visit_expression(ctx, &expr.left)?.put(" == nil and ");
+            let ctx = self.visit_expression(ctx, &expr.right)?.put(" or ");
+            return self.visit_expression(ctx, &expr.left);
+        } else if op == "?:" {
+            let ctx = self.visit_expression(ctx, &expr.left)?.put(" or ");
+            return self.visit_expression(ctx, &expr.right);
+        }
+        // Translate native operators.
+        match op {
+            // Basic math
+            | "+"
+            | "-"
+            | "*"
+            | "/"
+            | "%"
+            | "**"
+            // Comparison
+            | ">"
+            | ">="
+            | "<"
+            | "<="
+            | "=="
+            // Logic
+            | "not"
+            | "and"
+            | "or"
+            // Logic
+            | "&"
+            | "|"
+            | "<<"
+            | "<<<"
+            | ">>"
+            | ">>>"
+                => {
+                let ctx = self.visit_expression(ctx, &expr.left)?.put(" ");
+                let ctx = ctx.put(op.to_owned());
+                self.visit_expression(ctx.put(" "), &expr.right)
+            }
+            "++" => {
+                // Native-to-native operator translation
+                let ctx = self.visit_expression(ctx, &expr.left)?.put(" ");
+                let ctx = ctx.put("..".to_owned());
+                self.visit_expression(ctx.put(" "), &expr.right)
+            }
+            "<>" => {
+                // Native-to-native operator translation
+                let ctx = self.visit_expression(ctx, &expr.left)?.put(" ");
+                let ctx = ctx.put("~=".to_owned());
+                self.visit_expression(ctx.put(" "), &expr.right)
             }
             _ => {
-                // Then if not, match extra logic (Indirect operation expansion)
-                if let ast::Operator::Coalesce = expr.operator.clone() {
-                    let ctx = self.visit_expression(ctx, &expr.left)?.put(" == nil and ");
-                    let ctx = self.visit_expression(ctx, &expr.right)?.put(" or ");
-                    return self.visit_expression(ctx, &expr.left);
-                } else if let ast::Operator::Elvis = expr.operator.clone() {
-                    let ctx = self.visit_expression(ctx, &expr.left)?.put(" or ");
-                    return self.visit_expression(ctx, &expr.right);
-                }
-                // If all fails, translate native operators or panic.
-                let ctx = self.visit_expression(ctx, &expr.left)?.put(" ");
-                let ctx = match expr.operator.clone() {
-                    // Basic math
-                    ast::Operator::Plus => ctx.put("+"),
-                    ast::Operator::Minus => ctx.put("-"),
-                    ast::Operator::Product => ctx.put("*"),
-                    ast::Operator::Quotient => ctx.put("/"),
-                    ast::Operator::Remainder => ctx.put("%"),
-                    ast::Operator::Power => ctx.put("**"),
-                    ast::Operator::Concat => ctx.put(".."),
-                    // Comparison
-                    ast::Operator::Greater => ctx.put(">"),
-                    ast::Operator::GreaterEqual => ctx.put(">="),
-                    ast::Operator::Less => ctx.put("<"),
-                    ast::Operator::LessEqual => ctx.put("<="),
-                    ast::Operator::Equal => ctx.put("=="),
-                    ast::Operator::NotEqual => ctx.put("~="),
-                    // Logic
-                    ast::Operator::LogicNot => ctx.put("not"),
-                    ast::Operator::LogicAnd => ctx.put("and"),
-                    ast::Operator::LogicOr => ctx.put("or"),
-                    // Logic
-                    ast::Operator::BWiseAnd => ctx.put("&"),
-                    ast::Operator::BWiseOr => ctx.put("|"),
-                    ast::Operator::BWiseLShift => ctx.put("<<"),
-                    ast::Operator::BWiseLShiftRoundtrip => ctx.put("<<<"),
-                    ast::Operator::BWiseRShift => ctx.put(">>"),
-                    ast::Operator::BWiseRShiftRoundtrip => ctx.put(">>>"),
-                    op => todo!("Binary operator {:?} not supported!", op),
-                };
-                let ctx = self.visit_expression(ctx.put(" "), &expr.right)?;
-                return Ok(ctx);
+                // Direct function translation
+                let ctx = translate_operator(ctx, op.to_owned()).put("(");
+                let ctx = self.visit_expression(ctx, &expr.left)?.put(", ");
+                let ctx = self.visit_expression(ctx, &expr.right)?.put(")");
+                Ok(ctx)
             }
-        };
-        Ok(ctx)
+        }
     }
 
     fn visit_unary(
@@ -639,10 +659,10 @@ impl code::Visitor<code::Builder> for LuaEmitter {
         ctx: code::Builder,
         expr: &ast::UnaryExpression,
     ) -> Result<code::Builder, code::VisitError> {
-        let ctx = match expr.operator.clone() {
-            ast::Operator::Minus => ctx.put("-"),
-            ast::Operator::LogicNot => ctx.put("not "),
-            ast::Operator::Count => ctx.put("#"),
+        let ctx = match expr.operator.clone().0.as_str() {
+            "-" => ctx.put("-"),
+            "not" => ctx.put("not "),
+            "#?" => ctx.put("#"),
             op => todo!("Unary operator {:?} not supported!", op),
         };
         let ctx = self.visit_expression(ctx, &expr.expression)?;
@@ -688,7 +708,8 @@ impl code::Visitor<code::Builder> for LuaEmitter {
                     self.visit_expression(ctx, &v.clone().unwrap())
                 }
                 ast::TableKeyExpression::Expression(k) => {
-                    let ctx = self.visit_expression(ctx, &k)?.put(" = ");
+                    let ctx = ctx.put("[");
+                    let ctx = self.visit_expression(ctx, &k)?.put("] = ");
                     self.visit_expression(ctx, &v.clone().unwrap())
                 }
                 ast::TableKeyExpression::Implicit(k) => {
@@ -750,7 +771,7 @@ impl code::Visitor<code::Builder> for LuaEmitter {
     ) -> Result<code::Builder, code::VisitError> {
         let ctx = match &expr.handler {
             ast::AssignmentTarget::Destructuring(e) => {
-                let ctx = ctx.line().put("for __destructuring__ in ");
+                let ctx = ctx.line().put("for __destructure__ in ");
                 let ctx = self.visit_expression(ctx, &expr.target)?;
                 let ctx = ctx.put(" do").push();
                 let ctx = self.generate_destructured_assignment(ctx, &e)?;

@@ -1,0 +1,221 @@
+let expand = table.unpack ?? unpack;
+
+// Collections and iterators
+
+fn @native entries(tbl) {
+  @Lua"
+    local iter = pairs(tbl);
+    return function(_, next)
+      local k, v = iter(tbl, next and next._0);
+      if k and v then
+        return { _0 = k, _1 = v }, v;
+      end
+    end;
+  ";
+}
+
+// Runtime
+
+fn @native panic(message) {
+  @Lua"
+    error(message);
+  ";
+}
+
+// OOP and inheritance
+
+let makeTrait = (name) => () => panic("Trait " ++ name ++ " is not constructible!");
+
+fn trait() {
+  return (target, name) => {
+    target.__meta__.__call = makeTrait(name);
+  };
+}
+
+fn impl(trait) {
+  return (target, name) => {
+    let map = {};
+    for (k, v) in entries(target.prototype) {
+      map[k] = v;
+    }
+    for (k, v) in entries(trait.prototype) {
+      if map[k] == () {
+        panic(name ++ " must implement trait method " ++ k ++ "!");
+      }
+    }
+  };
+}
+
+fn mixin(parent) {
+  let index = parent.prototype.__meta__.__index;
+  if type(index) == "table" {
+    index = (self, key) => parent.prototype.__meta__.__index[key];
+  }
+  return (target, name) => {
+    let prev = target.prototype.__meta__.__index;
+    if type(prev) == "table" {
+      let prev_tbl = prev;
+      prev = (self, key) => prev_tbl[key];
+    }
+    target.prototype.__meta__.__index = (self, key) => {
+      return prev(self, key) or index(self, key);
+    };
+  };
+}
+
+let makePure = (name) => () => panic("Attempting to call abstract method " ++ name ++ "!");
+
+fn abstract() {
+  return (_, name, host, label, meta) => {
+    if meta.is_static {
+      host[name] = makePure(label ++ "::" ++ name);
+    } else {
+      host.prototype[name] = makePure(label ++ "." ++ name);
+    }
+  };
+}
+
+// Operators & meta
+
+let symbols = {
+  "+": "plus",
+  "-": "minus",
+  "*": "times",
+  "/": "slash",
+  ".": "dot",
+  "|": "pipe",
+  ">": "greater",
+  "<": "less",
+  "=": "equals",
+  "?": "interrogation",
+  "!": "exclamation",
+  "~": "tilde",
+  "%": "percent",
+  "&": "ampersand",
+  "#": "bang",
+  "$": "dollar",
+  "^": "power",
+  ":": "colon"
+};
+
+fn @native operator(symbol) {
+  @Lua"
+  local name = '_';
+  for i=1, symbol:len() do
+    local s = symbol:sub(i, i);
+    local key = symbols[s];
+    if key == nil then
+      error('You cannot declare an operator that contains the symbol ' .. tostring(s) .. '!');
+    end
+    name = name .. '_' .. key;
+  end
+  return function(target)
+    _G[name] = target;
+  end;
+  ";
+}
+
+// STD Custom operators
+
+@operator("|>")
+fn pipe_right(left, right) {
+  return right(left);
+}
+
+@operator("<|")
+fn pipe_left(left, right) {
+  return left(right);
+}
+
+@operator(":::")
+fn @native merge(left, right) {
+  @Lua"
+    local u = table.unpack or unpack;
+    local tbl = { u(left) };
+    for _, v in pairs(right) do
+      tbl[#tbl + 1] = v;
+    end
+    return tbl;
+  ";
+}
+
+@operator("+?")
+fn maybe_sum(left, right) {
+  return left and (left + right);
+}
+@operator("+??")
+fn maybe_sum_or(left, right) {
+  return left and (left + right) or right;
+}
+
+@operator("++?")
+fn maybe_concat(left, right) {
+  return left and (left ++ right);
+}
+@operator("++??")
+fn maybe_concat_or(left, right) {
+  return left and (left ++ right) or right;
+}
+
+@operator("-?")
+fn maybe_subtract(left, right) {
+  return left and (left - right);
+}
+@operator("-??")
+fn maybe_subtract_or(left, right) {
+  return left and (left - right) or right;
+}
+
+@operator("*?")
+fn maybe_times(left, right) {
+  return left and (left * right);
+}
+@operator("*??")
+fn maybe_times_or(left, right) {
+  return left and (left * right) or right;
+}
+
+@operator("/?")
+fn maybe_divide(left, right) {
+  return left and (left / right);
+}
+@operator("/??")
+fn maybe_divide_or(left, right) {
+  return left and (left / right) or right;
+}
+
+@operator("..")
+fn range(start, _end) {
+  let i = start;
+  if start < _end {
+    return () => {
+      if i > _end {
+        return ();
+      }
+      let c = i;
+      i += 1;
+      return c;
+    };
+  } else {
+    return () => {
+      if i < _end {
+        return ();
+      }
+      let c = i;
+      i -= 1;
+      return c;
+    };
+  }
+}
+
+return {
+  expand,
+  entries,
+  operator,
+  range,
+  abstract,
+  trait,
+  impl,
+  mixin,
+  panic
+};

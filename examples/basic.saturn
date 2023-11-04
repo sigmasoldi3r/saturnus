@@ -1,0 +1,47 @@
+// Basic examples
+
+// This is a comment
+/*
+  this also is.
+*/
+
+// Declare variables
+let some_var = "foo";
+let some_char = 'a'; // This is a number actually.
+some_char += 1;
+print(some_var, some_char);
+
+// Mutate them
+some_var = 5;
+some_var += 1;
+print(some_var);
+
+// Declare functions
+fn the_foo() {
+  return "bar";
+}
+
+// Use them
+let answer = the_foo();
+print(answer);
+
+// Conditions
+if true {
+  print("Of course");
+} else {
+  print("Never");
+}
+
+// Do-block
+{
+  let this_is = "isolated from the rest";
+  print("of_the_code");
+}
+
+// Can be used as an expression too!
+let my_var = "Foo";
+let result = {
+  let my_var = "another one";
+  return my_var ++ ".";
+};
+print(result, my_var);
