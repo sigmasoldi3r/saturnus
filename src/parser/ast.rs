@@ -194,6 +194,7 @@ pub enum Statement {
     Assignment(Assignment),
     Let(Let),
     Expression(Expression),
+    Use(Identifier),
 }
 
 #[derive(Debug, Clone)]
@@ -260,6 +261,7 @@ pub enum Expression {
     Tuple1(Box<Expression>),
     Table(Table),
     Do(Do),
+    Use(Identifier),
     Vector(Vector),
     Number(Number),
     String(StringLiteral),

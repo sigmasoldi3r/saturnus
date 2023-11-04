@@ -10,6 +10,7 @@ let some_var = "foo";
 let some_char = 'a'; // This is a number actually.
 some_char += 1;
 print(some_var, some_char);
+print("Escape \"quotes\"");
 
 // Mutate them
 some_var = 5;

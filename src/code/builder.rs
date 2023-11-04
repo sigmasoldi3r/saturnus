@@ -1,7 +1,7 @@
 pub struct UnevenIndentationError;
 impl std::fmt::Debug for UnevenIndentationError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("Uneven Indentation: Attempting to pop furhter than 0!")
+        f.debug_struct("Uneven Indentation: Attempting to pop further than 0!")
             .finish()
     }
 }
@@ -9,7 +9,7 @@ impl std::fmt::Debug for UnevenIndentationError {
 /// # String code builder
 ///
 /// This simple immutable builder accounts for raw strings (So it is agnostic
-/// from the targetted output), but retains indentation aspects.
+/// from the targeted output), but retains indentation aspects.
 ///
 /// This means that you have an indentation stack, with it's state retained
 /// between calls, without having to store it in your code emitter.
@@ -79,7 +79,7 @@ impl Builder {
             ..self
         }
     }
-    pub fn and(self, other: Self) -> Self {
+    pub fn _and(self, other: Self) -> Self {
         Builder {
             buffer: format!("{}{}", self.buffer, other.buffer),
             ..self
