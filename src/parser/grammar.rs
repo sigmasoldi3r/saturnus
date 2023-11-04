@@ -18,6 +18,7 @@ peg::parser! {
             / e:assignment() { Statement::Assignment(e) }
             / e:return_stmt() { Statement::Return(e) }
             / e:do_expression() { Statement::Expression(e) }
+            / e:use_literal() _ EOS() { Statement::Use(e) }
             / e:expression() _ EOS() { Statement::Expression(e) }
 
         rule if_stmt() -> If
@@ -188,6 +189,7 @@ peg::parser! {
             / table_expression()
             / tuple_expression()
             / do_expression()
+            / use_expression()
             / e:member_expression() { Expression::Reference(Box::new(e)) }
             / unit() { Expression::Unit }
             / enclosed_expression()
@@ -200,6 +202,11 @@ peg::parser! {
         rule table_expression() -> Expression = e:table_literal() { Expression::Table(e) }
         rule tuple_expression() -> Expression = e:tuple_literal() { Expression::Tuple(e) }
         rule do_expression() -> Expression = e:do_literal() { Expression::Do(e) }
+        rule use_expression() -> Expression = e:use_literal() { Expression::Use(e) }
+
+        rule use_literal() -> Identifier
+            = "use" __ target:identifier()
+            { target }
 
         rule enclosed_expression() -> Expression
             = "(" _ e:expression() _ ")" { Expression::Tuple1(Box::new(e)) }
@@ -224,7 +231,9 @@ peg::parser! {
             / expected!("Number literal")
 
         rule string_literal() -> StringLiteral
-            = "\"" value:$((!"\"" ANY())*) "\"" { StringLiteral::Double(value.into()) }
+            = "\"" value:$(
+                ( "\\\"" / (!"\"" ANY()) )*
+            ) "\"" { StringLiteral::Double(value.into()) }
             / expected!("String literal")
 
         rule vector_literal() -> Vector

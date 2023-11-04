@@ -439,6 +439,26 @@ impl code::Visitor<code::Builder> for LuaEmitter {
         Ok(ctx)
     }
 
+    fn visit_use(
+        &self,
+        ctx: code::Builder,
+        expr: &ast::Identifier,
+    ) -> Result<code::Builder, VisitError> {
+        Ok(ctx.put(format!("__modules__.{}", expr.0.clone())))
+    }
+
+    fn visit_use_statement(
+        &self,
+        ctx: code::Builder,
+        expr: &ast::Identifier,
+    ) -> Result<code::Builder, VisitError> {
+        let target = expr.0.clone();
+        let target2 = expr.0.clone();
+        Ok(ctx
+            .line()
+            .put(format!("local {target} = __modules__.{target2};")))
+    }
+
     fn enter_script(
         &self,
         ctx: code::Builder,

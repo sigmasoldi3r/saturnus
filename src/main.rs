@@ -46,6 +46,15 @@ struct Args {
         help = "The amount of space characters to use in each tab"
     )]
     indent: usize,
+    #[arg(long, help = "Strips the std library form the code emission")]
+    no_std: bool,
+    #[arg(long, help = "Inline the std library in each script")]
+    inline_std: bool,
+    #[arg(
+        long,
+        help = "Outputs the saturnus code to stdout preprocessed but without compiling"
+    )]
+    dump_saturnus: bool,
 }
 
 fn get_default_output(str: &Path) -> String {
@@ -64,6 +73,27 @@ struct CompilationOptions {
 
 fn try_run(options: CompilationOptions, input: String, indent: String) -> Result<(), RuntimeError> {
     let host = runtime::RuntimeHost::new(indent.clone());
+
+    // TODO: Clean std code injection
+    let input = if options.args.no_std {
+        format!("let __modules__ = {{ }};\n{input}")
+    } else {
+        let embed = include_str!("assets/std.saturn");
+        format!(
+            "let __modules__ = {{
+  std: {{
+    {embed}
+  }}
+}};
+{input}"
+        )
+    };
+
+    if options.args.dump_saturnus {
+        println!("{input}");
+        return Ok(());
+    }
+
     let script = parser::Script::parse(input).map_err(|err| RuntimeError::ParseError(err))?;
 
     let CompilationOptions {
@@ -115,7 +145,7 @@ fn main() {
     match try_run(options, input.clone(), indent.clone()) {
         Ok(_) => (),
         Err(err) => match err {
-            RuntimeError::EvaluationError(err) => todo!(),
+            RuntimeError::EvaluationError(err) => eprintln!("{}", err),
             RuntimeError::ParseError(err) => {
                 let err = report_error(args.input.clone(), input.clone(), err);
                 if args.compile && !args.print {
@@ -125,7 +155,7 @@ fn main() {
                 }
                 eprintln!("{}\nCompilation failed", err);
             }
-            RuntimeError::CompilationError(err) => todo!(),
+            RuntimeError::CompilationError(err) => eprintln!("{:?}", err),
         },
     }
 }
