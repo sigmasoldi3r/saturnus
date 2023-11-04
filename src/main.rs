@@ -4,6 +4,8 @@ use clap::Parser;
 use errors::report_error;
 use runtime::RuntimeError;
 
+use crate::code::{ast_visitor::Visitor, builder::Builder};
+
 #[cfg(test)]
 #[macro_use]
 extern crate spectral;
@@ -71,29 +73,24 @@ struct CompilationOptions {
 }
 
 fn try_run(options: CompilationOptions, input: String, indent: String) -> Result<(), RuntimeError> {
-    let host = runtime::RuntimeHost::new(indent.clone());
-
     // TODO: Clean std code injection
-    let input = if options.args.no_std {
-        format!("let __modules__ = {{ }};\n{input}")
+    let header = format!("let __modules__ = {{ }};");
+    let header = if options.args.no_std {
+        header
     } else {
         let embed = include_str!("assets/std.saturn");
-        format!(
-            "let __modules__ = {{
-  std: {{
-    {embed}
-  }}
-}};
-{input}"
-        )
+        format!("{header}\n__modules__.std = {{\n{embed}\n}};")
     };
+
+    let compiler = lua::visitor::LuaEmitter();
 
     if options.args.dump_saturnus {
         println!("{input}");
         return Ok(());
     }
 
-    let script = parser::Script::parse(input).map_err(|err| RuntimeError::ParseError(err))?;
+    let script = parser::Script::parse(format!("{header}\n{input}"))
+        .map_err(|err| RuntimeError::ParseError(err))?;
 
     let CompilationOptions {
         args,
@@ -103,8 +100,8 @@ fn try_run(options: CompilationOptions, input: String, indent: String) -> Result
 
     if args.compile {
         println!("Compiling {:?}...", in_path);
-        let output = lua::LuaEmitter
-            .visit_script(code::Builder::new(indent), &script)
+        let output = compiler
+            .visit_script(Builder::new(indent), &script)
             .map_err(|err| RuntimeError::CompilationError(err))?
             .collect();
         if args.print {
@@ -115,6 +112,8 @@ fn try_run(options: CompilationOptions, input: String, indent: String) -> Result
             out_file.write_all(output.as_bytes()).unwrap();
         }
     } else {
+        let host: runtime::RuntimeHost =
+            runtime::RuntimeHost::new(indent.clone(), Box::new(compiler));
         host.evaluate(&script)?;
     }
 
