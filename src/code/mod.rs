@@ -1,10 +1,10 @@
 mod builder;
-mod generator;
+mod generation;
 pub mod macros;
 mod visitor;
 
 pub use builder::Builder;
-pub use generator::Generator;
+pub use generation::CodeEmitter;
 pub use visitor::{VisitError, Visitor};
 
 pub trait BuilderVisitor: Visitor<Builder> {}
