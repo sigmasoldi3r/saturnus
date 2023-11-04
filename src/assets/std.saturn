@@ -1,5 +1,3 @@
-let expand = table.unpack ?? unpack;
-
 // Collections and iterators
 
 fn @native entries(tbl) {
@@ -8,10 +6,65 @@ fn @native entries(tbl) {
     return function(_, next)
       local k, v = iter(tbl, next and next._0);
       if k and v then
-        return { _0 = k, _1 = v }, v;
+        return { _0 = k - 1, _1 = v }, v;
       end
     end;
   ";
+}
+
+let private = {};
+
+class Vector {
+  fn new(data) {
+    return Vector { [private]: { data } };
+  }
+  fn at(self, key) {
+    return self[private].data[key + 1];
+  }
+  fn set(self, key, value) {
+    self[private].data[key] = value;
+  }
+  fn pop(self) {
+    if self.len() > 0 {
+      let value = self[private].data[#? self[private].data];
+      self[private].data[#? self[private].data] = ();
+      return value;
+    }
+    return ();
+  }
+  fn push(self, value) {
+    self[private].data[#? self[private].data + 1] = value;
+  }
+  fn len(self) {
+    return #? self[private].data;
+  }
+  fn iter(self) {
+    return entries(self[private].data);
+  }
+}
+
+class Object {
+  fn entries(target) {
+    return entries(target);
+  }
+}
+
+class Tuple {
+  fn new(data) {
+    return Vector { [private]: { data } };
+  }
+  fn at(self, key) {
+    return self[private].data[key];
+  }
+  fn set(self, key, value) {
+    self[private].data[key] = value;
+  }
+  fn len(self) {
+    return #? self[private].data;
+  }
+  fn iter(self) {
+    return entries(self[private].data);
+  }
 }
 
 // Runtime
@@ -209,8 +262,9 @@ fn range(start, _end) {
 }
 
 return {
-  expand,
-  entries,
+  Object,
+  Tuple,
+  Vector,
   operator,
   range,
   abstract,

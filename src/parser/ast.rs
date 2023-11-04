@@ -1,4 +1,4 @@
-use super::Script;
+use super::grammar::Script;
 
 #[derive(Debug, Clone)]
 pub struct Decorator {

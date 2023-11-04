@@ -384,7 +384,7 @@ impl Script {
     #[cfg(test)]
     pub fn parse_expression<I>(
         input: I,
-    ) -> Result<ast::Expression, peg::error::ParseError<peg::str::LineCol>>
+    ) -> Result<Expression, peg::error::ParseError<peg::str::LineCol>>
     where
         I: Into<String>,
     {
