@@ -94,9 +94,7 @@ pub struct Class {
 #[derive(Debug, Clone)]
 pub struct CallSubExpression {
     pub callee: Option<MemberExpression>,
-    // pub static_target: Option<Identifier>,
     pub arguments: Vec<Expression>,
-    pub is_macro: bool,
 }
 impl Into<CallExpressionVariant> for CallSubExpression {
     fn into(self) -> CallExpressionVariant {
@@ -108,6 +106,19 @@ impl Into<CallExpressionVariant> for CallSubExpression {
 pub enum CallExpressionVariant {
     Call(CallSubExpression),
     Member(MemberSegment),
+}
+
+// TODO: Implement macros!
+#[derive(Debug, Clone)]
+pub enum MacroCallArguments {
+    FunctionLike(Vec<Expression>),
+    BlockLike(Script),
+}
+
+#[derive(Debug, Clone)]
+pub struct MacroCallExpression {
+    pub target: Identifier,
+    pub arguments: MacroCallArguments,
 }
 
 #[derive(Debug, Clone)]

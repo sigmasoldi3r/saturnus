@@ -1,7 +1,8 @@
 use crate::{
-    code,
-    code::{VisitError, Visitor},
-    lua,
+    code::{
+        ast_visitor::{VisitError, Visitor},
+        builder::Builder,
+    },
     parser::Script,
 };
 
@@ -26,13 +27,18 @@ pub struct EvaluationOutput {
 /// This host will take care of evaluating the incoming Saturnus code.
 pub struct RuntimeHost {
     host: rlua::Lua,
+    compiler: Box<dyn Visitor>,
     indent: String,
 }
 
 impl RuntimeHost {
-    pub fn new(indent: String) -> RuntimeHost {
+    pub fn new(indent: String, compiler: Box<dyn Visitor>) -> RuntimeHost {
         let host = rlua::Lua::new();
-        RuntimeHost { host, indent }
+        RuntimeHost {
+            host,
+            indent,
+            compiler,
+        }
     }
 
     pub fn run(&self, code: &String) -> Result<EvaluationOutput, RuntimeError> {
@@ -41,12 +47,9 @@ impl RuntimeHost {
     }
 
     pub fn evaluate(&self, script: &Script) -> Result<EvaluationOutput, RuntimeError> {
-        let code = lua::LuaEmitter
-            .visit_script(
-                code::Builder::new(self.indent.clone())
-                    .put("-- Compiled by Saturnus compiler, warning: Changes may be discarded!"),
-                &script,
-            )
+        let code = self
+            .compiler
+            .visit_script(Builder::new(self.indent.clone()), &script)
             .map_err(|err| RuntimeError::CompilationError(err))?
             .collect();
         self.host
