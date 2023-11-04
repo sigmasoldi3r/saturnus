@@ -231,7 +231,9 @@ peg::parser! {
             / expected!("Number literal")
 
         rule string_literal() -> StringLiteral
-            = "\"" value:$((!"\"" ANY())*) "\"" { StringLiteral::Double(value.into()) }
+            = "\"" value:$(
+                ( "\\\"" / (!"\"" ANY()) )*
+            ) "\"" { StringLiteral::Double(value.into()) }
             / expected!("String literal")
 
         rule vector_literal() -> Vector
