@@ -51,6 +51,9 @@ pub trait Visitor {
     fn visit_block_expression(&self, ctx: Builder, expr: &Do) -> Result;
     fn visit_script(&self, ctx: Builder, script: &Script) -> Result;
 
+    // Macros
+    fn visit_macro_decorator(&self, ctx: Builder, stmt: &MacroDecorator) -> Result;
+
     // Generically implementable matching patterns:
     fn visit_expression(&self, ctx: Builder, expression: &Expression) -> Result {
         match expression {
@@ -71,23 +74,27 @@ pub trait Visitor {
             Expression::Use(e) => self.visit_use_expression(ctx, e),
         }
     }
+    fn visit_statement(&self, ctx: Builder, statement: &Statement) -> Result {
+        match statement {
+            ast::Statement::MacroDecorator(e) => self.visit_macro_decorator(ctx, e),
+            ast::Statement::If(e) => self.visit_if(ctx, e),
+            ast::Statement::For(e) => self.visit_for(ctx, e),
+            ast::Statement::Loop(e) => self.visit_loop(ctx, e),
+            ast::Statement::While(e) => self.visit_while(ctx, e),
+            ast::Statement::Return(e) => self.visit_return(ctx, e),
+            ast::Statement::Class(e) => self.visit_class(ctx, e),
+            ast::Statement::Function(e) => self.visit_fn(ctx, e),
+            ast::Statement::Assignment(e) => self.visit_assignment(ctx, e),
+            ast::Statement::Let(e) => self.visit_declaration(ctx, e),
+            ast::Statement::Match(e) => self.visit_match(ctx, e),
+            ast::Statement::Expression(e) => self.visit_expression_statement(ctx, e),
+            ast::Statement::Use(e) => self.visit_use_statement(ctx, e),
+        }
+    }
     fn visit_block(&self, ctx: Builder, script: &Script) -> Result {
         script
             .statements
             .iter()
-            .fold(Ok(ctx), |ctx, stmt| match stmt {
-                ast::Statement::If(e) => self.visit_if(ctx?, e),
-                ast::Statement::For(e) => self.visit_for(ctx?, e),
-                ast::Statement::Loop(e) => self.visit_loop(ctx?, e),
-                ast::Statement::While(e) => self.visit_while(ctx?, e),
-                ast::Statement::Return(e) => self.visit_return(ctx?, e),
-                ast::Statement::Class(e) => self.visit_class(ctx?, e),
-                ast::Statement::Function(e) => self.visit_fn(ctx?, e),
-                ast::Statement::Assignment(e) => self.visit_assignment(ctx?, e),
-                ast::Statement::Let(e) => self.visit_declaration(ctx?, e),
-                ast::Statement::Match(e) => self.visit_match(ctx?, e),
-                ast::Statement::Expression(e) => self.visit_expression_statement(ctx?, e),
-                ast::Statement::Use(e) => self.visit_use_statement(ctx?, e),
-            })
+            .fold(Ok(ctx), |ctx, stmt| self.visit_statement(ctx?, stmt))
     }
 }

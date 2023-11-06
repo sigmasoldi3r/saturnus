@@ -116,6 +116,18 @@ pub enum MacroCallArguments {
 }
 
 #[derive(Debug, Clone)]
+pub enum IdentifierOrCall {
+    Call(CallExpression),
+    Identifier(Identifier),
+}
+
+#[derive(Debug, Clone)]
+pub struct MacroDecorator {
+    pub macros: Vec<IdentifierOrCall>,
+    pub target: Statement,
+}
+
+#[derive(Debug, Clone)]
 pub struct MacroCallExpression {
     pub target: Identifier,
     pub arguments: MacroCallArguments,
@@ -184,6 +196,7 @@ pub struct Match {
 
 #[derive(Debug, Clone)]
 pub enum Statement {
+    MacroDecorator(Box<MacroDecorator>),
     If(If),
     Match(Match),
     For(For),

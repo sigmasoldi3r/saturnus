@@ -126,6 +126,10 @@ impl LuaEmitter {
 }
 
 impl Visitor for LuaEmitter {
+    fn visit_macro_decorator(&self, ctx: Builder, stmt: &ast::MacroDecorator) -> Result {
+        self.visit_statement(ctx, &stmt.target)
+    }
+
     fn visit_return(&self, ctx: Builder, stmt: &ast::Return) -> Result {
         let ctx = ctx.line().put("return ");
         let ctx = self.visit_expression(ctx, &stmt.value)?;

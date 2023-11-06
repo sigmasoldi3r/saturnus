@@ -8,7 +8,8 @@ peg::parser! {
 
         // Statements
         rule statement() -> Statement
-            = e:class() { Statement::Class(e) }
+            = e:macro_decorator() { Statement::MacroDecorator(Box::new(e)) }
+            / e:class() { Statement::Class(e) }
             / e:func() { Statement::Function(e) }
             / e:for_each() { Statement::For(e) }
             / e:while_loop() { Statement::While(e) }
@@ -20,6 +21,20 @@ peg::parser! {
             / e:do_expression() { Statement::Expression(e) }
             / e:use_literal() _ EOS() { Statement::Use(e) }
             / e:expression() _ EOS() { Statement::Expression(e) }
+
+        rule macro_decorator() -> MacroDecorator
+            = "#[" _ macros:identifier_or_call() ++ (_ "," _) _ "]"
+            _ target:statement()
+            {
+                MacroDecorator {
+                    macros,
+                    target
+                }
+            }
+
+        rule identifier_or_call() -> IdentifierOrCall
+            = e:call_expression() { IdentifierOrCall::Call(e) }
+            / e:identifier() { IdentifierOrCall::Identifier(e) }
 
         rule if_stmt() -> If
             = "if" __ condition:expression() __ "{" body:script()
@@ -51,12 +66,14 @@ peg::parser! {
             = decorators:decorator_list() NATIVE() __ FN() __ name:identifier() _ arguments:argument_list()
               _ "{" native:(__ "@" name:identifier() _ source:string_literal() _ EOS() { (name, source) })+ __ "}"
             { Function { name, decorators, body: Script { statements: vec![] }, arguments, native: Some(native) } }
-            /
-            decorators:decorator_list() FN() __ name:identifier() _ arguments:argument_list() _ "{" body:script() "}"
+            / decorators:decorator_list() FN() __ name:identifier() _ arguments:argument_list() _ body:func_body()
             { Function { name, decorators, body, arguments, native: None } }
-            / decorators:decorator_list() FN() __ name:identifier() _ arguments:argument_list() _ "{" _ "}"
-            { Function { name, decorators, body: Script { statements: vec![] }, arguments, native: None } }
             / expected!("Function declaration")
+
+        rule func_body() -> Script
+            = "{" body:script() "}" { body }
+            / "{" _ "}" { Script { statements: vec![] } }
+            / "=" _ value:expression() _ EOS() { Script { statements: vec![Statement::Return(Return { value })] } }
 
         rule class() -> Class
             = decorators:decorator_list() CLASS()
