@@ -1,4 +1,4 @@
-let { entries } = use std;
+let { entries, `..` } = use std;
 
 let tbl = {
   a: 1,

@@ -1,6 +1,6 @@
 // Collections and iterators
 
-fn @native entries(tbl) {
+native fn entries(tbl) {
   @Lua"
     local iter = pairs(tbl);
     return function(_, next)
@@ -69,7 +69,7 @@ class Tuple {
 
 // Runtime
 
-fn @native panic(message) {
+native fn panic(message) {
   @Lua"
     error(message);
   ";
@@ -151,37 +151,17 @@ let symbols = {
   ":": "colon"
 };
 
-fn @native operator(symbol) {
-  @Lua"
-  local name = '_';
-  for i=1, symbol:len() do
-    local s = symbol:sub(i, i);
-    local key = symbols[s];
-    if key == nil then
-      error('You cannot declare an operator that contains the symbol ' .. tostring(s) .. '!');
-    end
-    name = name .. '_' .. key;
-  end
-  return function(target)
-    _G[name] = target;
-  end;
-  ";
-}
-
 // STD Custom operators
 
-@operator("|>")
-fn pipe_right(left, right) {
+fn `|>`(left, right) {
   return right(left);
 }
 
-@operator("<|")
-fn pipe_left(left, right) {
+fn `<|`(left, right) {
   return left(right);
 }
 
-@operator(":::")
-fn @native merge(left, right) {
+native fn `:::`(left, right) {
   @Lua"
     local u = table.unpack or unpack;
     local tbl = { u(left) };
@@ -192,53 +172,42 @@ fn @native merge(left, right) {
   ";
 }
 
-@operator("+?")
-fn maybe_sum(left, right) {
+fn `+?`(left, right) {
   return left and (left + right);
 }
-@operator("+??")
-fn maybe_sum_or(left, right) {
+fn `+??`(left, right) {
   return left and (left + right) or right;
 }
 
-@operator("++?")
-fn maybe_concat(left, right) {
+fn `++?`(left, right) {
   return left and (left ++ right);
 }
-@operator("++??")
-fn maybe_concat_or(left, right) {
+fn `++??`(left, right) {
   return left and (left ++ right) or right;
 }
 
-@operator("-?")
-fn maybe_subtract(left, right) {
+fn `-?`(left, right) {
   return left and (left - right);
 }
-@operator("-??")
-fn maybe_subtract_or(left, right) {
+fn `-??`(left, right) {
   return left and (left - right) or right;
 }
 
-@operator("*?")
-fn maybe_times(left, right) {
+fn `*?`(left, right) {
   return left and (left * right);
 }
-@operator("*??")
-fn maybe_times_or(left, right) {
+fn `*??`(left, right) {
   return left and (left * right) or right;
 }
 
-@operator("/?")
-fn maybe_divide(left, right) {
+fn `/?`(left, right) {
   return left and (left / right);
 }
-@operator("/??")
-fn maybe_divide_or(left, right) {
+fn `/??`(left, right) {
   return left and (left / right) or right;
 }
 
-@operator("..")
-fn range(start, _end) {
+fn `..`(start, _end) {
   let i = start;
   if start < _end {
     return () => {
@@ -265,11 +234,12 @@ return {
   Object,
   Tuple,
   Vector,
-  operator,
   range,
   abstract,
   trait,
   impl,
   mixin,
-  panic
+  panic,
+  entries,
+  `:::`, `..`, `|>`, `<|`, `+?`, `+??`, `++?`, `++??`, `-?`, `-??`, `*?`, `*??`, `/?`, `/??`
 };

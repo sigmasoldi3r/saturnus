@@ -1,12 +1,10 @@
-let { operator, entries } = use std;
+let { entries, `+?` } = use std;
 
-@operator("|>")
-fn pipe_right(left, right) {
+fn `|>`(left, right) {
   return right(left);
 }
 
-@operator("<|")
-fn pipe_left(left, right) {
+fn `<|`(left, right) {
   return left(right);
 }
 
@@ -19,3 +17,5 @@ let r = 101
 let kind = type <| r |> a => "(" ++ a ++ ")";
 
 print("Result = " ++ r ++ " " ++ kind);
+print("Maybe sum", () +? 10);
+print("Maybe sum", 10 +? 10);

@@ -24,7 +24,7 @@ fn escape_string(str: String) -> String {
 }
 
 fn translate_operator(ctx: Builder, op: String) -> Builder {
-    let ctx = ctx.put("__");
+    let ctx = ctx.put("__saturnus_operator_");
     let name = op
         .into_bytes()
         .iter()

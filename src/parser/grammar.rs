@@ -48,7 +48,7 @@ peg::parser! {
             / expected!("Loop")
 
         rule func() -> Function
-            = decorators:decorator_list() FN() __ NATIVE() __ name:identifier() _ arguments:argument_list()
+            = decorators:decorator_list() NATIVE() __ FN() __ name:identifier() _ arguments:argument_list()
               _ "{" native:(__ "@" name:identifier() _ source:string_literal() _ EOS() { (name, source) })+ __ "}"
             { Function { name, decorators, body: Script { statements: vec![] }, arguments, native: Some(native) } }
             /
@@ -300,8 +300,40 @@ peg::parser! {
             / expected!("Decorator")
 
         rule identifier() -> Identifier
-            = value:$(IDENT())
-            { Identifier(value.into()) }
+            = "`" value:$(['^'|'+'|'-'|'*'|'/'|'.'|'|'|'>'|'<'|'='|'?'|'!'|'~'|'%'|'&'|'#'|'$'|':']+) "`"
+            { Identifier(format!("__saturnus_operator_{}", value.to_owned().into_bytes()
+                .iter()
+                .map(|ch| {
+                    match ch {
+                        b'+' => "plus",
+                        b'-' => "minus",
+                        b'*' => "times",
+                        b'/' => "slash",
+                        b'.' => "dot",
+                        b'|' => "pipe",
+                        b'>' => "greater",
+                        b'<' => "less",
+                        b'=' => "equals",
+                        b'?' => "interrogation",
+                        b'!' => "exclamation",
+                        b'~' => "tilde",
+                        b'%' => "percent",
+                        b'&' => "ampersand",
+                        b'#' => "bang",
+                        b'$' => "dollar",
+                        b'^' => "power",
+                        b':' => "colon",
+                        _ => panic!(
+                            "Error! Unexpected operator {} to be translated as a function!",
+                            ch
+                        ),
+                    }
+                    .to_owned()
+                })
+                .collect::<Vec<String>>()
+                .join("_")))
+            }
+            / value:$(IDENT()) { Identifier(value.into()) }
             / expected!("Identifier")
 
         rule wrapped_comma_expr() -> Vec<Expression>
@@ -336,7 +368,8 @@ peg::parser! {
         rule CLASS() = "class"
         rule END() = "end"
         rule FN() = "fn"
-        rule NATIVE() = "@native"
+        rule NATIVE() = "native"
+        rule MACRO() = "macro"
         rule ANY() = quiet!{ [_] } / expected!("Any character")
         rule BLANK() = ['\t'|' '] / expected!("White space")
         rule WS() = BLANK() / LINE_COMMENT() / BLOCK_COMMENT() / EOL()

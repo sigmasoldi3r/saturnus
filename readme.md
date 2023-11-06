@@ -57,10 +57,11 @@ files next to your `.saturn` files.
 
 ### Where to get the binaries?
 
-Currently the CD is disabled, however you can grab the latest
-[artifacts from the nightly branch][nightly], **BUT!**
+Currently the CD is disabled, however you can grab the latest [artifacts from
+the nightly branch][nightly], **BUT!**
 
-[nightly]: https://github.com/sigmasoldi3r/Saturnus/actions/workflows/build-artifacts.yml
+[nightly]:
+  https://github.com/sigmasoldi3r/Saturnus/actions/workflows/build-artifacts.yml
 
 **BUT...** beware that the artifacts will be surely outdated.
 
@@ -283,8 +284,8 @@ let name = person.get_name(); // Dynamic dispatch
 Person::greet(person); // Static method dispatch!
 ```
 
-Polymorphism example, altough if you're familiar with the term
-["Duck Typing"][duck-type], you won't need this example:
+Polymorphism example, altough if you're familiar with the term ["Duck
+Typing"][duck-type], you won't need this example:
 
 [duck-type]: https://en.wikipedia.org/wiki/Duck_typing
 
@@ -315,6 +316,7 @@ print(consumer.consume(bar));
 ```
 
 Also you can decorate the code:
+
 ```rs
 @bar()
 class Foo {
@@ -328,6 +330,20 @@ class Foo {
 fn suite() {
   print("Yay!");
 }
+```
+
+Custom operators!
+
+```rs
+let { `..` } = use std; // You can bring em from libraries
+
+// Or define in-situ
+fn `->`(left, right) {
+  return left ++ right ++ right ++ left;
+}
+
+let foo = "foo" -> "bar";
+// Will yield "foobarbarfoo"
 ```
 
 ## Why replace Lua?

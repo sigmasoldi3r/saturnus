@@ -1,5 +1,4 @@
-
-
+// Example of decorators for functions
 fn test() {
     return (target, name) => {
         print("Adding " ++ name ++ " to the test suite!");
