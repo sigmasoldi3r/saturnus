@@ -128,29 +128,6 @@ fn abstract() {
   };
 }
 
-// Operators & meta
-
-let symbols = {
-  "+": "plus",
-  "-": "minus",
-  "*": "times",
-  "/": "slash",
-  ".": "dot",
-  "|": "pipe",
-  ">": "greater",
-  "<": "less",
-  "=": "equals",
-  "?": "interrogation",
-  "!": "exclamation",
-  "~": "tilde",
-  "%": "percent",
-  "&": "ampersand",
-  "#": "bang",
-  "$": "dollar",
-  "^": "power",
-  ":": "colon"
-};
-
 // STD Custom operators
 
 fn `|>`(left, right) {
