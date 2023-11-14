@@ -487,12 +487,11 @@ impl Visitor for LuaEmitter {
     fn visit_extern_block(&self, ctx: Builder, stmt: &ast::Extern) -> Result {
         match stmt.id.as_str() {
             "Lua" => {
-                let spaces = ctx.get_indent();
                 let ctx = ctx
                     .line()
                     .put("-- <extern \"Lua\"> --")
                     .put(&stmt.src)
-                    .put(format!("{}-- </extern> --", spaces));
+                    .put("-- </extern> --");
                 Ok(ctx)
             }
             _ => Ok(ctx),
