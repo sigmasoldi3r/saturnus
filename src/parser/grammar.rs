@@ -1,4 +1,5 @@
 use super::ast::*;
+use super::helpers::generate_operator_function_name;
 
 peg::parser! {
     grammar saturnus_script() for str {
@@ -144,15 +145,15 @@ peg::parser! {
 
         rule binary_expression() -> Expression = precedence! {
             value:$("-") _ expression:@ { UnaryExpression { expression, operator: Operator(value.into()) }.into() }
-            value:$("+") _ expression:@ { UnaryExpression { expression, operator: Operator(value.into()) }.into() }
+            // value:$("+") _ expression:@ { UnaryExpression { expression, operator: Operator(value.into()) }.into() }
             value:$("#?") _ expression:@ { UnaryExpression { expression, operator: Operator(value.into()) }.into() }
             value:$("not") _ expression:@ { UnaryExpression { expression, operator: Operator(value.into()) }.into() }
-            value:$("~^") _ expression:@ { UnaryExpression { expression, operator: Operator(value.into()) }.into() }
+            // value:$("~^") _ expression:@ { UnaryExpression { expression, operator: Operator(value.into()) }.into() }
             // value:$("!" _ expression:@ { UnaryExpression { expression, operator: Operator(value.into()) }.into() }
-            value:$("~") _ expression:@ { UnaryExpression { expression, operator: Operator(value.into()) }.into() }
+            // value:$("~") _ expression:@ { UnaryExpression { expression, operator: Operator(value.into()) }.into() }
             // value:$("¬" _ expression:@ { UnaryExpression { expression, operator: Operator(value.into()) }.into() }
-            value:$("$") _ expression:@ { UnaryExpression { expression, operator: Operator(value.into()) }.into() }
-            value:$("!?") _ expression:@ { UnaryExpression { expression, operator: Operator(value.into()) }.into() }
+            // value:$("$") _ expression:@ { UnaryExpression { expression, operator: Operator(value.into()) }.into() }
+            // value:$("!?") _ expression:@ { UnaryExpression { expression, operator: Operator(value.into()) }.into() }
             --
             left:(@) _ value:$("++") _ right:@ { BinaryExpression { left, right, operator: Operator(value.into()) }.into() }
             left:(@) _ value:$("..") _ right:@ { BinaryExpression { left, right, operator: Operator(value.into()) }.into() }
@@ -190,7 +191,7 @@ peg::parser! {
             left:(@) _ value:$(">>") _ right:@ { BinaryExpression { left, right, operator: Operator(value.into()) }.into() }
             --
             // Extra logic:
-            left:(@) _ value:$(['^'|'+'|'-'|'*'|'/'|'.'|'|'|'>'|'<'|'='|'?'|'!'|'~'|'%'|'&'|'#'|'$'|':']+) _ right:@ {
+            left:(@) _ value:$(ANY_OPERATOR()) _ right:@ {
                 BinaryExpression { left, right, operator: Operator(value.into()) }.into()
             }
             --
@@ -318,37 +319,7 @@ peg::parser! {
 
         rule identifier() -> Identifier
             = "`" value:$(['^'|'+'|'-'|'*'|'/'|'.'|'|'|'>'|'<'|'='|'?'|'!'|'~'|'%'|'&'|'#'|'$'|':']+) "`"
-            { Identifier(format!("__saturnus_operator_{}", value.to_owned().into_bytes()
-                .iter()
-                .map(|ch| {
-                    match ch {
-                        b'+' => "plus",
-                        b'-' => "minus",
-                        b'*' => "times",
-                        b'/' => "slash",
-                        b'.' => "dot",
-                        b'|' => "pipe",
-                        b'>' => "greater",
-                        b'<' => "less",
-                        b'=' => "equals",
-                        b'?' => "interrogation",
-                        b'!' => "exclamation",
-                        b'~' => "tilde",
-                        b'%' => "percent",
-                        b'&' => "ampersand",
-                        b'#' => "bang",
-                        b'$' => "dollar",
-                        b'^' => "power",
-                        b':' => "colon",
-                        _ => panic!(
-                            "Error! Unexpected operator {} to be translated as a function!",
-                            ch
-                        ),
-                    }
-                    .to_owned()
-                })
-                .collect::<Vec<String>>()
-                .join("_")))
+            { Identifier(generate_operator_function_name(value.to_owned()))
             }
             / value:$(IDENT()) { Identifier(value.into()) }
             / expected!("Identifier")
@@ -387,6 +358,7 @@ peg::parser! {
         rule FN() = "fn"
         rule NATIVE() = "native"
         rule MACRO() = "macro"
+        rule ANY_OPERATOR() = ['^'|'+'|'-'|'*'|'/'|'.'|'|'|'>'|'<'|'='|'?'|'!'|'~'|'%'|'&'|'#'|'$'|':']+
         rule ANY() = quiet!{ [_] } / expected!("Any character")
         rule BLANK() = ['\t'|' '] / expected!("White space")
         rule WS() = BLANK() / LINE_COMMENT() / BLOCK_COMMENT() / EOL()

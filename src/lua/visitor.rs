@@ -3,7 +3,10 @@ use crate::{
         ast_visitor::{Result, VisitError, Visitor},
         builder::Builder,
     },
-    parser::ast::{self},
+    parser::{
+        ast::{self},
+        helpers::generate_operator_function_name,
+    },
 };
 
 #[derive(Debug)]
@@ -21,43 +24,6 @@ impl std::error::Error for BadCode {
 
 fn escape_string(str: String) -> String {
     return str.replace("\n", "\\n");
-}
-
-fn translate_operator(ctx: Builder, op: String) -> Builder {
-    let ctx = ctx.put("__saturnus_operator_");
-    let name = op
-        .into_bytes()
-        .iter()
-        .map(|ch| {
-            match ch {
-                b'+' => "plus",
-                b'-' => "minus",
-                b'*' => "times",
-                b'/' => "slash",
-                b'.' => "dot",
-                b'|' => "pipe",
-                b'>' => "greater",
-                b'<' => "less",
-                b'=' => "equals",
-                b'?' => "interrogation",
-                b'!' => "exclamation",
-                b'~' => "tilde",
-                b'%' => "percent",
-                b'&' => "ampersand",
-                b'#' => "bang",
-                b'$' => "dollar",
-                b'^' => "power",
-                b':' => "colon",
-                _ => panic!(
-                    "Error! Unexpected operator {} to be translated as a function!",
-                    ch
-                ),
-            }
-            .to_owned()
-        })
-        .collect::<Vec<String>>()
-        .join("_");
-    ctx.put(name)
 }
 
 pub struct LuaEmitter();
@@ -599,7 +565,8 @@ impl Visitor for LuaEmitter {
             }
             _ => {
                 // Direct function translation
-                let ctx = translate_operator(ctx, op.to_owned()).put("(");
+                let custom_fn_name = generate_operator_function_name(op.to_owned());
+                let ctx = ctx.put(format!("{custom_fn_name}("));
                 let ctx = self.visit_expression(ctx, &expr.left)?.put(", ");
                 let ctx = self.visit_expression(ctx, &expr.right)?.put(")");
                 Ok(ctx)
