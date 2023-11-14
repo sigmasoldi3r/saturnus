@@ -172,14 +172,14 @@ peg::parser! {
             --
             left:(@) _ value:$("%") _ right:@ { BinaryExpression { left, right, operator: Operator(value.into()) }.into() }
             --
-            left:(@) _ value:$(">=<") _ right:@ { BinaryExpression { left, right, operator: Operator(value.into()) }.into() }
-            left:(@) _ value:$(">=") _ right:@ { BinaryExpression { left, right, operator: Operator(value.into()) }.into() }
-            left:(@) _ value:$(">") _ right:@ { BinaryExpression { left, right, operator: Operator(value.into()) }.into() }
-            left:(@) _ value:$("<=>") _ right:@ { BinaryExpression { left, right, operator: Operator(value.into()) }.into() }
-            left:(@) _ value:$("<=") _ right:@ { BinaryExpression { left, right, operator: Operator(value.into()) }.into() }
-            left:(@) _ value:$("<>") _ right:@ { BinaryExpression { left, right, operator: Operator(value.into()) }.into() }
-            left:(@) _ value:$("<") _ right:@ { BinaryExpression { left, right, operator: Operator(value.into()) }.into() }
-            left:(@) _ value:$("==") _ right:@ { BinaryExpression { left, right, operator: Operator(value.into()) }.into() }
+            left:(@) _ value:$(">=<" !"-") _ right:@ { BinaryExpression { left, right, operator: Operator(value.into()) }.into() }
+            left:(@) _ value:$(">=" !"-") _ right:@ { BinaryExpression { left, right, operator: Operator(value.into()) }.into() }
+            left:(@) _ value:$(">" !"-") _ right:@ { BinaryExpression { left, right, operator: Operator(value.into()) }.into() }
+            left:(@) _ value:$("<=>" !"-") _ right:@ { BinaryExpression { left, right, operator: Operator(value.into()) }.into() }
+            left:(@) _ value:$("<=" !"-") _ right:@ { BinaryExpression { left, right, operator: Operator(value.into()) }.into() }
+            left:(@) _ value:$("<>" !"-") _ right:@ { BinaryExpression { left, right, operator: Operator(value.into()) }.into() }
+            left:(@) _ value:$("<" !"-") _ right:@ { BinaryExpression { left, right, operator: Operator(value.into()) }.into() }
+            left:(@) _ value:$("==" !"-") _ right:@ { BinaryExpression { left, right, operator: Operator(value.into()) }.into() }
             --
             left:(@) _ value:$("and") _ right:@ { BinaryExpression { left, right, operator: Operator(value.into()) }.into() }
             left:(@) _ value:$("or") _ right:@ { BinaryExpression { left, right, operator: Operator(value.into()) }.into() }

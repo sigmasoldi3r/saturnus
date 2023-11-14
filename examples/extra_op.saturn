@@ -20,6 +20,16 @@ print("Result = " ++ r ++ " " ++ kind);
 print("Maybe sum", () +? 10);
 print("Maybe sum", 10 +? 10);
 
+fn `<-`(a, b) {
+  return tonumber(tostring(a) ++ tostring(b));
+}
+
+// With the use of some operators, you must be aware that
+// Saturnus is space-sensitive in some cases:
+let a = 10 < -5;
+let b = 10 <- 5;
+print("Difference between operators:", a, b);
+
 // Custom operators forbid implicit assignment,
 // can be solved using builder patterns.
 fn `->>`(a, b) {
