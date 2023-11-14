@@ -20,6 +20,16 @@ let compatible = false;
   };
   compatible = true;
 </extern>
+<extern "Foo">
+  what bro?
+  foo script does not exist!
+  at least not for Saturnus... not yet...
+  anyway, you can remain calm about this code block.
+  It will not make it to the last stage!
+  Don't trust me?
+  run: saturnus -c --no-std examples/extern_code_and_bindings.saturn
+  Then see the output!
+</extern>
 
 // Note: The "if true" in Lua is neccessary, as an statement
 // after return is considered a syntax error.
