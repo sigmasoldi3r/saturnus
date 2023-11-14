@@ -1,3 +1,14 @@
+/*
+    Saturnus Standard Library
+*/
+
+// Runtime
+fn panic(message) {
+  <extern "Lua">
+    error(message);
+  </extern>
+}
+
 // Collections and iterators
 fn entries(tbl) {
   <extern "Lua">
@@ -66,11 +77,30 @@ class Tuple {
   }
 }
 
-// Runtime
-fn panic(message) {
-  <extern "Lua">
-    error(message);
-  </extern>
+// File system name space.
+class fs {
+  fn read_file(path) {
+    <extern "Lua">
+      if true then
+        local f = io.open(path, 'r');
+        local data = f:read('*all');
+        f:close();
+        return data;
+      end
+    </extern>
+    panic("File system's read file supported for this platform!");
+  }
+  fn write_file(path, content) {
+    <extern "Lua">
+      if true then
+        local f = io.open(path, 'w');
+        f:write(content);
+        f:close();
+        return;
+      end
+    </extern>
+    panic("File system's write file supported for this platform!");
+  }
 }
 
 // OOP and inheritance
@@ -126,7 +156,6 @@ fn abstract() {
 }
 
 // STD Custom operators
-
 fn `|>`(left, right) {
   return right(left);
 }
@@ -215,5 +244,7 @@ return {
   mixin,
   panic,
   entries,
-  `:::`, `..`, `|>`, `<|`, `+?`, `+??`, `++?`, `++??`, `-?`, `-??`, `*?`, `*??`, `/?`, `/??`
+  fs,
+  `:::`, `..`, `|>`, `<|`, `+?`, `+??`, `++?`, `++??`, `-?`, `-??`, `*?`, `*??`,
+  `/?`, `/??`
 };
