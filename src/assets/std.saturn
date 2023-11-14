@@ -1,7 +1,6 @@
 // Collections and iterators
-
-native fn entries(tbl) {
-  @Lua"
+fn entries(tbl) {
+  <extern "Lua">
     local iter = pairs(tbl);
     return function(_, next)
       local k, v = iter(tbl, next and next._0);
@@ -9,7 +8,7 @@ native fn entries(tbl) {
         return { _0 = k, _1 = v }, v;
       end
     end;
-  ";
+  </extern>
 }
 
 let private = {};
@@ -68,15 +67,13 @@ class Tuple {
 }
 
 // Runtime
-
-native fn panic(message) {
-  @Lua"
+fn panic(message) {
+  <extern "Lua">
     error(message);
-  ";
+  </extern>
 }
 
 // OOP and inheritance
-
 let makeTrait = (name) => () => panic("Trait " ++ name ++ " is not constructible!");
 
 fn trait() {
@@ -138,15 +135,15 @@ fn `<|`(left, right) {
   return left(right);
 }
 
-native fn `:::`(left, right) {
-  @Lua"
+fn `:::`(left, right) {
+  <extern "Lua">
     local u = table.unpack or unpack;
     local tbl = { u(left) };
     for _, v in pairs(right) do
       tbl[#tbl + 1] = v;
     end
     return tbl;
-  ";
+  </extern>
 }
 
 fn `+?`(left, right) {

@@ -104,7 +104,7 @@ impl Visitor for LuaEmitter {
 
     fn visit_block_expression(&self, ctx: Builder, expr: &ast::Do) -> Result {
         let ctx = ctx.put("(function(...)").push();
-        let ctx = self.visit_script(ctx, &expr.body)?;
+        let ctx = self.visit_block(ctx, &expr.body)?;
         let ctx = ctx.pop().unwrap().line().put("end)(...)");
         Ok(ctx)
     }
@@ -139,6 +139,12 @@ impl Visitor for LuaEmitter {
             .put("end;")
             .line()
             .put(format!("{}.prototype = {{}};", stmt.name.0.clone()))
+            .line()
+            .put(format!(
+                "{}.prototype.__proto__ = {};",
+                stmt.name.0.clone(),
+                stmt.name.0.clone()
+            ))
             .line()
             .put(format!(
                 "{}.prototype.__meta__ = {{}};",
@@ -255,19 +261,7 @@ impl Visitor for LuaEmitter {
             ctx.put("...")
         };
         let ctx = ctx.put(")").push();
-        let ctx = if let Some(native) = stmt.native.clone() {
-            let ctx = ctx.line().put("-- NATIVE CODE");
-            match native.iter().find(|(ident, _)| ident.0 == "Lua") {
-                Some((_, src)) => match src {
-                    ast::StringLiteral::Double(src) => ctx.put(src),
-                },
-                None => ctx.put("error('Native function implementation not found')"),
-            }
-            .line()
-            .put("-- NATIVE CODE")
-        } else {
-            self.visit_script(ctx, &stmt.body)?
-        };
+        let ctx = self.visit_block(ctx, &stmt.body)?;
         let ctx = ctx.pop().unwrap().line().put("end");
         let ctx = stmt.decorators.iter().fold(Ok(ctx), |ctx, dec| {
             let ctx = ctx?.line();
@@ -361,7 +355,7 @@ impl Visitor for LuaEmitter {
         };
         let ctx = ctx.put(")").push();
         let ctx = match &expr.body {
-            ast::ScriptOrExpression::Script(e) => self.visit_script(ctx, e)?,
+            ast::ScriptOrExpression::Script(e) => self.visit_block(ctx, e)?,
             ast::ScriptOrExpression::Expression(e) => self
                 .visit_expression(ctx.line().put("return "), e)
                 .map(|b| b.put(";"))?,
@@ -490,6 +484,21 @@ impl Visitor for LuaEmitter {
         Ok(ctx)
     }
 
+    fn visit_extern_block(&self, ctx: Builder, stmt: &ast::Extern) -> Result {
+        match stmt.id.as_str() {
+            "Lua" => {
+                let spaces = ctx.get_indent();
+                let ctx = ctx
+                    .line()
+                    .put("-- <extern \"Lua\"> --")
+                    .put(&stmt.src)
+                    .put(format!("{}-- </extern> --", spaces));
+                Ok(ctx)
+            }
+            _ => Ok(ctx),
+        }
+    }
+
     fn visit_number(&self, ctx: Builder, expr: &ast::Number) -> Result {
         let numeric_string = match expr {
             ast::Number::Float(e) => e.to_string(),
@@ -499,9 +508,7 @@ impl Visitor for LuaEmitter {
     }
 
     fn visit_string(&self, ctx: Builder, expr: &ast::StringLiteral) -> Result {
-        let ctx = match expr {
-            ast::StringLiteral::Double(s) => ctx.put("\"").put(escape_string(s.clone())).put("\""),
-        };
+        let ctx = ctx.put("\"").put(escape_string(expr.0.clone())).put("\"");
         Ok(ctx)
     }
 
@@ -589,17 +596,17 @@ impl Visitor for LuaEmitter {
         let ctx = ctx.line().put("if ");
         let ctx = self.visit_expression(ctx, &expr.condition)?;
         let ctx = ctx.put(" then").push();
-        let ctx = self.visit_script(ctx, &expr.body)?;
+        let ctx = self.visit_block(ctx, &expr.body)?;
         let ctx = expr.branches.iter().fold(Ok(ctx), |ctx, (c, s)| {
             let ctx = ctx?.pop().unwrap().line().put("elseif ");
             let ctx = self.visit_expression(ctx, c)?;
             let ctx = ctx.put(" then").push();
-            let ctx = self.visit_script(ctx, s)?;
+            let ctx = self.visit_block(ctx, s)?;
             Ok(ctx)
         })?;
         let ctx = if let Some(eb) = expr.else_branch.as_ref() {
             let ctx = ctx.pop().unwrap().line().put("else").push();
-            self.visit_script(ctx, eb)?
+            self.visit_block(ctx, eb)?
         } else {
             ctx
         };
@@ -675,14 +682,14 @@ impl Visitor for LuaEmitter {
                 let ctx = self.visit_expression(ctx, &expr.target)?;
                 let ctx = ctx.put(" do").push();
                 let ctx = self.generate_destructured_assignment(ctx, &e)?;
-                let ctx = self.visit_script(ctx, &expr.body)?;
+                let ctx = self.visit_block(ctx, &expr.body)?;
                 ctx.pop().unwrap().line().put("end")
             }
             ast::AssignmentTarget::Identifier(e) => {
                 let ctx = ctx.line().put(format!("for {} in ", e.0.clone()));
                 let ctx = self.visit_expression(ctx, &expr.target)?;
                 let ctx = ctx.put(" do").push();
-                let ctx = self.visit_script(ctx, &expr.body)?;
+                let ctx = self.visit_block(ctx, &expr.body)?;
                 ctx.pop().unwrap().line().put("end")
             }
         };
@@ -695,7 +702,7 @@ impl Visitor for LuaEmitter {
                 let ctx = ctx.line().put("while ");
                 let ctx = self.visit_expression(ctx, e)?;
                 let ctx = ctx.put(" do").push();
-                let ctx = self.visit_script(ctx, &expr.body)?;
+                let ctx = self.visit_block(ctx, &expr.body)?;
                 ctx.pop().unwrap().line().put("end")
             }
             ast::ExpressionOrLet::Let(e) => {
@@ -703,7 +710,7 @@ impl Visitor for LuaEmitter {
                     let ctx = ctx.line().put("do").push();
                     let ctx = self.visit_declaration(ctx, e)?;
                     let ctx = ctx.line().put(format!("while {} do", id.0.clone())).push();
-                    let ctx = self.visit_script(ctx, &expr.body)?;
+                    let ctx = self.visit_block(ctx, &expr.body)?;
                     let ctx = self.visit_assignment(
                         ctx,
                         &ast::Assignment {
@@ -733,7 +740,7 @@ impl Visitor for LuaEmitter {
 
     fn visit_loop(&self, ctx: Builder, expr: &ast::Loop) -> Result {
         let ctx = ctx.line().put("while true do").push();
-        let ctx = self.visit_script(ctx, &expr.body)?;
+        let ctx = self.visit_block(ctx, &expr.body)?;
         let ctx = ctx.pop().unwrap().line().put("end");
         Ok(ctx)
     }
