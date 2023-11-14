@@ -19,3 +19,19 @@ let kind = type <| r |> a => "(" ++ a ++ ")";
 print("Result = " ++ r ++ " " ++ kind);
 print("Maybe sum", () +? 10);
 print("Maybe sum", 10 +? 10);
+
+// Custom operators forbid implicit assignment,
+// can be solved using builder patterns.
+fn `->>`(a, b) {
+  return a ++ ", " ++ b;
+}
+fn `->>=`(b, x) {
+  b._0 = b._0 ->> x;
+  return b;
+}
+
+let x = ("a list", 0);
+x ->>= "of";
+x ->>= "items";
+x ->>= "maybe";
+print(x._0);

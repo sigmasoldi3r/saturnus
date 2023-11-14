@@ -89,8 +89,12 @@ peg::parser! {
             / expected!("Variable declaration")
 
         rule assignment() -> Assignment
-            = target:member_expression() _ extra:assign_extra()? "=" _ value:expression() _ EOS()
+            = target:member_expression() _ extra:extra_operator()? "=" _ value:expression() _ EOS()
             { Assignment { target, value, extra } }
+
+        rule extra_operator() -> Operator
+            = value:$("++"/"+"/"-"/"*"/"/")
+            { Operator(value.to_owned()) }
 
         rule return_stmt() -> Return
             = "return" __ value:expression() _ EOS()
@@ -295,13 +299,6 @@ peg::parser! {
             = e:declare_var() { ClassField::Let(e) }
             / e:func() { ClassField::Method(e) }
 
-        rule assign_extra() -> Operator
-            = value:$("++") { Operator(value.into()) }
-            / value:$("+") { Operator(value.into()) }
-            / value:$("-") { Operator(value.into()) }
-            / value:$("*") { Operator(value.into()) }
-            / value:$("/") { Operator(value.into()) }
-
         rule argument_list() -> Vec<Argument>
             = "(" _ args:argument() ** (_ "," _) _ ")" { args }
 
@@ -318,7 +315,7 @@ peg::parser! {
             / expected!("Decorator")
 
         rule identifier() -> Identifier
-            = "`" value:$(['^'|'+'|'-'|'*'|'/'|'.'|'|'|'>'|'<'|'='|'?'|'!'|'~'|'%'|'&'|'#'|'$'|':']+) "`"
+            = "`" value:$(ANY_OPERATOR()) "`"
             { Identifier(generate_operator_function_name(value.to_owned()))
             }
             / value:$(IDENT()) { Identifier(value.into()) }
@@ -358,7 +355,7 @@ peg::parser! {
         rule FN() = "fn"
         rule NATIVE() = "native"
         rule MACRO() = "macro"
-        rule ANY_OPERATOR() = ['^'|'+'|'-'|'*'|'/'|'.'|'|'|'>'|'<'|'='|'?'|'!'|'~'|'%'|'&'|'#'|'$'|':']+
+        rule ANY_OPERATOR() = ['^'|'+'|'-'|'*'|'/'|'.'|'|'|'>'|'<'|'?'|'!'|'~'|'%'|'&'|'#'|'$'|':'|'=']+ !"="
         rule ANY() = quiet!{ [_] } / expected!("Any character")
         rule BLANK() = ['\t'|' '] / expected!("White space")
         rule WS() = BLANK() / LINE_COMMENT() / BLOCK_COMMENT() / EOL()
