@@ -85,9 +85,18 @@ impl Builder {
             ..self
         }
     }
+    pub fn get_level(&self) -> u16 {
+        self.level
+    }
+    pub fn get_spaces(&self) -> String {
+        self.get_indent().repeat(self.get_level().into())
+    }
+    pub fn get_indent(&self) -> String {
+        self.indent.clone()
+    }
     pub fn line(self) -> Self {
         Builder {
-            buffer: format!("{}\n{}", self.buffer, self.indent.repeat(self.level.into())),
+            buffer: format!("{}\n{}", self.buffer, self.get_spaces()),
             ..self
         }
     }

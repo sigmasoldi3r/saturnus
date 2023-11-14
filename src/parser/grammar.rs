@@ -12,6 +12,7 @@ peg::parser! {
             = e:macro_decorator() { Statement::MacroDecorator(Box::new(e)) }
             / e:class() { Statement::Class(e) }
             / e:func() { Statement::Function(e) }
+            / e:extern_block() { Statement::Extern(e) }
             / e:for_each() { Statement::For(e) }
             / e:while_loop() { Statement::While(e) }
             / e:loop_loop() {  Statement::Loop(e) }
@@ -64,11 +65,8 @@ peg::parser! {
             / expected!("Loop")
 
         rule func() -> Function
-            = decorators:decorator_list() NATIVE() __ FN() __ name:identifier() _ arguments:argument_list()
-              _ "{" native:(__ "@" name:identifier() _ source:string_literal() _ EOS() { (name, source) })+ __ "}"
-            { Function { name, decorators, body: Script { statements: vec![] }, arguments, native: Some(native) } }
-            / decorators:decorator_list() FN() __ name:identifier() _ arguments:argument_list() _ body:func_body()
-            { Function { name, decorators, body, arguments, native: None } }
+            = decorators:decorator_list() FN() __ name:identifier() _ arguments:argument_list() _ body:func_body()
+            { Function { name, decorators, body, arguments } }
             / expected!("Function declaration")
 
         rule func_body() -> Script
@@ -87,6 +85,10 @@ peg::parser! {
         rule declare_var() -> Let
             = e:let_expression() _ EOS() { e }
             / expected!("Variable declaration")
+
+        rule extern_block() -> Extern
+            = "<extern" _ id:string_literal() ">" src:$(!"</extern>" ANY())* "</extern>"
+            { Extern { id: id.0, src: src.join("") } }
 
         rule assignment() -> Assignment
             = target:member_expression() _ extra:extra_operator()? "=" _ value:expression() _ EOS()
@@ -255,7 +257,7 @@ peg::parser! {
         rule string_literal() -> StringLiteral
             = "\"" value:$(
                 ( "\\\"" / (!"\"" ANY()) )*
-            ) "\"" { StringLiteral::Double(value.into()) }
+            ) "\"" { StringLiteral(value.into()) }
             / expected!("String literal")
 
         rule vector_literal() -> Vector
@@ -353,7 +355,8 @@ peg::parser! {
         rule CLASS() = "class"
         rule END() = "end"
         rule FN() = "fn"
-        rule NATIVE() = "native"
+        rule EXTERN() = "extern"
+        rule NATIVE() = "native" // Deprecated!
         rule MACRO() = "macro"
         rule ANY_OPERATOR() = ['^'|'+'|'-'|'*'|'/'|'.'|'|'|'>'|'<'|'?'|'!'|'~'|'%'|'&'|'#'|'$'|':'|'=']+ !"="
         rule ANY() = quiet!{ [_] } / expected!("Any character")

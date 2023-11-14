@@ -1,0 +1,48 @@
+// Sometimes there are platform dependent quirks
+// that cannot be made into native Saturnus, or
+// other kind of code that would be far less efficient
+// under the saturnus' compiled code.
+use std;
+let { panic } = std;
+
+// In those cases, we have "extern" blocks, which will
+// only compile statically, as-is, depending on the target
+// platform. For now, we only have "Lua" targets.
+
+let compatible = false;
+<extern "Lua">
+  local some = {
+    lua = {
+      quirk = function()
+        return "foo", "bar";
+      end
+    }
+  };
+  compatible = true;
+</extern>
+<extern "Foo">
+  what bro?
+  foo script does not exist!
+  at least not for Saturnus... not yet...
+  anyway, you can remain calm about this code block.
+  It will not make it to the last stage!
+  Don't trust me?
+  run: saturnus -c --no-std examples/extern_code_and_bindings.saturn
+  Then see the output!
+</extern>
+
+// Note: The "if true" in Lua is neccessary, as an statement
+// after return is considered a syntax error.
+fn some_hiatus_code() {
+  <extern "Lua">
+    if true then
+      local a, b = some.lua.quirk();
+      local foo = a .. b;
+      return foo;
+    end
+  </extern>
+  panic("Not supported on this platform!");
+}
+
+let what = some_hiatus_code();
+print("Handling Lua code like:", what);

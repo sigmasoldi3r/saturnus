@@ -17,7 +17,12 @@ pub struct Function {
     pub arguments: Vec<Argument>,
     pub decorators: Vec<Decorator>,
     pub body: Script,
-    pub native: Option<Vec<(Identifier, StringLiteral)>>,
+}
+
+#[derive(Debug, Clone)]
+pub struct Extern {
+    pub id: String,
+    pub src: String,
 }
 
 #[derive(Debug, Clone)]
@@ -204,6 +209,7 @@ pub enum Statement {
     While(While),
     Return(Return),
     Class(Class),
+    Extern(Extern),
     Function(Function),
     Assignment(Assignment),
     Let(Let),
@@ -261,9 +267,7 @@ pub enum TableKeyExpression {
 }
 
 #[derive(Debug, Clone)]
-pub enum StringLiteral {
-    Double(String),
-}
+pub struct StringLiteral(pub String);
 
 #[derive(Debug, Clone)]
 pub enum Expression {

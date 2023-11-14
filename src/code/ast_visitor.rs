@@ -38,6 +38,7 @@ pub trait Visitor {
     fn visit_declaration(&self, ctx: Builder, stmt: &Let) -> Result;
     fn visit_expression_statement(&self, ctx: Builder, stmt: &Expression) -> Result;
     fn visit_use_statement(&self, ctx: Builder, stmt: &Identifier) -> Result;
+    fn visit_extern_block(&self, ctx: Builder, stmt: &Extern) -> Result;
 
     // Looping
     fn visit_for(&self, ctx: Builder, expr: &For) -> Result;
@@ -89,6 +90,7 @@ pub trait Visitor {
             ast::Statement::Match(e) => self.visit_match(ctx, e),
             ast::Statement::Expression(e) => self.visit_expression_statement(ctx, e),
             ast::Statement::Use(e) => self.visit_use_statement(ctx, e),
+            ast::Statement::Extern(e) => self.visit_extern_block(ctx, e),
         }
     }
     fn visit_block(&self, ctx: Builder, script: &Script) -> Result {
