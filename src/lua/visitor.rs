@@ -1,3 +1,5 @@
+use std::{collections::HashMap, path::PathBuf};
+
 use crate::{
     code::{
         ast_visitor::{Result, VisitError, Visitor},
@@ -26,9 +28,31 @@ fn escape_string(str: String) -> String {
     return str.replace("\n", "\\n");
 }
 
-pub struct LuaEmitter();
+pub struct LuaEmitter {
+    pub module_mapping: HashMap<String, PathBuf>,
+}
 
 impl LuaEmitter {
+    pub fn new() -> Self {
+        Self {
+            module_mapping: HashMap::new(),
+        }
+    }
+    pub fn map_module_path(&self, segments: &Vec<String>) -> String {
+        let path = segments.join(".");
+        let re = regex::Regex::new(r"\.saturn$").unwrap();
+        if let Some(found) = self.module_mapping.get(&path) {
+            let found = found
+                .iter()
+                .map(|p| p.to_str().unwrap().to_owned())
+                .collect::<Vec<String>>()
+                .join("/");
+            let found = re.replace_all(&found, "").to_string();
+            format!("./{found}")
+        } else {
+            path
+        }
+    }
     pub fn escape_reference(&self, ctx: Builder, ident: &ast::Identifier) -> Result {
         let ctx = match &ident.0 {
             a if a == "then" => ctx.put("['then']"),
@@ -371,16 +395,21 @@ impl Visitor for LuaEmitter {
         Ok(ctx)
     }
 
-    fn visit_use_expression(&self, ctx: Builder, expr: &ast::Identifier) -> Result {
-        Ok(ctx.put(format!("__modules__.{}", expr.0.clone())))
-    }
-
-    fn visit_use_statement(&self, ctx: Builder, expr: &ast::Identifier) -> Result {
-        let target = expr.0.clone();
-        let target2 = expr.0.clone();
-        Ok(ctx
+    fn visit_use_statement(&self, ctx: Builder, expr: &ast::UseStatement) -> Result {
+        let path = self.map_module_path(&expr.module);
+        let tail = expr.module.last().unwrap();
+        let ctx = ctx
             .line()
-            .put(format!("local {target} = __modules__.{target2};")))
+            .put(format!("local {} = require(\"{}\");", tail, path));
+        let ctx = if let Some(expand) = expr.expanded.as_ref() {
+            expand.iter().fold(ctx, |ctx, target| {
+                ctx.line()
+                    .put(format!("local {} = {}.{};", target.0, tail, target.0))
+            })
+        } else {
+            ctx
+        };
+        Ok(ctx)
     }
 
     fn visit_call(&self, ctx: Builder, expr: &ast::CallExpression) -> Result {

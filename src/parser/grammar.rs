@@ -10,6 +10,7 @@ peg::parser! {
         // Statements
         rule statement() -> Statement
             = e:macro_decorator() { Statement::MacroDecorator(Box::new(e)) }
+            / e:use_statement() { Statement::UseStatement(e) }
             / e:class() { Statement::Class(e) }
             / e:func() { Statement::Function(e) }
             / e:extern_block() { Statement::Extern(e) }
@@ -21,7 +22,6 @@ peg::parser! {
             / e:assignment() { Statement::Assignment(e) }
             / e:return_stmt() { Statement::Return(e) }
             / e:do_expression() { Statement::Expression(e) }
-            / e:use_literal() _ EOS() { Statement::Use(e) }
             / e:expression() _ EOS() { Statement::Expression(e) }
 
         rule macro_decorator() -> MacroDecorator
@@ -95,12 +95,25 @@ peg::parser! {
             { Assignment { target, value, extra } }
 
         rule extra_operator() -> Operator
-            = value:$("++"/"+"/"-"/"*"/"/")
+            = value:$("++" / "+" / "-" / "*" / "/")
             { Operator(value.to_owned()) }
 
         rule return_stmt() -> Return
             = "return" __ value:expression() _ EOS()
             { Return { value } }
+
+        rule use_segment() -> String
+            = value:identifier() { value.0 }
+            / value:string_literal() { value.0 }
+
+        rule use_target() -> Vec<String>
+            = value:use_segment() ++ (_ "." _) { value }
+
+        rule use_statement() -> UseStatement
+            = USE() _ "{" _ targets:(name:identifier() ** (_ "," _) { name }) _ "}" _ "in" __ module:use_target() _ EOS()
+            { UseStatement { module, expanded: Some(targets) } }
+            / USE() __ module:use_target() _ EOS()
+            { UseStatement { module, expanded: None } }
 
         // Expressions
         pub rule expression() -> Expression
@@ -213,7 +226,6 @@ peg::parser! {
             / table_expression()
             / tuple_expression()
             / do_expression()
-            / use_expression()
             / e:member_expression() { Expression::Reference(Box::new(e)) }
             / unit() { Expression::Unit }
             / enclosed_expression()
@@ -226,11 +238,6 @@ peg::parser! {
         rule table_expression() -> Expression = e:table_literal() { Expression::Table(e) }
         rule tuple_expression() -> Expression = e:tuple_literal() { Expression::Tuple(e) }
         rule do_expression() -> Expression = e:do_literal() { Expression::Do(e) }
-        rule use_expression() -> Expression = e:use_literal() { Expression::Use(e) }
-
-        rule use_literal() -> Identifier
-            = "use" __ target:identifier()
-            { target }
 
         rule enclosed_expression() -> Expression
             = "(" _ e:expression() _ ")" { Expression::Tuple1(Box::new(e)) }
@@ -354,6 +361,7 @@ peg::parser! {
         rule MUT() = "mut"
         rule CLASS() = "class"
         rule END() = "end"
+        rule USE() = "use"
         rule FN() = "fn"
         rule EXTERN() = "extern"
         rule NATIVE() = "native" // Deprecated!
