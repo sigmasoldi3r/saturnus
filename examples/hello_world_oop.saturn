@@ -17,14 +17,14 @@ class Greeter {
 
   // Operator overload also is here!
   operator +(self, other) {
-    return Greeter::new(self.name ++ " & " ++ other.name);
+    return Greeter.new(self.name ++ " & " ++ other.name);
   }
 }
 
 // Test it out!
-let world = Greeter::new("World");
+let world = Greeter.new("World");
 print(world.greet());
 
 // Test operators:
-let sum = Greeter::new("Foo") + Greeter::new("Bar");
+let sum = Greeter.new("Foo") + Greeter.new("Bar");
 print(sum.greet());

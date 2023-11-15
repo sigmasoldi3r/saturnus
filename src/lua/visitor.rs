@@ -75,8 +75,7 @@ impl LuaEmitter {
                 let ctx = s.visit_expression(ctx, &c)?;
                 Ok(ctx.put("]"))
             }
-            ast::MemberSegment::IdentifierDynamic(i) => self.escape_reference(ctx, i),
-            ast::MemberSegment::IdentifierStatic(_) => Err(VisitError(Box::new(BadCode))),
+            ast::MemberSegment::Identifier(i) => self.escape_reference(ctx, i),
         }
     }
     pub fn generate_destructured_assignment(&self, ctx: Builder, e: &ast::Destructuring) -> Result {
@@ -201,10 +200,22 @@ impl Visitor for LuaEmitter {
                         .put(level)
                         .put(f.name.0.clone())
                         .put(" = ");
+                    let arguments = if is_self {
+                        f.arguments.clone()
+                    } else {
+                        vec![ast::Argument {
+                            name: ast::Identifier("_".into()),
+                            decorators: vec![],
+                        }]
+                        .iter()
+                        .chain(f.arguments.iter())
+                        .map(|a| a.clone())
+                        .collect()
+                    };
                     let ctx = self.visit_lambda(
                         ctx,
                         &ast::Lambda {
-                            arguments: f.arguments.clone(),
+                            arguments,
                             body: ast::ScriptOrExpression::Script(f.body.clone()),
                         },
                     )?;
@@ -438,10 +449,7 @@ impl Visitor for LuaEmitter {
                             let ctx = self.visit_expression(ctx, &c)?;
                             ctx.put("]")
                         }
-                        ast::MemberSegment::IdentifierDynamic(c) => ctx.put(".").put(c.0.clone()),
-                        ast::MemberSegment::IdentifierStatic(_) => {
-                            Err(VisitError(Box::new(BadCode)))?
-                        }
+                        ast::MemberSegment::Identifier(c) => ctx.put(".").put(c.0.clone()),
                     };
                     Ok(ctx)
                 })?;
@@ -452,8 +460,7 @@ impl Visitor for LuaEmitter {
                         let ctx = self.visit_expression(ctx, &c)?;
                         ctx.put("]")
                     }
-                    ast::MemberSegment::IdentifierDynamic(c) => ctx.put(":").put(c.0.clone()),
-                    ast::MemberSegment::IdentifierStatic(c) => ctx.put(".").put(c.0.clone()),
+                    ast::MemberSegment::Identifier(c) => ctx.put(":").put(c.0.clone()),
                 }
             } else {
                 ctx
@@ -492,8 +499,7 @@ impl Visitor for LuaEmitter {
                     let ctx = self.visit_expression(ctx, &c)?;
                     Ok(ctx.put("]"))
                 }
-                ast::MemberSegment::IdentifierStatic(i) => Ok(ctx?.put(".").put(i.0.clone())),
-                ast::MemberSegment::IdentifierDynamic(i) => Ok(ctx?.put(":").put(i.0.clone())),
+                ast::MemberSegment::Identifier(i) => Ok(ctx?.put(":").put(i.0.clone())),
             },
         })?;
         Ok(ctx)

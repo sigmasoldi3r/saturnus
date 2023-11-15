@@ -4,6 +4,6 @@ use std;
 use { foo } in com.bar;
 
 let the_foo = foo();
-for (k, v) in std.Object::entries(the_foo) {
+for (k, v) in std.Object.entries(the_foo) {
   print(k, v);
 }
