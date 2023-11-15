@@ -29,30 +29,30 @@ fn escape_string(str: String) -> String {
 }
 
 pub struct LuaEmitter {
-    pub module_mapping: HashMap<String, PathBuf>,
+    // pub module_mapping: HashMap<String, PathBuf>,
 }
 
 impl LuaEmitter {
     pub fn new() -> Self {
         Self {
-            module_mapping: HashMap::new(),
+            // module_mapping: HashMap::new(),
         }
     }
-    pub fn map_module_path(&self, segments: &Vec<String>) -> String {
-        let path = segments.join(".");
-        let re = regex::Regex::new(r"\.saturn$").unwrap();
-        if let Some(found) = self.module_mapping.get(&path) {
-            let found = found
-                .iter()
-                .map(|p| p.to_str().unwrap().to_owned())
-                .collect::<Vec<String>>()
-                .join("/");
-            let found = re.replace_all(&found, "").to_string();
-            format!("./{found}")
-        } else {
-            path
-        }
-    }
+    // pub fn map_module_path(&self, segments: &Vec<String>) -> String {
+    //     let path = segments.join(".");
+    //     let re = regex::Regex::new(r"\.saturn$").unwrap();
+    //     if let Some(found) = self.module_mapping.get(&path) {
+    //         let found = found
+    //             .iter()
+    //             .map(|p| p.to_str().unwrap().to_owned())
+    //             .collect::<Vec<String>>()
+    //             .join("/");
+    //         let found = re.replace_all(&found, "").to_string();
+    //         format!("./{found}")
+    //     } else {
+    //         path
+    //     }
+    // }
     pub fn escape_reference(&self, ctx: Builder, ident: &ast::Identifier) -> Result {
         let ctx = match &ident.0 {
             a if a == "then" => ctx.put("['then']"),
@@ -396,18 +396,27 @@ impl Visitor for LuaEmitter {
     }
 
     fn visit_use_statement(&self, ctx: Builder, expr: &ast::UseStatement) -> Result {
-        let path = self.map_module_path(&expr.module);
+        // let path = self.map_module_path(&expr.module);
+        let path = expr.module.join(".");
         let tail = expr.module.last().unwrap();
-        let ctx = ctx
-            .line()
-            .put(format!("local {} = require(\"{}\");", tail, path));
         let ctx = if let Some(expand) = expr.expanded.as_ref() {
-            expand.iter().fold(ctx, |ctx, target| {
+            let vars: Vec<String> = expand.iter().map(|p| p.0.clone()).collect();
+            let ctx = ctx.line().put("local ").put(vars.join(", ")).put(";");
+            let ctx = ctx
+                .line()
+                .push()
+                .put("do")
+                .line()
+                .put(format!("local __destructure__ = require(\"{tail}\");"));
+            let ctx = expand.iter().fold(ctx, |ctx, target| {
                 ctx.line()
-                    .put(format!("local {} = {}.{};", target.0, tail, target.0))
-            })
-        } else {
+                    .put(format!("{} = __destructure__.{};", target.0, target.0))
+            });
+            let ctx = ctx.pop().unwrap().line().put("end");
             ctx
+        } else {
+            ctx.line()
+                .put(format!("local {} = require(\"{}\");", tail, path))
         };
         Ok(ctx)
     }

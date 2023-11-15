@@ -53,8 +53,8 @@ struct Args {
         help = "The amount of space characters to use in each tab"
     )]
     indent: usize,
-    // #[arg(long, help = "Strips the std library form the code emission")]
-    // no_std: bool,
+    #[arg(long, help = "Skips the std library")]
+    no_std: bool,
     #[arg(long, help = "Inline the std library in each script")]
     inline_std: bool,
     #[arg(
@@ -84,22 +84,22 @@ struct CompilationOptions {
     out_path: String,
 }
 
-fn scrap_modules(map: &mut HashMap<String, PathBuf>, roots: &Vec<String>) {
-    let re = regex::Regex::new(r"\.saturn$").unwrap();
-    for root in roots.iter() {
-        for entry in glob::glob(format!("{}/**/*.saturn", root).as_str()).unwrap() {
-            let entry: PathBuf = entry.unwrap();
-            let mod_name = entry
-                .iter()
-                .skip(1)
-                .map(|p| p.to_str().unwrap().to_owned())
-                .collect::<Vec<String>>()
-                .join(".");
-            let mod_name = re.replace_all(mod_name.as_str(), "");
-            map.insert(mod_name.to_string(), entry);
-        }
-    }
-}
+// fn scrap_modules(map: &mut HashMap<String, PathBuf>, roots: &Vec<String>) {
+//     let re = regex::Regex::new(r"\.saturn$").unwrap();
+//     for root in roots.iter() {
+//         for entry in glob::glob(format!("{}/**/*.saturn", root).as_str()).unwrap() {
+//             let entry: PathBuf = entry.unwrap();
+//             let mod_name = entry
+//                 .iter()
+//                 .skip(1)
+//                 .map(|p| p.to_str().unwrap().to_owned())
+//                 .collect::<Vec<String>>()
+//                 .join(".");
+//             let mod_name = re.replace_all(mod_name.as_str(), "");
+//             map.insert(mod_name.to_string(), entry);
+//         }
+//     }
+// }
 
 fn try_run(options: CompilationOptions, input: String, indent: String) -> Result<(), RuntimeError> {
     let mut compiler = lua::visitor::LuaEmitter::new();
@@ -111,7 +111,17 @@ fn try_run(options: CompilationOptions, input: String, indent: String) -> Result
         .unwrap()
         .collect();
 
-    scrap_modules(&mut compiler.module_mapping, &options.args.modules);
+    if !options.args.no_std {
+        let mut path = std::path::PathBuf::new();
+        path.push(&options.out_path);
+        path.pop();
+        path.push("std.lua");
+        if std::fs::metadata(&path).is_err() {
+            std::fs::write(&path, std_src).unwrap();
+        }
+    }
+
+    // scrap_modules(&mut compiler.module_mapping, &options.args.modules);
 
     if options.args.dump_saturnus {
         println!("{input}");
