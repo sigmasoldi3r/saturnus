@@ -200,10 +200,22 @@ impl Visitor for LuaEmitter {
                         .put(level)
                         .put(f.name.0.clone())
                         .put(" = ");
+                    let arguments = if is_self {
+                        f.arguments.clone()
+                    } else {
+                        vec![ast::Argument {
+                            name: ast::Identifier("_".into()),
+                            decorators: vec![],
+                        }]
+                        .iter()
+                        .chain(f.arguments.iter())
+                        .map(|a| a.clone())
+                        .collect()
+                    };
                     let ctx = self.visit_lambda(
                         ctx,
                         &ast::Lambda {
-                            arguments: f.arguments.clone(),
+                            arguments,
                             body: ast::ScriptOrExpression::Script(f.body.clone()),
                         },
                     )?;

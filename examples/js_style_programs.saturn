@@ -6,13 +6,13 @@ class Future {
   // Then, just add it to the chain.
   fn map(self, callback) {
     return Future {
-      call_chain: (value) => callback(self::call_chain(value))
+      call_chain: (value) => callback(self.call_chain(value))
     };
   }
 
   // A friendly resolve
   fn resolve(self, value) {
-    return self::call_chain(value);
+    return self.call_chain(value);
   }
 
   // A classic, rust-style new() function.
@@ -25,7 +25,7 @@ class Future {
 
 // Do the things:
 fn some_future() {
-  return Future::new();
+  return Future.new();
 }
 
 // Emulate the JS env: (Oh, Lua's "then" word is reserved... my bad! So moving to rust style)

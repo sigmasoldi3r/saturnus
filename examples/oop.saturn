@@ -20,7 +20,7 @@ class Simple {
     example.inherited();
   }
 }
-Simple::run();
+Simple.run();
 
 // Trait example
 @trait()
