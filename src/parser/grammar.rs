@@ -123,8 +123,7 @@ peg::parser! {
             = head:primary()
             tail:(
                 _ "[" _ e:expression() _ "]" { MemberSegment::Computed(e) }
-                / _ "." _ i:identifier() { MemberSegment::IdentifierDynamic(i) }
-                / _ "::" _ i:identifier() { MemberSegment::IdentifierStatic(i) }
+                / _ "." _ i:identifier() { MemberSegment::Identifier(i) }
             )*
             { MemberExpression { head, tail } }
 
@@ -137,8 +136,7 @@ peg::parser! {
             )
             tail:(
                   _ "[" _ prop:expression() _ "]" { MemberSegment::Computed(prop).into() }
-                / _ "." _ prop:identifier() { MemberSegment::IdentifierDynamic(prop).into() }
-                / _ "::" _ prop:identifier() { MemberSegment::IdentifierStatic(prop).into() }
+                / _ "." _ prop:identifier() { MemberSegment::Identifier(prop).into() }
                 / _ arguments:call_arguments() { CallSubExpression { callee: None, arguments }.into() }
             )*
             { CallExpression { head, tail } }
