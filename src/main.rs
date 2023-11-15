@@ -1,7 +1,13 @@
-use std::{fs::File, io::Write, path::Path};
+use std::{
+    collections::HashMap,
+    fs::File,
+    io::Write,
+    path::{Path, PathBuf},
+};
 
 use clap::Parser;
 use errors::report_error;
+use parser::Script;
 use runtime::RuntimeError;
 
 use crate::code::{ast_visitor::Visitor, builder::Builder};
@@ -47,7 +53,7 @@ struct Args {
         help = "The amount of space characters to use in each tab"
     )]
     indent: usize,
-    #[arg(long, help = "Strips the std library form the code emission")]
+    #[arg(long, help = "Skips the std library")]
     no_std: bool,
     #[arg(long, help = "Inline the std library in each script")]
     inline_std: bool,
@@ -56,6 +62,12 @@ struct Args {
         help = "Outputs the saturnus code to stdout preprocessed but without compiling"
     )]
     dump_saturnus: bool,
+    #[arg(
+        short = 'm',
+        long = "mod",
+        help = "Additional module root paths to load"
+    )]
+    modules: Vec<String>,
 }
 
 fn get_default_output(str: &Path) -> String {
@@ -72,25 +84,51 @@ struct CompilationOptions {
     out_path: String,
 }
 
-fn try_run(options: CompilationOptions, input: String, indent: String) -> Result<(), RuntimeError> {
-    // TODO: Clean std code injection
-    let header = format!("let __modules__ = {{ }};");
-    let header = if options.args.no_std {
-        header
-    } else {
-        let embed = include_str!("assets/std.saturn");
-        format!("{header}\n__modules__.std = {{\n{embed}\n}};")
-    };
+// fn scrap_modules(map: &mut HashMap<String, PathBuf>, roots: &Vec<String>) {
+//     let re = regex::Regex::new(r"\.saturn$").unwrap();
+//     for root in roots.iter() {
+//         for entry in glob::glob(format!("{}/**/*.saturn", root).as_str()).unwrap() {
+//             let entry: PathBuf = entry.unwrap();
+//             let mod_name = entry
+//                 .iter()
+//                 .skip(1)
+//                 .map(|p| p.to_str().unwrap().to_owned())
+//                 .collect::<Vec<String>>()
+//                 .join(".");
+//             let mod_name = re.replace_all(mod_name.as_str(), "");
+//             map.insert(mod_name.to_string(), entry);
+//         }
+//     }
+// }
 
-    let compiler = lua::visitor::LuaEmitter();
+fn try_run(options: CompilationOptions, input: String, indent: String) -> Result<(), RuntimeError> {
+    let mut compiler = lua::visitor::LuaEmitter::new();
+    // Precompile STD
+    let std_src = include_str!("assets/std.saturn");
+    let std_src = Script::parse(std_src.to_owned()).unwrap();
+    let std_src = compiler
+        .visit_script(Builder::new("  "), &std_src)
+        .unwrap()
+        .collect();
+
+    if !options.args.no_std {
+        let mut path = std::path::PathBuf::new();
+        path.push(&options.out_path);
+        path.pop();
+        path.push("std.lua");
+        if std::fs::metadata(&path).is_err() {
+            std::fs::write(&path, std_src).unwrap();
+        }
+    }
+
+    // scrap_modules(&mut compiler.module_mapping, &options.args.modules);
 
     if options.args.dump_saturnus {
         println!("{input}");
         return Ok(());
     }
 
-    let script = parser::Script::parse(format!("{header}\n{input}"))
-        .map_err(|err| RuntimeError::ParseError(err))?;
+    let script = parser::Script::parse(input).map_err(|err| RuntimeError::ParseError(err))?;
 
     let CompilationOptions {
         args,

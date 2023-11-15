@@ -31,7 +31,8 @@ pub fn report_error(
             let divider = style("|").green().bold();
             result += format!("{} {} {}\n", numeric, divider, line_str).as_str();
             if line == pos {
-                let ted = line_str.len() - col;
+                let ted = line_str.len();
+                let ted = if ted > col { ted - col } else { 0 };
                 let premark = style("     |").red().bold();
                 let spanner = format!(" {:2$}{:^<3$}", " ", "^", col - 2, ted);
                 let spanner = style(spanner).red();

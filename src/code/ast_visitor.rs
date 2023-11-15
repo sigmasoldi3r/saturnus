@@ -19,7 +19,6 @@ pub trait Visitor {
     fn visit_unary(&self, ctx: Builder, expr: &UnaryExpression) -> Result;
     fn visit_wrapped_expression(&self, ctx: Builder, expr: &Expression) -> Result;
     fn visit_identifier(&self, ctx: Builder, expr: &Identifier) -> Result;
-    fn visit_use_expression(&self, ctx: Builder, expr: &Identifier) -> Result;
 
     // Literals
     fn visit_lambda(&self, ctx: Builder, expr: &Lambda) -> Result;
@@ -37,7 +36,7 @@ pub trait Visitor {
     fn visit_assignment(&self, ctx: Builder, stmt: &Assignment) -> Result;
     fn visit_declaration(&self, ctx: Builder, stmt: &Let) -> Result;
     fn visit_expression_statement(&self, ctx: Builder, stmt: &Expression) -> Result;
-    fn visit_use_statement(&self, ctx: Builder, stmt: &Identifier) -> Result;
+    fn visit_use_statement(&self, ctx: Builder, stmt: &UseStatement) -> Result;
     fn visit_extern_block(&self, ctx: Builder, stmt: &Extern) -> Result;
 
     // Looping
@@ -72,7 +71,6 @@ pub trait Visitor {
             Expression::Tuple1(e) => self.visit_wrapped_expression(ctx, e),
             Expression::Identifier(e) => self.visit_identifier(ctx, e),
             Expression::Do(e) => self.visit_block_expression(ctx, e),
-            Expression::Use(e) => self.visit_use_expression(ctx, e),
         }
     }
     fn visit_statement(&self, ctx: Builder, statement: &Statement) -> Result {
@@ -89,7 +87,7 @@ pub trait Visitor {
             ast::Statement::Let(e) => self.visit_declaration(ctx, e),
             ast::Statement::Match(e) => self.visit_match(ctx, e),
             ast::Statement::Expression(e) => self.visit_expression_statement(ctx, e),
-            ast::Statement::Use(e) => self.visit_use_statement(ctx, e),
+            ast::Statement::UseStatement(e) => self.visit_use_statement(ctx, e),
             ast::Statement::Extern(e) => self.visit_extern_block(ctx, e),
         }
     }

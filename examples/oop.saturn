@@ -1,5 +1,5 @@
 // Example of OOP possible uses with std
-let { abstract, entries, mixin, trait, impl } = use std;
+use { abstract, entries, mixin, trait, impl } in std;
 
 // Simple abstract class example.
 class SimpleAbstract {
