@@ -124,37 +124,28 @@ let bar = this_is_a_tuple._2;
 let foo = bar[key].value;
 ```
 
-Now, function calls can be something more complex.
+Lua does make the difference between:
 
-Imagine that you have static functions (aka do not belong to an object):
-
-```rs
-some_function(1, 2, 3);
-let b = fetch("some url");
-// Note that like in lua, you can pass {} without parentheses:
-let c = Foo { bar };
+```lua
+foo:bar();
+-- And
+foo.bar();
 ```
 
-Those will be dispatched statically, and everyone will be safe & sound. But in
-real world, you will have functions inside raw objects or class instances, here
-is where things get tricky:
+But Saturnus does not, to fix that, you'll have to provide native wrappers for
+the methods that do not take into account a `self` parameter in Lua:
 
 ```rs
 // Imagine a table with a static function like math's max()
-// You have to use the static dispatch mode:
-let max = math::max(1, 2);
-// This is crucial, otherwise things will berak.
-
-// BUT!
-// If the object is an instance of a class, or an object that needs to access
-// self's context, like, for example a "person" instance, you will have to use
-// the dot (aka dynamic dispatch mode):
-let name = person.get_name();
-// As long as you remember that, you'll be safe & sound.
-// Another side note, that obviously does not apply to fields of an object:
-let things = that_do.not.care.about_dispatch;
-// Because fields do not have the notion of "dispatching" (They're not functions
-// at all!).
+class Math {
+  fn max(a, b) {
+    <extern "Lua">
+      return math.max(a, b);
+    </extern>
+  }
+}
+let max = Math.max(1, 2);
+// This is crucial, otherwise things will break.
 ```
 
 The loops:
