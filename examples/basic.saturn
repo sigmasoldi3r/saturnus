@@ -1,5 +1,5 @@
 // Basic examples
-use { Object } in std;
+use { Object, math } in std;
 
 // This is a comment
 /*
@@ -58,3 +58,6 @@ let result = {
   return my_var ++ ".";
 };
 print(result, my_var);
+
+// STD lib has some shims
+let abs = math.abs(-39854);

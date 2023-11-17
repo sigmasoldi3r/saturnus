@@ -112,6 +112,49 @@ class rtti {
   }
 }
 
+class math {
+  fn max(a, b) {
+    <extern "Lua">
+    do
+      return math.max(a, b);
+    end
+    </extern>
+    panic("Math.max not supported on this platform!");
+  }
+  fn min(a, b) {
+    <extern "Lua">
+    do
+      return math.min(a, b);
+    end
+    </extern>
+    panic("Math.min not supported on this platform!");
+  }
+  fn abs(a) {
+    <extern "Lua">
+    do
+      return math.abs(a);
+    end
+    </extern>
+    panic("Math.abs not supported on this platform!");
+  }
+  fn ceil(a) {
+    <extern "Lua">
+    do
+      return math.ceil(a);
+    end
+    </extern>
+    panic("Math.max not supported on this platform!");
+  }
+  fn floor(a) {
+    <extern "Lua">
+    do
+      return math.floor(a);
+    end
+    </extern>
+    panic("Math.floor not supported on this platform!");
+  }
+}
+
 // OOP and inheritance
 let makeTrait = (name) => () => panic("Trait " ++ name ++ " is not constructible!");
 
@@ -265,6 +308,7 @@ return {
   entries,
   fs,
   rtti,
+  math,
   `:::`, `..`, `|>`, `<|`, `+?`, `+??`, `++?`, `++??`, `-?`, `-??`, `*?`, `*??`,
   `/?`, `/??`, `::`
 };
