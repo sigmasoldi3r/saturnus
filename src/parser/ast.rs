@@ -256,6 +256,11 @@ impl Into<Expression> for UnaryExpression {
 }
 
 #[derive(Debug, Clone)]
+pub struct SpreadExpression {
+    pub expression: Expression,
+}
+
+#[derive(Debug, Clone)]
 pub struct Vector {
     pub expressions: Vec<Expression>,
 }
@@ -290,5 +295,6 @@ pub enum Expression {
     String(StringLiteral),
     Binary(Box<BinaryExpression>),
     Unary(Box<UnaryExpression>),
+    Spread(Box<SpreadExpression>),
     Unit,
 }

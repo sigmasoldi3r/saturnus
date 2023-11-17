@@ -161,6 +161,8 @@ peg::parser! {
             { args }
 
         rule binary_expression() -> Expression = precedence! {
+            "..." _ expression:@ { Expression::Spread(Box::new(SpreadExpression { expression })) }
+            --
             value:$("-") _ expression:@ { UnaryExpression { expression, operator: Operator(value.into()) }.into() }
             // value:$("+") _ expression:@ { UnaryExpression { expression, operator: Operator(value.into()) }.into() }
             value:$("#?") _ expression:@ { UnaryExpression { expression, operator: Operator(value.into()) }.into() }

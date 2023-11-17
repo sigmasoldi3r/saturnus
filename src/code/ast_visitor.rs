@@ -17,6 +17,7 @@ pub trait Visitor {
     fn visit_call(&self, ctx: Builder, expr: &CallExpression) -> Result;
     fn visit_binary(&self, ctx: Builder, expr: &BinaryExpression) -> Result;
     fn visit_unary(&self, ctx: Builder, expr: &UnaryExpression) -> Result;
+    fn visit_spread(&self, ctx: Builder, expr: &SpreadExpression) -> Result;
     fn visit_wrapped_expression(&self, ctx: Builder, expr: &Expression) -> Result;
     fn visit_identifier(&self, ctx: Builder, expr: &Identifier) -> Result;
 
@@ -66,6 +67,7 @@ pub trait Visitor {
             Expression::Unit => self.visit_unit(ctx),
             Expression::Binary(e) => self.visit_binary(ctx, e),
             Expression::Unary(e) => self.visit_unary(ctx, e),
+            Expression::Spread(e) => self.visit_spread(ctx, e),
             Expression::Table(e) => self.visit_table(ctx, e),
             Expression::Vector(e) => self.visit_vector(ctx, e),
             Expression::Tuple1(e) => self.visit_wrapped_expression(ctx, e),

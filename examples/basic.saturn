@@ -31,6 +31,8 @@ fn the_bar(a, b, *args) {
   }
 }
 the_bar("foo", "world", "a", "b", 10, "Much more!");
+let args = [1, 2, 3, 4];
+the_bar(...args);
 
 // Use them
 let answer = the_foo();
