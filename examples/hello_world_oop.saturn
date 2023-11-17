@@ -14,17 +14,40 @@ class Greeter {
   fn new(name) {
     return Greeter { name };
   }
-
-  // Operator overload also is here!
-  operator +(self, other) {
-    return Greeter.new(self.name ++ " & " ++ other.name);
-  }
 }
 
 // Test it out!
 let world = Greeter.new("World");
 print(world.greet());
 
-// Test operators:
-let sum = Greeter.new("Foo") + Greeter.new("Bar");
-print(sum.greet());
+// Quick extras:
+class Mod {
+  fn static_method(*args) {
+    print("Static method!!!", #? args);
+  }
+}
+fn another_thing(*args) {
+  print("Static function!", #? args);
+}
+
+let { static_method } = Mod; // by reference.
+
+// These three have the exact same behaviour:
+Mod.static_method(1, 2, 3);
+static_method(1, 2, 3);
+another_thing(1, 2, 3);
+
+// This may also come handy:
+class TestSelf {
+  fn new(name) {
+    // "Self" is a local variable available in static methods, referencing the
+    // class itself. Here is the same as typing "return TestSelf { name };"
+    return Self { name };
+  }
+  fn print(self) {
+    print("I am " ++ self.name);
+  }
+}
+
+let ts = TestSelf.new("Self tester!");
+ts.print();

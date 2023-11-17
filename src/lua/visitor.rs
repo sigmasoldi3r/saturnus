@@ -148,7 +148,7 @@ impl Visitor for LuaEmitter {
             .put(format!("{}.__meta__ = {{}};", stmt.name.0.clone()))
             .line()
             .put(format!(
-                "{}.__meta__.__call = function(self, struct)",
+                "{}.__meta__.__call = function(self, _, struct)",
                 stmt.name.0.clone()
             ))
             .push()
@@ -202,7 +202,7 @@ impl Visitor for LuaEmitter {
                         f.arguments.clone()
                     } else {
                         vec![ast::Argument {
-                            name: ast::Identifier("_".into()),
+                            name: ast::Identifier("Self".into()),
                             spread: false,
                             decorators: vec![],
                         }]
@@ -291,13 +291,15 @@ impl Visitor for LuaEmitter {
             })
             .collect::<Vec<String>>()
             .join(", ");
-        let ctx = ctx.put(arg_names);
+        let ctx = if arg_names.len() > 0 {
+            ctx.put("_, ").put(arg_names)
+        } else {
+            ctx.put("_")
+        };
         let ctx = ctx.put(")").push();
         let ctx = if let Some(arg) = stmt.arguments.iter().last() {
             if arg.spread {
-                ctx.push()
-                    .line()
-                    .put(format!("local {} = {{...}};", arg.name.0))
+                ctx.line().put(format!("local {} = {{...}};", arg.name.0))
             } else {
                 ctx
             }
@@ -381,22 +383,30 @@ impl Visitor for LuaEmitter {
 
     fn visit_lambda(&self, ctx: Builder, expr: &ast::Lambda) -> Result {
         let ctx = ctx.put("function(");
-        let ctx = if let Some(first) = expr.arguments.first() {
-            ctx.put(first.name.0.clone())
+        let arg_src = expr
+            .arguments
+            .iter()
+            .filter(|a| !a.spread)
+            .map(|a| a.name.0.clone())
+            .collect::<Vec<String>>();
+        let spread = expr.arguments.iter().find(|a| a.spread);
+        let ctx = ctx.put(arg_src.join(", "));
+        let ctx = if spread.is_some() {
+            if expr.arguments.len() > 1 {
+                ctx.put(", ...")
+            } else {
+                ctx.put("...")
+            }
         } else {
             ctx
         };
-        let ctx = expr
-            .arguments
-            .iter()
-            .skip(1)
-            .fold(ctx, |ctx, ident| ctx.put(", ").put(ident.name.0.clone()));
-        let ctx = if expr.arguments.len() > 0 {
-            ctx.put(", ...")
-        } else {
-            ctx.put("...")
-        };
         let ctx = ctx.put(")").push();
+        let ctx = if let Some(spread) = spread {
+            ctx.line()
+                .put(format!("local {} = {{...}};", spread.name.0))
+        } else {
+            ctx
+        };
         let ctx = match &expr.body {
             ast::ScriptOrExpression::Script(e) => self.visit_block(ctx, e)?,
             ast::ScriptOrExpression::Expression(e) => self
@@ -470,14 +480,19 @@ impl Visitor for LuaEmitter {
                     }
                     ast::MemberSegment::Identifier(c) => ctx.put(":").put(c.0.clone()),
                 }
+                .put("(")
             } else {
-                ctx
+                if expr.head.arguments.len() > 0 {
+                    ctx.put("(nil, ")
+                } else {
+                    ctx.put("(")
+                }
             };
             ctx
         } else {
-            ctx
+            // TODO! Review when this branch is reached.
+            ctx.put("(")
         };
-        let ctx = ctx.put("(");
         let ctx = if let Some(first) = expr.head.arguments.first() {
             self.visit_expression(ctx, first)?
         } else {

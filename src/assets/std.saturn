@@ -112,11 +112,15 @@ class rtti {
   }
 }
 
+<extern "Lua">
+  local lua_math = math;
+</extern>
+
 class math {
   fn max(a, b) {
     <extern "Lua">
     do
-      return math.max(a, b);
+      return lua_math.max(a, b);
     end
     </extern>
     panic("Math.max not supported on this platform!");
@@ -124,7 +128,7 @@ class math {
   fn min(a, b) {
     <extern "Lua">
     do
-      return math.min(a, b);
+      return lua_math.min(a, b);
     end
     </extern>
     panic("Math.min not supported on this platform!");
@@ -132,7 +136,7 @@ class math {
   fn abs(a) {
     <extern "Lua">
     do
-      return math.abs(a);
+      return lua_math.abs(a);
     end
     </extern>
     panic("Math.abs not supported on this platform!");
@@ -140,7 +144,7 @@ class math {
   fn ceil(a) {
     <extern "Lua">
     do
-      return math.ceil(a);
+      return lua_math.ceil(a);
     end
     </extern>
     panic("Math.max not supported on this platform!");
@@ -148,7 +152,7 @@ class math {
   fn floor(a) {
     <extern "Lua">
     do
-      return math.floor(a);
+      return lua_math.floor(a);
     end
     </extern>
     panic("Math.floor not supported on this platform!");
