@@ -1,0 +1,16 @@
+// Example of runtime type information
+use { rtti } in std;
+let { arguments } = rtti;
+
+class Foo {
+  @arguments(["self", "any"], ["num", "number"], ["str", "string"])
+  fn bar(self, num, str) {
+    return "1 + " ++ num ++ " = " ++ (1 + num) ++ str;
+  }
+}
+
+let foo = Foo {};
+
+print(foo.bar(10, "!"));
+// this will blow:
+print(foo.bar("a", 99));

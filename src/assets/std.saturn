@@ -103,6 +103,15 @@ class fs {
   }
 }
 
+// The RTTI module
+class rtti {
+  fn arguments(*args) {
+    return (target, name) => {
+      // TODO: Implement arguments typecheck decorator.
+    };
+  }
+}
+
 // OOP and inheritance
 let makeTrait = (name) => () => panic("Trait " ++ name ++ " is not constructible!");
 
@@ -255,6 +264,7 @@ return {
   panic,
   entries,
   fs,
+  rtti,
   `:::`, `..`, `|>`, `<|`, `+?`, `+??`, `++?`, `++??`, `-?`, `-??`, `*?`, `*??`,
   `/?`, `/??`, `::`
 };
