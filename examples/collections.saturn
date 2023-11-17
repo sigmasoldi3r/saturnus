@@ -1,9 +1,10 @@
-let { `:::` } = use std;
+use { `:::`, `::`, Object } in std;
 
 let x = [1, 2, 3];
 let y = [4, 5, 6];
 let z = x ::: y;
+z :: 7 :: 8;
 
-for (k, v) in z.iter() {
+for (k, v) in Object.entries(z) {
   print(k ++ " => " ++ v);
 }

@@ -2,8 +2,7 @@
 // that cannot be made into native Saturnus, or
 // other kind of code that would be far less efficient
 // under the saturnus' compiled code.
-use std;
-let { panic } = std;
+use { panic } in std;
 
 // In those cases, we have "extern" blocks, which will
 // only compile statically, as-is, depending on the target

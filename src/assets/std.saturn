@@ -81,7 +81,7 @@ class Tuple {
 class fs {
   fn read_file(path) {
     <extern "Lua">
-      if true then
+      do
         local f = io.open(path, 'r');
         local data = f:read('*all');
         f:close();
@@ -92,7 +92,7 @@ class fs {
   }
   fn write_file(path, content) {
     <extern "Lua">
-      if true then
+      do
         local f = io.open(path, 'w');
         f:write(content);
         f:close();
@@ -162,6 +162,16 @@ fn `|>`(left, right) {
 
 fn `<|`(left, right) {
   return left(right);
+}
+
+fn `::`(arr, elem) {
+  <extern "Lua">
+    do
+      table.insert(arr, elem);
+      return arr;
+    end
+  </extern>
+  panic("Operator :: not supported on this platform");
 }
 
 fn `:::`(left, right) {
@@ -246,5 +256,5 @@ return {
   entries,
   fs,
   `:::`, `..`, `|>`, `<|`, `+?`, `+??`, `++?`, `++??`, `-?`, `-??`, `*?`, `*??`,
-  `/?`, `/??`
+  `/?`, `/??`, `::`
 };

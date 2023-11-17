@@ -1,4 +1,4 @@
-let { entries, `+?` } = use std;
+use { entries, `+?` } in std;
 
 fn `|>`(left, right) {
   return right(left);

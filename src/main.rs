@@ -102,7 +102,7 @@ struct CompilationOptions {
 // }
 
 fn try_run(options: CompilationOptions, input: String, indent: String) -> Result<(), RuntimeError> {
-    let mut compiler = lua::visitor::LuaEmitter::new();
+    let compiler = lua::visitor::LuaEmitter::new();
     // Precompile STD
     let std_src = include_str!("assets/std.saturn");
     let std_src = Script::parse(std_src.to_owned()).unwrap();
@@ -110,13 +110,15 @@ fn try_run(options: CompilationOptions, input: String, indent: String) -> Result
         .visit_script(Builder::new("  "), &std_src)
         .unwrap()
         .collect();
+    let crc = md5::compute(std_src.as_bytes());
 
     if !options.args.no_std {
         let mut path = std::path::PathBuf::new();
         path.push(&options.out_path);
         path.pop();
         path.push("std.lua");
-        if std::fs::metadata(&path).is_err() {
+        let r = std::fs::read_to_string(&path).map(|r| md5::compute(r.as_bytes()));
+        if r.is_err() || r.unwrap() != crc {
             std::fs::write(&path, std_src).unwrap();
         }
     }
