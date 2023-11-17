@@ -1,8 +1,6 @@
-use std::{collections::HashMap, path::PathBuf};
-
 use crate::{
     code::{
-        ast_visitor::{Result, VisitError, Visitor},
+        ast_visitor::{Result, Visitor},
         builder::Builder,
     },
     parser::{
@@ -205,6 +203,7 @@ impl Visitor for LuaEmitter {
                     } else {
                         vec![ast::Argument {
                             name: ast::Identifier("_".into()),
+                            spread: false,
                             decorators: vec![],
                         }]
                         .iter()
@@ -280,22 +279,31 @@ impl Visitor for LuaEmitter {
             .put("local function ")
             .put(stmt.name.0.clone())
             .put("(");
-        let ctx = if let Some(first) = stmt.arguments.first() {
-            ctx.put(first.name.0.clone())
+        let arg_names = stmt
+            .arguments
+            .iter()
+            .map(|a| {
+                if a.spread {
+                    "...".into()
+                } else {
+                    a.name.0.clone()
+                }
+            })
+            .collect::<Vec<String>>()
+            .join(", ");
+        let ctx = ctx.put(arg_names);
+        let ctx = ctx.put(")").push();
+        let ctx = if let Some(arg) = stmt.arguments.iter().last() {
+            if arg.spread {
+                ctx.push()
+                    .line()
+                    .put(format!("local {} = {{...}};", arg.name.0))
+            } else {
+                ctx
+            }
         } else {
             ctx
         };
-        let ctx = stmt
-            .arguments
-            .iter()
-            .skip(1)
-            .fold(ctx, |ctx, ident| ctx.put(", ").put(ident.name.0.clone()));
-        let ctx = if stmt.arguments.len() > 0 {
-            ctx.put(", ...")
-        } else {
-            ctx.put("...")
-        };
-        let ctx = ctx.put(")").push();
         let ctx = self.visit_block(ctx, &stmt.body)?;
         let ctx = ctx.pop().unwrap().line().put("end");
         let ctx = stmt.decorators.iter().fold(Ok(ctx), |ctx, dec| {

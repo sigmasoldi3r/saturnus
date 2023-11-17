@@ -1,4 +1,5 @@
 // Basic examples
+use { Object } in std;
 
 // This is a comment
 /*
@@ -21,6 +22,15 @@ print(some_var);
 fn the_foo() {
   return "bar";
 }
+
+// Args and varargs
+fn the_bar(a, b, *args) {
+  print("Args:", a, b);
+  for (_, v) in Object.entries(args) {
+    print("Extra arg:", v);
+  }
+}
+the_bar("foo", "world", "a", "b", 10, "Much more!");
 
 // Use them
 let answer = the_foo();

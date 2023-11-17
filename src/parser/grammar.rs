@@ -242,9 +242,9 @@ peg::parser! {
 
         rule lambda_literal() -> Lambda
             = name:identifier() _ "=>" _ "{" body:script() "}"
-            { Lambda { arguments: vec![Argument { name, decorators: vec![] }], body: ScriptOrExpression::Script(body) } }
+            { Lambda { arguments: vec![Argument { name, decorators: vec![], spread: false }], body: ScriptOrExpression::Script(body) } }
             / name:identifier() _ "=>" _ body:expression()
-            { Lambda { arguments: vec![Argument { name, decorators: vec![] }], body: ScriptOrExpression::Expression(body) } }
+            { Lambda { arguments: vec![Argument { name, decorators: vec![], spread: false }], body: ScriptOrExpression::Expression(body) } }
             / arguments:argument_list() _ "=>" _ "{" body:script() "}"
             { Lambda { arguments, body: ScriptOrExpression::Script(body) } }
             / arguments:argument_list() _ "=>" _ expr:expression()
@@ -310,8 +310,8 @@ peg::parser! {
             = "(" _ args:argument() ** (_ "," _) _ ")" { args }
 
         rule argument() -> Argument
-            = decorators:decorator_list() name:identifier()
-            { Argument { name, decorators } }
+            = decorators:decorator_list() spread:(_ "*" _)? name:identifier()
+            { Argument { name, decorators, spread: spread.is_some() } }
 
         rule decorator_list() -> Vec<Decorator>
             = e:decorator() ++ _ _ { e }

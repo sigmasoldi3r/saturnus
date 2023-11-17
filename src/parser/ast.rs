@@ -8,6 +8,7 @@ pub struct Decorator {
 #[derive(Debug, Clone)]
 pub struct Argument {
     pub name: Identifier,
+    pub spread: bool,
     pub decorators: Vec<Decorator>,
 }
 
