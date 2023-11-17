@@ -182,6 +182,19 @@ fn impl(trait) {
   };
 }
 
+<extern "Lua">
+  local __lua_type = type;
+</extern>
+
+fn type(value) {
+  <extern "Lua">
+  do
+    return __lua_type(value);
+  end
+  </extern>
+  panic("type() not supported on this platform!");
+}
+
 fn mixin(parent) {
   let index = parent.prototype.__meta__.__index;
   if type(index) == "table" {
@@ -309,6 +322,7 @@ return {
   impl,
   mixin,
   panic,
+  type,
   entries,
   fs,
   rtti,
