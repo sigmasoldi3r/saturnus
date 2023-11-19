@@ -298,11 +298,14 @@ peg::parser! {
             / e:destructure_expression() { AssignmentTarget::Destructuring(e) }
 
         rule destructure_expression() -> Destructuring
-            = "{" _ targets:destructure_body() _ "}" { Destructuring { targets, origin: DestructureOrigin::Table } }
-            / "(" _ targets:destructure_body() _ ")" { Destructuring { targets, origin: DestructureOrigin::Tuple } }
-            / "[" _ targets:destructure_body() _ "]" { Destructuring { targets, origin: DestructureOrigin::Array } }
+            = "{" _ targets:destructure_body_table() _ "}" { Destructuring { targets, origin: DestructureOrigin::Table } }
+            / "(" _ targets:destructure_body_linear() _ ")" { Destructuring { targets, origin: DestructureOrigin::Tuple } }
+            / "[" _ targets:destructure_body_linear() _ "]" { Destructuring { targets, origin: DestructureOrigin::Array } }
 
-        rule destructure_body() -> Vec<DestructuringSegment>
+        rule destructure_body_linear() -> Vec<DestructuringSegment>
+            = target:(i:identifier() { DestructuringSegment::Identifier(i) }) ** (_ "," _) { target }
+
+        rule destructure_body_table() -> Vec<DestructuringSegment>
             = target:destructure_fragment() ** (_ "," _) { target }
 
         rule destructure_fragment() -> DestructuringSegment

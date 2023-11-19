@@ -114,9 +114,10 @@ impl LuaEmitter {
                 expr.targets
                     .iter()
                     .fold((ctx, 0u8), |(ctx, i), elem| match elem {
-                        ast::DestructuringSegment::Identifier(id) => {
-                            (ctx.line().put(format!("{} = {};", id.0, path)), i + 1)
-                        }
+                        ast::DestructuringSegment::Identifier(id) => (
+                            ctx.line().put(format!("{} = {}._{};", id.0, path, i)),
+                            i + 1,
+                        ),
                         ast::DestructuringSegment::Destructuring((_, dt)) => {
                             (self.gen(format!("{path}._{i}"), ctx, dt), i + 1)
                         }
@@ -127,9 +128,10 @@ impl LuaEmitter {
                 expr.targets
                     .iter()
                     .fold((ctx, 1u8), |(ctx, i), elem| match elem {
-                        ast::DestructuringSegment::Identifier(id) => {
-                            (ctx.line().put(format!("{} = {};", id.0, path)), i + 1)
-                        }
+                        ast::DestructuringSegment::Identifier(id) => (
+                            ctx.line().put(format!("{} = {}[{}];", id.0, path, i)),
+                            i + 1,
+                        ),
                         ast::DestructuringSegment::Destructuring((_, dt)) => {
                             (self.gen(format!("{path}[{i}]"), ctx, dt), i + 1)
                         }
@@ -139,7 +141,7 @@ impl LuaEmitter {
             ast::DestructureOrigin::Table => {
                 expr.targets.iter().fold(ctx, |ctx, elem| match elem {
                     ast::DestructuringSegment::Identifier(id) => {
-                        ctx.line().put(format!("{} = {};", id.0, path))
+                        ctx.line().put(format!("{} = {}.{};", id.0, path, id.0))
                     }
                     ast::DestructuringSegment::Destructuring((id, dt)) => {
                         self.gen(format!("{}.{}", path, id.0), ctx, dt)
