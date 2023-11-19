@@ -77,85 +77,12 @@ class Tuple {
   }
 }
 
-// File system name space.
-class fs {
-  fn read_file(path) {
-    <extern "Lua">
-      do
-        local f = io.open(path, 'r');
-        local data = f:read('*all');
-        f:close();
-        return data;
-      end
-    </extern>
-    panic("File system's read file supported for this platform!");
-  }
-  fn write_file(path, content) {
-    <extern "Lua">
-      do
-        local f = io.open(path, 'w');
-        f:write(content);
-        f:close();
-        return;
-      end
-    </extern>
-    panic("File system's write file supported for this platform!");
-  }
-}
-
 // The RTTI module
 class rtti {
   fn arguments(*args) {
     return (target, name) => {
       // TODO: Implement arguments typecheck decorator.
     };
-  }
-}
-
-<extern "Lua">
-  local lua_math = math;
-</extern>
-
-class math {
-  fn max(a, b) {
-    <extern "Lua">
-    do
-      return lua_math.max(a, b);
-    end
-    </extern>
-    panic("Math.max not supported on this platform!");
-  }
-  fn min(a, b) {
-    <extern "Lua">
-    do
-      return lua_math.min(a, b);
-    end
-    </extern>
-    panic("Math.min not supported on this platform!");
-  }
-  fn abs(a) {
-    <extern "Lua">
-    do
-      return lua_math.abs(a);
-    end
-    </extern>
-    panic("Math.abs not supported on this platform!");
-  }
-  fn ceil(a) {
-    <extern "Lua">
-    do
-      return lua_math.ceil(a);
-    end
-    </extern>
-    panic("Math.max not supported on this platform!");
-  }
-  fn floor(a) {
-    <extern "Lua">
-    do
-      return lua_math.floor(a);
-    end
-    </extern>
-    panic("Math.floor not supported on this platform!");
   }
 }
 
@@ -180,19 +107,6 @@ fn impl(trait) {
       }
     }
   };
-}
-
-<extern "Lua">
-  local __lua_type = type;
-</extern>
-
-fn type(value) {
-  <extern "Lua">
-  do
-    return __lua_type(value);
-  end
-  </extern>
-  panic("type() not supported on this platform!");
 }
 
 fn mixin(parent) {
@@ -245,13 +159,16 @@ fn `::`(arr, elem) {
 
 fn `:::`(left, right) {
   <extern "Lua">
-    local u = table.unpack or unpack;
-    local tbl = { u(left) };
-    for _, v in pairs(right) do
-      tbl[#tbl + 1] = v;
+    do
+      local u = table.unpack or unpack;
+      local tbl = { u(left) };
+      for _, v in pairs(right) do
+        tbl[#tbl + 1] = v;
+      end
+      return tbl;
     end
-    return tbl;
   </extern>
+  panic("Operator ::: not supported on this platform");
 }
 
 fn `+?`(left, right) {
@@ -289,44 +206,58 @@ fn `/??`(left, right) {
   return left and (left / right) or right;
 }
 
-fn `..`(start, _end) {
-  let i = start;
-  if start < _end {
-    return () => {
-      if i > _end {
-        return ();
-      }
-      let c = i;
-      i += 1;
-      return c;
-    };
-  } else {
-    return () => {
-      if i < _end {
-        return ();
-      }
-      let c = i;
-      i -= 1;
-      return c;
-    };
+fn forward_iterator(from, to, step) {
+  let i = from;
+  return () => {
+    if i > to {
+      return ();
+    }
+    let c = i;
+    i += step;
+    return c;
+  };
+}
+
+fn backward_iterator(from, to, step) {
+  let i = from;
+  return () => {
+    if i < to {
+      return ();
+    }
+    let c = i;
+    i -= step;
+    return c;
+  };
+
+}
+
+fn `..`(from, target) {
+  let (to, step) = {
+    if type(target) == "table" {
+      return target;
+    }
+    return (target, 1);
+  };
+  if from < to {
+    return forward_iterator(from, to, step);
   }
+  return backward_iterator(from, to, step);
 }
 
 return {
   Object,
   Tuple,
   Vector,
-  range,
   abstract,
   trait,
   impl,
   mixin,
   panic,
-  type,
-  entries,
-  fs,
   rtti,
-  math,
-  `:::`, `..`, `|>`, `<|`, `+?`, `+??`, `++?`, `++??`, `-?`, `-??`, `*?`, `*??`,
-  `/?`, `/??`, `::`
+  operators: {
+    `:::`, `..`,  `|>`,  `<|`,
+    `+?`,  `+??`, `++?`, `++??`,
+    `-?`,  `-??`, `*?`,  `*??`,
+    `/?`,  `/??`, `::`
+  }
 };

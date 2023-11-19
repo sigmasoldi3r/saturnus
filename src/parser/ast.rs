@@ -47,6 +47,7 @@ pub struct Identifier(pub String);
 pub enum MemberSegment {
     Computed(Expression),
     Identifier(Identifier),
+    Dispatch(Identifier),
 }
 impl Into<CallExpressionVariant> for MemberSegment {
     fn into(self) -> CallExpressionVariant {

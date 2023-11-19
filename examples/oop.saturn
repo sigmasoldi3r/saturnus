@@ -16,8 +16,8 @@ class Simple {
   }
   fn run() {
     let example = Simple { name: "Simple example" };
-    example.example();
-    example.inherited();
+    example->example();
+    example->inherited();
   }
 }
 Simple.run();
@@ -34,7 +34,7 @@ class Implementor {
     return "Implementor";
   }
   fn foo(self) {
-    print("The foo be like: " ++ self.me());
+    print("The foo be like: " ++ self->me());
   }
 }
 
@@ -63,6 +63,6 @@ class MonsterJack {
 let child = Child {};
 let imp = Implementor {};
 let monster = MonsterJack {};
-imp.foo();
-child.foo();
-monster.foo();
+imp->foo();
+child->foo();
+monster->foo();

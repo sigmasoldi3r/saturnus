@@ -18,7 +18,7 @@ class Greeter {
 
 // Test it out!
 let world = Greeter.new("World");
-print(world.greet());
+print(world->greet());
 
 // Quick extras:
 class Mod {
@@ -50,4 +50,4 @@ class TestSelf {
 }
 
 let ts = TestSelf.new("Self tester!");
-ts.print();
+ts->print();

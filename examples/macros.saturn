@@ -1,8 +1,0 @@
-// Example usage of macros
-
-#[native(Lua)]
-fn foo() = "
-  local foobar = 'moo';
-";
-
-print(foo());

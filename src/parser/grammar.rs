@@ -137,6 +137,7 @@ peg::parser! {
             tail:(
                   _ "[" _ prop:expression() _ "]" { MemberSegment::Computed(prop).into() }
                 / _ "." _ prop:identifier() { MemberSegment::Identifier(prop).into() }
+                / _ "->" _ prop:identifier() { MemberSegment::Dispatch(prop).into() }
                 / _ arguments:call_arguments() { CallSubExpression { callee: None, arguments }.into() }
             )*
             { CallExpression { head, tail } }

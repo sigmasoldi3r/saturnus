@@ -74,6 +74,7 @@ impl LuaEmitter {
                 Ok(ctx.put("]"))
             }
             ast::MemberSegment::Identifier(i) => self.escape_reference(ctx, i),
+            ast::MemberSegment::Dispatch(i) => self.escape_reference(ctx, i),
         }
     }
     pub fn generate_destructured_assignment(&self, ctx: Builder, e: &ast::Destructuring) -> Result {
@@ -468,6 +469,9 @@ impl Visitor for LuaEmitter {
                             ctx.put("]")
                         }
                         ast::MemberSegment::Identifier(c) => ctx.put(".").put(c.0.clone()),
+                        ast::MemberSegment::Dispatch(_) => {
+                            panic!("Dispatch not allowed in this position")
+                        }
                     };
                     Ok(ctx)
                 })?;
@@ -478,17 +482,14 @@ impl Visitor for LuaEmitter {
                         let ctx = self.visit_expression(ctx, &c)?;
                         ctx.put("]")
                     }
-                    ast::MemberSegment::Identifier(c) => ctx.put(":").put(c.0.clone()),
+                    ast::MemberSegment::Identifier(c) => ctx.put(".").put(c.0.clone()),
+                    ast::MemberSegment::Dispatch(c) => ctx.put(":").put(c.0.clone()),
                 }
                 .put("(")
             } else {
-                if expr.head.arguments.len() > 0 {
-                    ctx.put("(nil, ")
-                } else {
-                    ctx.put("(")
-                }
+                ctx
             };
-            ctx
+            ctx.put("(")
         } else {
             // TODO! Review when this branch is reached.
             ctx.put("(")
@@ -522,7 +523,8 @@ impl Visitor for LuaEmitter {
                     let ctx = self.visit_expression(ctx, &c)?;
                     Ok(ctx.put("]"))
                 }
-                ast::MemberSegment::Identifier(i) => Ok(ctx?.put(":").put(i.0.clone())),
+                ast::MemberSegment::Identifier(i) => Ok(ctx?.put(".").put(i.0.clone())),
+                ast::MemberSegment::Dispatch(i) => Ok(ctx?.put(":").put(i.0.clone())),
             },
         })?;
         Ok(ctx)
