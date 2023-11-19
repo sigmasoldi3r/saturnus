@@ -298,12 +298,17 @@ peg::parser! {
             / e:destructure_expression() { AssignmentTarget::Destructuring(e) }
 
         rule destructure_expression() -> Destructuring
-            = "{" _ targets:(name:identifier() ** (_ "," _) { name }) _ "}"
-                { Destructuring(targets, DestructureOrigin::Table) }
-            / "(" _ targets:(name:identifier() ** (_ "," _) { name }) _ ")"
-                { Destructuring(targets, DestructureOrigin::Tuple) }
-            / "[" _ targets:(name:identifier() ** (_ "," _) { name }) _ "]"
-                { Destructuring(targets, DestructureOrigin::Array) }
+            = "{" _ targets:destructure_body() _ "}" { Destructuring { targets, origin: DestructureOrigin::Table } }
+            / "(" _ targets:destructure_body() _ ")" { Destructuring { targets, origin: DestructureOrigin::Tuple } }
+            / "[" _ targets:destructure_body() _ "]" { Destructuring { targets, origin: DestructureOrigin::Array } }
+
+        rule destructure_body() -> Vec<DestructuringSegment>
+            = target:destructure_fragment() ** (_ "," _) { target }
+
+        rule destructure_fragment() -> DestructuringSegment
+            = i:identifier() _ ":" _ t:destructure_expression()
+                { DestructuringSegment::Destructuring((i, t)) }
+            / i:identifier() { DestructuringSegment::Identifier(i) }
 
         rule class_fields() -> ClassField
             = e:declare_var() { ClassField::Let(e) }

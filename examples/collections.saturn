@@ -1,4 +1,4 @@
-use { `:::`, `::`, Object } in std;
+use { operators: { `:::`, `::` }, Object } in std;
 
 let x = [1, 2, 3];
 let y = [4, 5, 6];
@@ -8,3 +8,17 @@ z :: 7 :: 8;
 for (k, v) in Object.entries(z) {
   print(k ++ " => " ++ v);
 }
+
+// Destructuring assignment
+let tbl = {
+  foo: { bar: true },
+  arr: [1, 2, 3],
+  tup: ("foo", { world: "Hello" })
+};
+
+let {
+  foo: { bar },
+  arr: [a, b, c],
+  tup: (foo, { world })
+} = tbl;
+print(bar, a, b, c, foo, world);

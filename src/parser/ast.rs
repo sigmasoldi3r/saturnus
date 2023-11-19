@@ -42,6 +42,11 @@ pub struct Tuple(pub Vec<Expression>);
 
 #[derive(Debug, Clone)]
 pub struct Identifier(pub String);
+impl Identifier {
+    pub fn by_name(id: &Identifier) -> String {
+        id.0.clone()
+    }
+}
 
 #[derive(Debug, Clone)]
 pub enum MemberSegment {
@@ -69,7 +74,16 @@ pub enum DestructureOrigin {
 }
 
 #[derive(Debug, Clone)]
-pub struct Destructuring(pub Vec<Identifier>, pub DestructureOrigin);
+pub enum DestructuringSegment {
+    Identifier(Identifier),
+    Destructuring((Identifier, Destructuring)),
+}
+
+#[derive(Debug, Clone)]
+pub struct Destructuring {
+    pub targets: Vec<DestructuringSegment>,
+    pub origin: DestructureOrigin,
+}
 
 #[derive(Debug, Clone)]
 pub enum AssignmentTarget {
