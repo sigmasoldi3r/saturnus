@@ -110,7 +110,7 @@ peg::parser! {
             = value:use_segment() ++ (_ "." _) { value }
 
         rule use_statement() -> UseStatement
-            = USE() _ "{" _ targets:(name:identifier() ** (_ "," _) { name }) _ "}" _ "in" __ module:use_target() _ EOS()
+            = USE() _ targets:destructure_expression() _ "in" __ module:use_target() _ EOS()
             { UseStatement { module, expanded: Some(targets) } }
             / USE() __ module:use_target() _ EOS()
             { UseStatement { module, expanded: None } }
@@ -303,7 +303,10 @@ peg::parser! {
             / "[" _ targets:destructure_body_linear() _ "]" { Destructuring { targets, origin: DestructureOrigin::Array } }
 
         rule destructure_body_linear() -> Vec<DestructuringSegment>
-            = target:(i:identifier() { DestructuringSegment::Identifier(i) }) ** (_ "," _) { target }
+            = target:(
+                dt:destructure_expression() { DestructuringSegment::Destructuring((Identifier("".into()), dt)) }
+                / i:identifier() { DestructuringSegment::Identifier(i) }
+            ) ** (_ "," _) { target }
 
         rule destructure_body_table() -> Vec<DestructuringSegment>
             = target:destructure_fragment() ** (_ "," _) { target }
@@ -336,7 +339,7 @@ peg::parser! {
             = "`" value:$(ANY_OPERATOR()) "`"
             { Identifier(generate_operator_function_name(value.to_owned()))
             }
-            / value:$(IDENT()) { Identifier(value.into()) }
+            / value:$(IDENT() !"let") { Identifier(value.into()) }
             / expected!("Identifier")
 
         rule wrapped_comma_expr() -> Vec<Expression>

@@ -4,7 +4,7 @@ use crate::{
         builder::Builder,
     },
     parser::{
-        ast::{self, Identifier},
+        ast::{self, CallExpression, Identifier, MemberExpression},
         helpers::generate_operator_function_name,
     },
 };
@@ -449,20 +449,19 @@ impl Visitor for LuaEmitter {
         let path = expr.module.join(".");
         let tail = expr.module.last().unwrap();
         let ctx = if let Some(expand) = expr.expanded.as_ref() {
-            let vars: Vec<String> = expand.iter().map(|p| p.0.clone()).collect();
-            let ctx = ctx.line().put("local ").put(vars.join(", ")).put(";");
-            let ctx = ctx
-                .line()
-                .push()
-                .put("do")
-                .line()
-                .put(format!("local __destructure__ = require(\"{tail}\");"));
-            let ctx = expand.iter().fold(ctx, |ctx, target| {
-                ctx.line()
-                    .put(format!("{} = __destructure__.{};", target.0, target.0))
-            });
-            let ctx = ctx.pop().unwrap().line().put("end");
-            ctx
+            let call = ast::CallSubExpression {
+                callee: Some(ast::MemberExpression {
+                    head: ast::Expression::Identifier(ast::Identifier("require".into())),
+                    tail: vec![],
+                }),
+                arguments: vec![ast::Expression::String(ast::StringLiteral(path.clone()))],
+            };
+            let call = ast::CallExpression {
+                head: call,
+                tail: vec![],
+            };
+            let call = ast::Expression::Call(Box::new(call));
+            self.gen_destruct(ctx, &call, expand)?
         } else {
             ctx.line()
                 .put(format!("local {} = require(\"{}\");", tail, path))
@@ -504,7 +503,6 @@ impl Visitor for LuaEmitter {
                     ast::MemberSegment::Identifier(c) => ctx.put(".").put(c.0.clone()),
                     ast::MemberSegment::Dispatch(c) => ctx.put(":").put(c.0.clone()),
                 }
-                .put("(")
             } else {
                 ctx
             };

@@ -1,4 +1,4 @@
-// use { operators: { `:::`, `::` }, Object } in std;
+use { operators: { `:::`, `::` }, Object } in std;
 
 let x = [1, 2, 3];
 let y = [4, 5, 6];
@@ -16,13 +16,10 @@ let tbl = {
   tup: ("foo", { world: "Hello" })
 };
 
-let {x: {a, b}, y: {u, v}} = tbl;
-let (a, (c, d)) = tbl;
-let [a, [c, d]] = tbl;
-
 let {
   foo: { bar },
   arr: [a, b, c],
   tup: (foo, { world })
 } = tbl;
+
 print(bar, a, b, c, foo, world);

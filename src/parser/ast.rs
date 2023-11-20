@@ -217,7 +217,7 @@ pub struct Match {
 #[derive(Debug, Clone)]
 pub struct UseStatement {
     pub module: Vec<String>,
-    pub expanded: Option<Vec<Identifier>>,
+    pub expanded: Option<Destructuring>,
 }
 
 #[derive(Debug, Clone)]
