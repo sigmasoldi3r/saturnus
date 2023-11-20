@@ -39,7 +39,7 @@ let promise = some_future()
     return b;
   });
 
-let result = promise.resolve("Foo");
+let result = promise->resolve("Foo");
 print("result._0 = " ++ result._0);
 print("result._1 = " ++ result._1);
 print("result._2 = " ++ result._2);

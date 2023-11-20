@@ -1,4 +1,4 @@
-let { entries, `..` } = use std;
+let { Object, operators: { `..` } } = use std;
 
 let tbl = {
   a: 1,
@@ -7,11 +7,14 @@ let tbl = {
 };
 
 // For-each
-for (k, v) in entries(tbl) {
+for (k, v) in Object.entries(tbl) {
   print(k, v);
 }
 
 // Range based for
 for i in 1..4 {
-  print(i);
+  print("integer", i);
+}
+for i in 0..(1, 0.1) {
+  print("decimal", i);
 }

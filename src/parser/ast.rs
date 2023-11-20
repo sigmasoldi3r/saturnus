@@ -42,11 +42,17 @@ pub struct Tuple(pub Vec<Expression>);
 
 #[derive(Debug, Clone)]
 pub struct Identifier(pub String);
+impl Identifier {
+    pub fn by_name(id: &Identifier) -> String {
+        id.0.clone()
+    }
+}
 
 #[derive(Debug, Clone)]
 pub enum MemberSegment {
     Computed(Expression),
     Identifier(Identifier),
+    Dispatch(Identifier),
 }
 impl Into<CallExpressionVariant> for MemberSegment {
     fn into(self) -> CallExpressionVariant {
@@ -68,7 +74,16 @@ pub enum DestructureOrigin {
 }
 
 #[derive(Debug, Clone)]
-pub struct Destructuring(pub Vec<Identifier>, pub DestructureOrigin);
+pub enum DestructuringSegment {
+    Identifier(Identifier),
+    Destructuring((Identifier, Destructuring)),
+}
+
+#[derive(Debug, Clone)]
+pub struct Destructuring {
+    pub targets: Vec<DestructuringSegment>,
+    pub origin: DestructureOrigin,
+}
 
 #[derive(Debug, Clone)]
 pub enum AssignmentTarget {
@@ -202,7 +217,7 @@ pub struct Match {
 #[derive(Debug, Clone)]
 pub struct UseStatement {
     pub module: Vec<String>,
-    pub expanded: Option<Vec<Identifier>>,
+    pub expanded: Option<Destructuring>,
 }
 
 #[derive(Debug, Clone)]

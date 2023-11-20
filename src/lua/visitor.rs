@@ -4,7 +4,7 @@ use crate::{
         builder::Builder,
     },
     parser::{
-        ast::{self},
+        ast::{self, CallExpression, Identifier, MemberExpression},
         helpers::generate_operator_function_name,
     },
 };
@@ -74,40 +74,80 @@ impl LuaEmitter {
                 Ok(ctx.put("]"))
             }
             ast::MemberSegment::Identifier(i) => self.escape_reference(ctx, i),
+            ast::MemberSegment::Dispatch(i) => self.escape_reference(ctx, i),
         }
     }
-    pub fn generate_destructured_assignment(&self, ctx: Builder, e: &ast::Destructuring) -> Result {
-        let mut i = 0;
-        match e.1 {
-            ast::DestructureOrigin::Tuple => e.0.iter().fold(Ok(ctx), |ctx, elem| {
-                let ctx = ctx?
-                    .line()
-                    .put(elem.0.clone())
-                    .put(" = __destructure__")
-                    .put(format!("._{}", i))
-                    .put(";");
-                i += 1;
-                Ok(ctx)
-            }),
-            ast::DestructureOrigin::Array => e.0.iter().fold(Ok(ctx), |ctx, elem| {
-                let ctx = ctx?
-                    .line()
-                    .put(elem.0.clone())
-                    .put(" = __destructure__")
-                    .put(format!("[{}]", i))
-                    .put(";");
-                i += 1;
-                Ok(ctx)
-            }),
-            ast::DestructureOrigin::Table => e.0.iter().fold(Ok(ctx), |ctx, elem| {
-                let ctx = ctx?
-                    .line()
-                    .put(elem.0.clone())
-                    .put(" = __destructure__.")
-                    .put(elem.0.clone())
-                    .put(";");
-                Ok(ctx)
-            }),
+    fn collect_targets(&self, expr: &ast::Destructuring, targets: &mut Vec<Identifier>) {
+        for seg in expr.targets.iter() {
+            match seg {
+                ast::DestructuringSegment::Identifier(id) => targets.push(id.clone()),
+                ast::DestructuringSegment::Destructuring((_, expr)) => {
+                    self.collect_targets(expr, targets)
+                }
+            }
+        }
+    }
+    pub fn gen_destruct(
+        &self,
+        ctx: Builder,
+        source: &ast::Expression,
+        expr: &ast::Destructuring,
+    ) -> Result {
+        let mut targets = Vec::<Identifier>::new();
+        self.collect_targets(expr, &mut targets);
+        let vars = targets
+            .iter()
+            .map(Identifier::by_name)
+            .collect::<Vec<String>>()
+            .join(", ");
+        let ctx = ctx.line().put(format!("local {vars};"));
+        let ctx = ctx.line().put("do").push();
+        let ctx = ctx.line().put("local __destructure__ = ");
+        let ctx = self.visit_expression(ctx, source)?.put(";");
+        let ctx = self.gen("__destructure__".to_owned(), ctx, expr);
+        let ctx = ctx.pop().unwrap().line().put("end");
+        Ok(ctx)
+    }
+    fn gen(&self, path: String, ctx: Builder, expr: &ast::Destructuring) -> Builder {
+        match expr.origin {
+            ast::DestructureOrigin::Tuple => {
+                expr.targets
+                    .iter()
+                    .fold((ctx, 0u8), |(ctx, i), elem| match elem {
+                        ast::DestructuringSegment::Identifier(id) => (
+                            ctx.line().put(format!("{} = {}._{};", id.0, path, i)),
+                            i + 1,
+                        ),
+                        ast::DestructuringSegment::Destructuring((_, dt)) => {
+                            (self.gen(format!("{path}._{i}"), ctx, dt), i + 1)
+                        }
+                    })
+                    .0
+            }
+            ast::DestructureOrigin::Array => {
+                expr.targets
+                    .iter()
+                    .fold((ctx, 1u8), |(ctx, i), elem| match elem {
+                        ast::DestructuringSegment::Identifier(id) => (
+                            ctx.line().put(format!("{} = {}[{}];", id.0, path, i)),
+                            i + 1,
+                        ),
+                        ast::DestructuringSegment::Destructuring((_, dt)) => {
+                            (self.gen(format!("{path}[{i}]"), ctx, dt), i + 1)
+                        }
+                    })
+                    .0
+            }
+            ast::DestructureOrigin::Table => {
+                expr.targets.iter().fold(ctx, |ctx, elem| match elem {
+                    ast::DestructuringSegment::Identifier(id) => {
+                        ctx.line().put(format!("{} = {}.{};", id.0, path, id.0))
+                    }
+                    ast::DestructuringSegment::Destructuring((id, dt)) => {
+                        self.gen(format!("{}.{}", path, id.0), ctx, dt)
+                    }
+                })
+            }
         }
     }
 }
@@ -124,9 +164,9 @@ impl Visitor for LuaEmitter {
     }
 
     fn visit_block_expression(&self, ctx: Builder, expr: &ast::Do) -> Result {
-        let ctx = ctx.put("(function(...)").push();
+        let ctx = ctx.put("(function()").push();
         let ctx = self.visit_block(ctx, &expr.body)?;
-        let ctx = ctx.pop().unwrap().line().put("end)(...)");
+        let ctx = ctx.pop().unwrap().line().put("end)()");
         Ok(ctx)
     }
 
@@ -198,19 +238,7 @@ impl Visitor for LuaEmitter {
                         .put(level)
                         .put(f.name.0.clone())
                         .put(" = ");
-                    let arguments = if is_self {
-                        f.arguments.clone()
-                    } else {
-                        vec![ast::Argument {
-                            name: ast::Identifier("Self".into()),
-                            spread: false,
-                            decorators: vec![],
-                        }]
-                        .iter()
-                        .chain(f.arguments.iter())
-                        .map(|a| a.clone())
-                        .collect()
-                    };
+                    let arguments = f.arguments.clone();
                     let ctx = self.visit_lambda(
                         ctx,
                         &ast::Lambda {
@@ -291,11 +319,7 @@ impl Visitor for LuaEmitter {
             })
             .collect::<Vec<String>>()
             .join(", ");
-        let ctx = if arg_names.len() > 0 {
-            ctx.put("_, ").put(arg_names)
-        } else {
-            ctx.put("_")
-        };
+        let ctx = ctx.put(arg_names);
         let ctx = ctx.put(")").push();
         let ctx = if let Some(arg) = stmt.arguments.iter().last() {
             if arg.spread {
@@ -346,27 +370,7 @@ impl Visitor for LuaEmitter {
     fn visit_declaration(&self, ctx: Builder, stmt: &ast::Let) -> Result {
         let ctx = match &stmt.target {
             ast::AssignmentTarget::Destructuring(e) => {
-                let ctx = ctx.line().put("local ");
-                let ctx = ctx.put(e.0.get(0).unwrap().0.clone());
-                let ctx =
-                    e.0.iter()
-                        .skip(1)
-                        .fold(ctx, |ctx, elem| ctx.put(", ").put(elem.0.clone()));
-                let ctx = ctx
-                    .put(";")
-                    .line()
-                    .put("do")
-                    .push()
-                    .line()
-                    .put("local __destructure__ = ");
-                let ctx = self
-                    .visit_expression(ctx, stmt.value.as_ref().unwrap())?
-                    .put(";");
-                self.generate_destructured_assignment(ctx, &e)?
-                    .pop()
-                    .unwrap()
-                    .line()
-                    .put("end")
+                self.gen_destruct(ctx, stmt.value.as_ref().unwrap(), e)?
             }
             ast::AssignmentTarget::Identifier(e) => {
                 let ctx = ctx.line().put("local ").put(e.0.clone()).put(" = ");
@@ -429,20 +433,19 @@ impl Visitor for LuaEmitter {
         let path = expr.module.join(".");
         let tail = expr.module.last().unwrap();
         let ctx = if let Some(expand) = expr.expanded.as_ref() {
-            let vars: Vec<String> = expand.iter().map(|p| p.0.clone()).collect();
-            let ctx = ctx.line().put("local ").put(vars.join(", ")).put(";");
-            let ctx = ctx
-                .line()
-                .push()
-                .put("do")
-                .line()
-                .put(format!("local __destructure__ = require(\"{tail}\");"));
-            let ctx = expand.iter().fold(ctx, |ctx, target| {
-                ctx.line()
-                    .put(format!("{} = __destructure__.{};", target.0, target.0))
-            });
-            let ctx = ctx.pop().unwrap().line().put("end");
-            ctx
+            let call = ast::CallSubExpression {
+                callee: Some(ast::MemberExpression {
+                    head: ast::Expression::Identifier(ast::Identifier("require".into())),
+                    tail: vec![],
+                }),
+                arguments: vec![ast::Expression::String(ast::StringLiteral(path.clone()))],
+            };
+            let call = ast::CallExpression {
+                head: call,
+                tail: vec![],
+            };
+            let call = ast::Expression::Call(Box::new(call));
+            self.gen_destruct(ctx, &call, expand)?
         } else {
             ctx.line()
                 .put(format!("local {} = require(\"{}\");", tail, path))
@@ -468,6 +471,9 @@ impl Visitor for LuaEmitter {
                             ctx.put("]")
                         }
                         ast::MemberSegment::Identifier(c) => ctx.put(".").put(c.0.clone()),
+                        ast::MemberSegment::Dispatch(_) => {
+                            panic!("Dispatch not allowed in this position")
+                        }
                     };
                     Ok(ctx)
                 })?;
@@ -478,17 +484,13 @@ impl Visitor for LuaEmitter {
                         let ctx = self.visit_expression(ctx, &c)?;
                         ctx.put("]")
                     }
-                    ast::MemberSegment::Identifier(c) => ctx.put(":").put(c.0.clone()),
+                    ast::MemberSegment::Identifier(c) => ctx.put(".").put(c.0.clone()),
+                    ast::MemberSegment::Dispatch(c) => ctx.put(":").put(c.0.clone()),
                 }
-                .put("(")
             } else {
-                if expr.head.arguments.len() > 0 {
-                    ctx.put("(nil, ")
-                } else {
-                    ctx.put("(")
-                }
+                ctx
             };
-            ctx
+            ctx.put("(")
         } else {
             // TODO! Review when this branch is reached.
             ctx.put("(")
@@ -522,7 +524,8 @@ impl Visitor for LuaEmitter {
                     let ctx = self.visit_expression(ctx, &c)?;
                     Ok(ctx.put("]"))
                 }
-                ast::MemberSegment::Identifier(i) => Ok(ctx?.put(":").put(i.0.clone())),
+                ast::MemberSegment::Identifier(i) => Ok(ctx?.put(".").put(i.0.clone())),
+                ast::MemberSegment::Dispatch(i) => Ok(ctx?.put(":").put(i.0.clone())),
             },
         })?;
         Ok(ctx)
@@ -744,10 +747,13 @@ impl Visitor for LuaEmitter {
     fn visit_for(&self, ctx: Builder, expr: &ast::For) -> Result {
         let ctx = match &expr.handler {
             ast::AssignmentTarget::Destructuring(e) => {
-                let ctx = ctx.line().put("for __destructure__ in ");
+                let ctx = ctx.line().put("for __destructured_iterator_target__ in ");
                 let ctx = self.visit_expression(ctx, &expr.target)?;
                 let ctx = ctx.put(" do").push();
-                let ctx = self.generate_destructured_assignment(ctx, &e)?;
+                let dt = ast::Expression::Identifier(Identifier(
+                    "__destructured_iterator_target__".into(),
+                ));
+                let ctx = self.gen_destruct(ctx, &dt, e)?;
                 let ctx = self.visit_block(ctx, &expr.body)?;
                 ctx.pop().unwrap().line().put("end")
             }

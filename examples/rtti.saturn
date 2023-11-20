@@ -11,6 +11,6 @@ class Foo {
 
 let foo = Foo {};
 
-print(foo.bar(10, "!"));
+print(foo->bar(10, "!"));
 // this will blow:
-print(foo.bar("a", 99));
+print(foo->bar("a", 99));
