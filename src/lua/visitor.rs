@@ -164,9 +164,9 @@ impl Visitor for LuaEmitter {
     }
 
     fn visit_block_expression(&self, ctx: Builder, expr: &ast::Do) -> Result {
-        let ctx = ctx.put("(function(...)").push();
+        let ctx = ctx.put("(function()").push();
         let ctx = self.visit_block(ctx, &expr.body)?;
-        let ctx = ctx.pop().unwrap().line().put("end)(...)");
+        let ctx = ctx.pop().unwrap().line().put("end)()");
         Ok(ctx)
     }
 
