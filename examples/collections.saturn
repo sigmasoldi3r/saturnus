@@ -9,6 +9,13 @@ for (k, v) in Object.entries(z) {
   print(k ++ " => " ++ v);
 }
 
+let coll = { a: "one", b: "two" };
+
+print("Keys:");
+for key in Object.keys(coll) {
+  print(key);
+}
+
 // Destructuring assignment
 let tbl = {
   foo: { bar: true },
