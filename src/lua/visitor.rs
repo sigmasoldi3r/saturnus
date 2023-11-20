@@ -238,19 +238,7 @@ impl Visitor for LuaEmitter {
                         .put(level)
                         .put(f.name.0.clone())
                         .put(" = ");
-                    let arguments = if is_self {
-                        f.arguments.clone()
-                    } else {
-                        vec![ast::Argument {
-                            name: ast::Identifier("Self".into()),
-                            spread: false,
-                            decorators: vec![],
-                        }]
-                        .iter()
-                        .chain(f.arguments.iter())
-                        .map(|a| a.clone())
-                        .collect()
-                    };
+                    let arguments = f.arguments.clone();
                     let ctx = self.visit_lambda(
                         ctx,
                         &ast::Lambda {
@@ -331,11 +319,7 @@ impl Visitor for LuaEmitter {
             })
             .collect::<Vec<String>>()
             .join(", ");
-        let ctx = if arg_names.len() > 0 {
-            ctx.put("_, ").put(arg_names)
-        } else {
-            ctx.put("_")
-        };
+        let ctx = ctx.put(arg_names);
         let ctx = ctx.put(")").push();
         let ctx = if let Some(arg) = stmt.arguments.iter().last() {
             if arg.spread {
