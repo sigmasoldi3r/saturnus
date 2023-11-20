@@ -36,12 +36,12 @@ class Vector {
     return #? self[private].data;
   }
   fn iter(self) {
-    return entries(self[private].data);
+    return Object.entries(self[private].data);
   }
 }
 
 class Object {
-  fn entries(tbl) {
+  fn Object.entries(tbl) {
     <extern "Lua">
       do
         local iter = pairs(tbl);
@@ -79,7 +79,7 @@ class Tuple {
     return #? self[private].data;
   }
   fn iter(self) {
-    return entries(self[private].data);
+    return Object.entries(self[private].data);
   }
 }
 
@@ -104,10 +104,10 @@ fn trait() {
 fn impl(trait) {
   return (target, name) => {
     let map = {};
-    for (k, v) in entries(target.prototype) {
+    for (k, v) in Object.entries(target.prototype) {
       map[k] = v;
     }
-    for (k, v) in entries(trait.prototype) {
+    for (k, v) in Object.entries(trait.prototype) {
       if map[k] == () {
         panic(name ++ " must implement trait method " ++ k ++ "!");
       }

@@ -188,7 +188,7 @@ impl Visitor for LuaEmitter {
             .put(format!("{}.__meta__ = {{}};", stmt.name.0.clone()))
             .line()
             .put(format!(
-                "{}.__meta__.__call = function(self, _, struct)",
+                "{}.__meta__.__call = function(self, struct)",
                 stmt.name.0.clone()
             ))
             .push()

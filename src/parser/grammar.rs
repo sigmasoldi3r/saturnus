@@ -124,20 +124,20 @@ peg::parser! {
             tail:(
                 _ "[" _ e:expression() _ "]" { MemberSegment::Computed(e) }
                 / _ "." _ i:identifier() { MemberSegment::Identifier(i) }
+                / _ "->" _ prop:identifier() { MemberSegment::Dispatch(prop).into() }
             )*
             { MemberExpression { head, tail } }
 
         rule call_expression() -> CallExpression
             = head:(
                 callee:member_expression() _ arguments:call_arguments()
-                { CallSubExpression { callee: Some(callee), arguments }.into() }
+                    { CallSubExpression { callee: Some(callee), arguments }.into() }
                 / callee:member_expression() _ arg:table_expression()
-                { CallSubExpression { callee: Some(callee), arguments: vec![arg] } }
+                    { CallSubExpression { callee: Some(callee), arguments: vec![arg] } }
             )
             tail:(
                   _ "[" _ prop:expression() _ "]" { MemberSegment::Computed(prop).into() }
                 / _ "." _ prop:identifier() { MemberSegment::Identifier(prop).into() }
-                / _ "->" _ prop:identifier() { MemberSegment::Dispatch(prop).into() }
                 / _ arguments:call_arguments() { CallSubExpression { callee: None, arguments }.into() }
             )*
             { CallExpression { head, tail } }
