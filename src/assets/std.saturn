@@ -41,7 +41,7 @@ class Vector {
 }
 
 class Object {
-  fn Object.entries(tbl) {
+  fn entries(tbl) {
     <extern "Lua">
       do
         local iter = pairs(tbl);
