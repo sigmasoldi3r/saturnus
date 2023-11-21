@@ -132,20 +132,16 @@ foo:bar();
 foo.bar();
 ```
 
-But Saturnus does not, to fix that, you'll have to provide native wrappers for
-the methods that do not take into account a `self` parameter in Lua:
+And so does Saturnus. You must use the method dispatch operator `->` when
+invoking object methods. Otherwise you can run with the dot `.`, and provide the
+`self` parameter, just like in Lua.
 
 ```rs
-// Imagine a table with a static function like math's max()
-class Math {
-  fn max(a, b) {
-    <extern "Lua">
-      return math.max(a, b);
-    </extern>
-  }
-}
-let max = Math.max(1, 2);
-// This is crucial, otherwise things will break.
+// Member dispatch
+foo->bar();
+// Like usual
+foo.bar(foo);
+Foo.static_bar();
 ```
 
 The loops:
