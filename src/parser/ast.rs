@@ -165,9 +165,18 @@ pub struct Return {
 }
 
 #[derive(Debug, Clone)]
-pub enum Number {
+pub enum NumberVariant {
     Float(f64),
     Integer(i64),
+    Hexadecimal(i64),
+    Binary(i64),
+    Character(i64),
+}
+
+#[derive(Debug, Clone)]
+pub struct Number {
+    pub value: NumberVariant,
+    pub postfix: Option<Identifier>,
 }
 
 #[derive(Debug, Clone)]
@@ -293,7 +302,18 @@ pub enum TableKeyExpression {
 }
 
 #[derive(Debug, Clone)]
-pub struct StringLiteral(pub String);
+pub struct StringLiteral {
+    pub value: String,
+    pub prefix: Option<Identifier>,
+}
+impl StringLiteral {
+    pub fn expression_from_value(value: String) -> Expression {
+        Expression::String(StringLiteral {
+            value,
+            prefix: None,
+        })
+    }
+}
 
 #[derive(Debug, Clone)]
 pub enum Expression {

@@ -438,7 +438,7 @@ impl Visitor for LuaEmitter {
                     head: ast::Expression::Identifier(ast::Identifier("require".into())),
                     tail: vec![],
                 }),
-                arguments: vec![ast::Expression::String(ast::StringLiteral(path.clone()))],
+                arguments: vec![ast::StringLiteral::expression_from_value(path.clone())],
             };
             let call = ast::CallExpression {
                 head: call,
@@ -569,15 +569,44 @@ impl Visitor for LuaEmitter {
     }
 
     fn visit_number(&self, ctx: Builder, expr: &ast::Number) -> Result {
-        let numeric_string = match expr {
-            ast::Number::Float(e) => e.to_string(),
-            ast::Number::Integer(e) => e.to_string(),
+        let ctx = if let Some(postfix) = &expr.postfix {
+            let ctx = self.visit_identifier(ctx, postfix)?;
+            ctx.put(".from_literal(")
+        } else {
+            ctx
         };
-        Ok(ctx.put(numeric_string))
+        let numeric_string = match expr.value {
+            ast::NumberVariant::Float(e) => e.to_string(),
+            ast::NumberVariant::Integer(e) => e.to_string(),
+            ast::NumberVariant::Hexadecimal(e) => e.to_string(),
+            ast::NumberVariant::Binary(e) => e.to_string(),
+            ast::NumberVariant::Character(e) => e.to_string(),
+        };
+        let ctx = ctx.put(numeric_string);
+        let ctx = if expr.postfix.is_some() {
+            ctx.put(")")
+        } else {
+            ctx
+        };
+        return Ok(ctx);
     }
 
     fn visit_string(&self, ctx: Builder, expr: &ast::StringLiteral) -> Result {
-        let ctx = ctx.put("\"").put(escape_string(expr.0.clone())).put("\"");
+        let ctx = if let Some(prefix) = &expr.prefix {
+            let ctx = self.visit_identifier(ctx, prefix)?;
+            ctx.put("(")
+        } else {
+            ctx
+        };
+        let ctx = ctx
+            .put("\"")
+            .put(escape_string(expr.value.clone()))
+            .put("\"");
+        let ctx = if expr.prefix.is_some() {
+            ctx.put(")")
+        } else {
+            ctx
+        };
         Ok(ctx)
     }
 
