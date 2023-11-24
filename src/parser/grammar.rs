@@ -88,7 +88,7 @@ peg::parser! {
 
         rule extern_block() -> Extern
             = "<extern" _ id:string_literal() ">" src:$(!"</extern>" ANY())* "</extern>"
-            { Extern { id: id.0, src: src.join("") } }
+            { Extern { id: id.value, src: src.join("") } }
 
         rule assignment() -> Assignment
             = target:member_expression() _ extra:extra_operator()? "=" _ value:expression() _ EOS()
@@ -104,7 +104,7 @@ peg::parser! {
 
         rule use_segment() -> String
             = value:identifier() { value.0 }
-            / value:string_literal() { value.0 }
+            / value:string_literal() { value.value }
 
         rule use_target() -> Vec<String>
             = value:use_segment() ++ (_ "." _) { value }
@@ -258,15 +258,23 @@ peg::parser! {
 
         // Literals
         rule number_literal() -> Number
-            = value:$(DIGIT()+ "." DIGIT()+) { Number::Float(value.parse().unwrap()) }
-            / value:$(DIGIT()+) { Number::Integer(value.parse().unwrap()) }
-            / "'" value:$(!"'" ANY()) "'" { Number::Integer(value.chars().nth(0).unwrap() as i64) }
+            = value:number_literal_value() postfix:identifier()?
+                { Number { value, postfix } }
+        rule number_literal_value() -> NumberVariant
+            = value:$(DIGIT()+ "." DIGIT()+) { NumberVariant::Float(value.parse().unwrap()) }
+            / "0x" value:$((DIGIT() / HEX())+) { NumberVariant::Hexadecimal(i64::from_str_radix(value, 16).unwrap()) }
+            / "0b" value:$(['1'|'0']+) { NumberVariant::Binary(i64::from_str_radix(value, 2).unwrap()) }
+            / value:$(DIGIT()+) { NumberVariant::Integer(value.parse().unwrap()) }
+            / "'" value:$(!"'" ANY()) "'" { NumberVariant::Character(value.chars().nth(0).unwrap() as i64) }
             / expected!("Number literal")
 
         rule string_literal() -> StringLiteral
+            = prefix:identifier()? value:string_literal_value()
+                { StringLiteral { value, prefix } }
+        rule string_literal_value() -> String
             = "\"" value:$(
                 ( "\\\"" / (!"\"" ANY()) )*
-            ) "\"" { StringLiteral(value.into()) }
+            ) "\"" { value.into() }
             / expected!("String literal")
 
         rule vector_literal() -> Vector
@@ -389,6 +397,7 @@ peg::parser! {
         rule EOS() = quiet!{ ";" } / expected!("End of statement") //quiet!{ EOL() / ";" } / expected!("End of statement")
         rule ALPHA() = quiet!{ ['A'..='Z'|'a'..='z'|'_'] } / expected!("Alphanumeric")
         rule DIGIT() = quiet!{ ['0'..='9'] } / expected!("Digit")
+        rule HEX() = quiet!{ ['a'..='f'|'A'..='F'] } / expected!("Hexadecimal value")
         rule _ = WS()*
         rule __ = WS()+
 
