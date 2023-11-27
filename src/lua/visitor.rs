@@ -2,9 +2,11 @@ use crate::{
     code::{
         ast_visitor::{Result, Visitor},
         builder::Builder,
+        info::InputFileInfo,
+        macros::MacroHost,
     },
     parser::{
-        ast::{self, CallExpression, Identifier, MemberExpression},
+        ast::{self, Identifier},
         helpers::generate_operator_function_name,
     },
 };
@@ -28,12 +30,13 @@ fn escape_string(str: String) -> String {
 
 pub struct LuaEmitter {
     // pub module_mapping: HashMap<String, PathBuf>,
+    pub macro_host: MacroHost,
 }
 
 impl LuaEmitter {
-    pub fn new() -> Self {
+    pub fn new(info: InputFileInfo) -> Self {
         Self {
-            // module_mapping: HashMap::new(),
+            macro_host: MacroHost::new(info), // module_mapping: HashMap::new(),
         }
     }
     // pub fn map_module_path(&self, segments: &Vec<String>) -> String {

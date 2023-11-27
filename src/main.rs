@@ -1,6 +1,11 @@
-use std::{fs::File, io::Write, path::Path};
+use std::{
+    fs::File,
+    io::Write,
+    path::{Path, PathBuf},
+};
 
 use clap::Parser;
+use code::info::InputFileInfo;
 use errors::report_error;
 use parser::Script;
 use runtime::RuntimeError;
@@ -97,7 +102,9 @@ struct CompilationOptions {
 // }
 
 fn try_run(options: CompilationOptions, input: String, indent: String) -> Result<(), RuntimeError> {
-    let compiler = lua::visitor::LuaEmitter::new();
+    let compiler = lua::visitor::LuaEmitter::new(InputFileInfo {
+        full_path: PathBuf::from(&options.in_path),
+    });
     // Precompile STD
     let std_src = include_str!("assets/std.saturn");
     let std_src = Script::parse(std_src.to_owned()).unwrap();
