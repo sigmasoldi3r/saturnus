@@ -60,8 +60,7 @@ files next to your `.saturn` files.
 Currently the CD is disabled, however you can grab the latest [artifacts from
 the nightly branch][nightly], **BUT!**
 
-[nightly]:
-  https://github.com/sigmasoldi3r/Saturnus/actions/workflows/build-artifacts.yml
+[nightly]: https://github.com/sigmasoldi3r/Saturnus/actions/workflows/build-artifacts.yml
 
 **BUT...** beware that the artifacts will be surely outdated.
 
@@ -75,6 +74,13 @@ Then you will have the executable at `target/release/saturnus`. (You need the
 [Rust tooling][rustup] to make that happen).
 
 [rustup]: https://www.rust-lang.org/learn/get-started
+
+Saturnus scripts can be made executable with the shebang, like:
+
+```s
+#!/usr/bin/env saturnus
+print("Hello World!");
+```
 
 ## Language Basics
 
@@ -137,9 +143,9 @@ invoking object methods. Otherwise you can run with the dot `.`, and provide the
 `self` parameter, just like in Lua.
 
 ```rs
-// Member dispatch
+// Member dispatch, aka foo:bar() Lua's equivalent
 foo->bar();
-// Like usual
+// Like usual, the static dispatch.
 foo.bar(foo);
 Foo.static_bar();
 ```
@@ -167,13 +173,16 @@ while let some = thing() {
   print("Some is " ++ some);
 }
 
+// Note that the .. operator must be imported
+use { operators: { `..` } } in std;
+
 // Numeric for? Easy sugar:
 for i in 1..10 {
   print("i = " ++ i)
 }
 
 // Now, the classical foreach:
-for entry in entries() {
+for entry in Object.entries([1, 2, 3]) {
   print(entry._0 ++ " = " ++ entry._1);
 }
 // Note: This is a raw iterator loop, and cannot be used in place of an
@@ -239,7 +248,7 @@ let anon = (a, b) => {
 
 // And if an anonymous function ONLY has one expression inside (Without ";"),
 // that expression is an implicit return statement:
-collections::reduce([1, 2, 3], (a, b) => a + b);
+collections.reduce([1, 2, 3], (a, b) => a + b);
 // Pretty cool
 ```
 
@@ -267,8 +276,8 @@ class Person {
 
 // Here you'll clearly see the difference:
 let person = Person { name: "Mr. Foo" };
-let name = person.get_name(); // Dynamic dispatch
-Person::greet(person); // Static method dispatch!
+let name = person->get_name(); // Dynamic dispatch
+Person.greet(person); // Static method dispatch!
 ```
 
 Polymorphism example, altough if you're familiar with the term ["Duck
@@ -298,8 +307,8 @@ let foo = Foo {};
 let bar = Bar {};
 
 let consumer = FooBarConsumer {};
-print(consumer.consume(foo));
-print(consumer.consume(bar));
+print(consumer->consume(foo));
+print(consumer->consume(bar));
 ```
 
 Also you can decorate the code:
@@ -322,14 +331,14 @@ fn suite() {
 Custom operators!
 
 ```rs
-let { `..` } = use std; // You can bring em from libraries
+let { operators: { `..` } } = use std; // You can bring em from libraries
 
 // Or define in-situ
-fn `->`(left, right) {
+fn `-->`(left, right) {
   return left ++ right ++ right ++ left;
 }
 
-let foo = "foo" -> "bar";
+let foo = "foo" --> "bar";
 // Will yield "foobarbarfoo"
 ```
 

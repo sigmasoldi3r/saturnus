@@ -1,0 +1,11 @@
+#!/usr/bin/env saturnus
+
+class Printer {
+  fn print(self) {
+    print("Hello World!");
+  }
+}
+
+let obj = Printer {};
+
+obj->print();

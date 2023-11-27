@@ -4,7 +4,7 @@ use super::helpers::generate_operator_function_name;
 peg::parser! {
     grammar saturnus_script() for str {
         pub rule script() -> Script
-            = _ statements:statement() ** __ _
+            = ("#!" (!EOL() ANY())* EOL())? _ statements:statement() ** __ _
             { Script { statements } }
 
         // Statements
