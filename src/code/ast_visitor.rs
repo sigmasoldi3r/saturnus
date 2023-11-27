@@ -54,6 +54,7 @@ pub trait Visitor {
 
     // Macros
     fn visit_macro_decorator(&self, ctx: Builder, stmt: &MacroDecorator) -> Result;
+    fn visit_macro_call(&self, ctx: Builder, expr: &MacroCallExpression) -> Result;
 
     // Generically implementable matching patterns:
     fn visit_expression(&self, ctx: Builder, expression: &Expression) -> Result {
@@ -73,6 +74,7 @@ pub trait Visitor {
             Expression::Tuple1(e) => self.visit_wrapped_expression(ctx, e),
             Expression::Identifier(e) => self.visit_identifier(ctx, e),
             Expression::Do(e) => self.visit_block_expression(ctx, e),
+            Expression::MacroCall(e) => self.visit_macro_call(ctx, e),
         }
     }
     fn visit_statement(&self, ctx: Builder, statement: &Statement) -> Result {

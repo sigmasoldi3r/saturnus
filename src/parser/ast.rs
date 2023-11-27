@@ -49,6 +49,12 @@ impl Identifier {
 }
 
 #[derive(Debug, Clone)]
+pub struct MacroCallExpression {
+    pub target: Identifier,
+    pub arguments: Option<Vec<Expression>>,
+}
+
+#[derive(Debug, Clone)]
 pub enum MemberSegment {
     Computed(Expression),
     Identifier(Identifier),
@@ -128,13 +134,6 @@ pub enum CallExpressionVariant {
     Member(MemberSegment),
 }
 
-// TODO: Implement macros!
-#[derive(Debug, Clone)]
-pub enum MacroCallArguments {
-    FunctionLike(Vec<Expression>),
-    BlockLike(Script),
-}
-
 #[derive(Debug, Clone)]
 pub enum IdentifierOrCall {
     Call(CallExpression),
@@ -147,11 +146,18 @@ pub struct MacroDecorator {
     pub target: Statement,
 }
 
-#[derive(Debug, Clone)]
-pub struct MacroCallExpression {
-    pub target: Identifier,
-    pub arguments: MacroCallArguments,
-}
+// TODO: Implement macros!
+// #[derive(Debug, Clone)]
+// pub enum MacroCallArguments {
+//     FunctionLike(Vec<Expression>),
+//     BlockLike(Script),
+// }
+
+// #[derive(Debug, Clone)]
+// pub struct MacroCallExpression {
+//     pub target: Identifier,
+//     pub arguments: MacroCallArguments,
+// }
 
 #[derive(Debug, Clone)]
 pub struct CallExpression {
@@ -321,6 +327,7 @@ pub enum Expression {
     Reference(Box<MemberExpression>),
     Identifier(Identifier),
     Call(Box<CallExpression>),
+    MacroCall(Box<MacroCallExpression>),
     Tuple(Tuple),
     Tuple1(Box<Expression>),
     Table(Table),

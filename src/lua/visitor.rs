@@ -1,10 +1,12 @@
 use crate::{
     code::{
-        ast_visitor::{Result, Visitor},
+        ast_visitor::{Result, VisitError, Visitor},
         builder::Builder,
+        info::InputFileInfo,
+        macros::MacroHost,
     },
     parser::{
-        ast::{self, CallExpression, Identifier, MemberExpression},
+        ast::{self, Identifier},
         helpers::generate_operator_function_name,
     },
 };
@@ -28,12 +30,13 @@ fn escape_string(str: String) -> String {
 
 pub struct LuaEmitter {
     // pub module_mapping: HashMap<String, PathBuf>,
+    pub macro_host: MacroHost,
 }
 
 impl LuaEmitter {
-    pub fn new() -> Self {
+    pub fn new(info: InputFileInfo) -> Self {
         Self {
-            // module_mapping: HashMap::new(),
+            macro_host: MacroHost::new(info), // module_mapping: HashMap::new(),
         }
     }
     // pub fn map_module_path(&self, segments: &Vec<String>) -> String {
@@ -155,6 +158,15 @@ impl LuaEmitter {
 impl Visitor for LuaEmitter {
     fn visit_macro_decorator(&self, ctx: Builder, stmt: &ast::MacroDecorator) -> Result {
         self.visit_statement(ctx, &stmt.target)
+    }
+
+    fn visit_macro_call(&self, ctx: Builder, expr: &ast::MacroCallExpression) -> Result {
+        if let Some(mac) = self.macro_host.macros.get(&expr.target.0) {
+            let out = mac.expand_call(expr);
+            self.visit_expression(ctx, &out)
+        } else {
+            Err(VisitError(Box::new(BadCode)))
+        }
     }
 
     fn visit_return(&self, ctx: Builder, stmt: &ast::Return) -> Result {
