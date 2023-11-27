@@ -1,3 +1,2 @@
-let here = file!();
-
-print("This file:", here);
+// Example of file! macro.
+print("This file:", file!);

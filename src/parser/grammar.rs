@@ -128,6 +128,10 @@ peg::parser! {
             )*
             { MemberExpression { head, tail } }
 
+        rule macro_call_expression() -> MacroCallExpression
+            = target:identifier() "!" _ arguments:call_arguments()?
+                { MacroCallExpression { target, arguments } }
+
         rule call_expression() -> CallExpression
             = head:(
                 callee:member_expression() _ arguments:call_arguments()
@@ -220,7 +224,8 @@ peg::parser! {
         }
 
         rule atom() -> Expression
-            = e:call_expression() { Expression::Call(Box::new(e)) }
+            = e:macro_call_expression() { Expression::MacroCall(Box::new(e)) }
+            / e:call_expression() { Expression::Call(Box::new(e)) }
             / lambda_expression()
             / string_expression()
             / number_expression()
