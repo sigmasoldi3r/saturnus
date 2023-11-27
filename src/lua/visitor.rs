@@ -590,7 +590,7 @@ impl Visitor for LuaEmitter {
         let numeric_string = match expr.value {
             ast::NumberVariant::Float(e) => e.to_string(),
             ast::NumberVariant::Integer(e) => e.to_string(),
-            ast::NumberVariant::Hexadecimal(e) => e.to_string(),
+            ast::NumberVariant::Hexadecimal(e) => format!("0x{:x}", e),
             ast::NumberVariant::Binary(e) => e.to_string(),
             ast::NumberVariant::Character(e) => e.to_string(),
         };

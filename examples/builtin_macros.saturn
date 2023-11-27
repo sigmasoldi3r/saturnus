@@ -1,2 +1,5 @@
 // Example of file! macro.
 print("This file:", file!);
+
+let text = include_str!("Janus.toml");
+let bytes = include_bytes!("Janus.toml");

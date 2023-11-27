@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use crate::parser::ast;
+use crate::parser::ast::{self, Expression, StringLiteral};
 
 use super::info::InputFileInfo;
 
@@ -20,6 +20,55 @@ struct PanicMacro(InputFileInfo);
 impl Macro for PanicMacro {
     fn expand_call(&self, ast: &ast::MacroCallExpression) -> ast::Expression {
         todo!("panic! macro")
+    }
+}
+
+struct IncludeTextMacro;
+impl Macro for IncludeTextMacro {
+    fn expand_call(&self, ast: &ast::MacroCallExpression) -> ast::Expression {
+        if let Some(args) = &ast.arguments {
+            if let Some(arg) = args.first() {
+                if let Expression::String(value) = arg {
+                    if value.prefix.is_some() {
+                        panic!("include_text!() string argument cannot have prefix!");
+                    }
+                    let value = std::fs::read_to_string(&value.value).unwrap();
+                    let value = value.replace("\"", "\\\"");
+                    return Expression::String(StringLiteral {
+                        prefix: None,
+                        value,
+                    });
+                }
+            }
+        }
+        panic!("include_text!() macro needs to be called with a constant string argument!");
+    }
+}
+
+struct IncludeBytesMacro;
+impl Macro for IncludeBytesMacro {
+    fn expand_call(&self, ast: &ast::MacroCallExpression) -> ast::Expression {
+        if let Some(args) = &ast.arguments {
+            if let Some(arg) = args.first() {
+                if let ast::Expression::String(value) = arg {
+                    if value.prefix.is_some() {
+                        panic!("include_bytes!() string argument cannot have prefix!");
+                    }
+                    let value = std::fs::read(&value.value).unwrap();
+                    let expressions = value
+                        .iter()
+                        .map(|int| {
+                            ast::Expression::Number(ast::Number {
+                                value: ast::NumberVariant::Hexadecimal(int.clone() as i64),
+                                postfix: None,
+                            })
+                        })
+                        .collect::<Vec<ast::Expression>>();
+                    return ast::Expression::Vector(ast::Vector { expressions });
+                }
+            }
+        }
+        panic!("include_bytes!() macro needs to be called with a constant string argument!");
     }
 }
 
@@ -43,6 +92,8 @@ impl MacroHost {
         let mut macros: HashMap<String, Box<dyn Macro>> = HashMap::new();
         macros.insert("panic".into(), Box::new(PanicMacro(info.clone())));
         macros.insert("file".into(), Box::new(FileMacro(info.clone())));
+        macros.insert("include_str".into(), Box::new(IncludeTextMacro));
+        macros.insert("include_bytes".into(), Box::new(IncludeBytesMacro));
         MacroHost { macros }
     }
 }
