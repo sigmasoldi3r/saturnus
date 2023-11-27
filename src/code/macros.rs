@@ -27,6 +27,7 @@ struct FileMacro(InputFileInfo);
 impl Macro for FileMacro {
     fn expand_call(&self, _: &ast::MacroCallExpression) -> ast::Expression {
         let value = self.0.full_path.as_os_str().to_string_lossy().to_string();
+        let value = value.replace("\\", "/");
         ast::Expression::String(ast::StringLiteral {
             value,
             prefix: None,
