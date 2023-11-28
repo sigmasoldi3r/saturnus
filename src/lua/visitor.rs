@@ -25,7 +25,7 @@ impl std::error::Error for BadCode {
 }
 
 fn escape_string(str: String) -> String {
-    return str.replace("\n", "\\n");
+    return str.replace("\n", "\\n").replace("\r", "\\r");
 }
 
 pub struct LuaEmitter {
