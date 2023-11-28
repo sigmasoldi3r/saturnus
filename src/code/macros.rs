@@ -72,6 +72,29 @@ impl Macro for IncludeBytesMacro {
     }
 }
 
+struct IncludeBase64Macro;
+impl Macro for IncludeBase64Macro {
+    fn expand_call(&self, ast: &ast::MacroCallExpression) -> ast::Expression {
+        if let Some(args) = &ast.arguments {
+            if let Some(arg) = args.first() {
+                if let ast::Expression::String(value) = arg {
+                    use base64::Engine;
+                    if value.prefix.is_some() {
+                        panic!("include_base64!() string argument cannot have prefix!");
+                    }
+                    let value = std::fs::read(&value.value).unwrap();
+                    let value = base64::engine::general_purpose::STANDARD.encode(value);
+                    return Expression::String(StringLiteral {
+                        prefix: None,
+                        value,
+                    });
+                }
+            }
+        }
+        panic!("include_base64!() macro needs to be called with a constant string argument!");
+    }
+}
+
 struct FileMacro(InputFileInfo);
 impl Macro for FileMacro {
     fn expand_call(&self, _: &ast::MacroCallExpression) -> ast::Expression {
@@ -94,6 +117,7 @@ impl MacroHost {
         macros.insert("file".into(), Box::new(FileMacro(info.clone())));
         macros.insert("include_str".into(), Box::new(IncludeTextMacro));
         macros.insert("include_bytes".into(), Box::new(IncludeBytesMacro));
+        macros.insert("include_base64".into(), Box::new(IncludeBase64Macro));
         MacroHost { macros }
     }
 }
