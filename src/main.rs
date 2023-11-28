@@ -25,7 +25,13 @@ pub mod runtime;
 mod tests;
 
 #[derive(Parser, Clone)]
-#[command(version = "1.0.1")]
+#[command(name = "Saturnus")]
+#[command(version = "v1.0.1")]
+#[command(author = "Pablo B. <pablobc.1995@gmail.com>")]
+#[command(
+    about = "Saturnus: A modern language that compiles to Lua",
+    long_about = None // "Saturnus is a programming language that aims to have a simplified mix of Rust programming language and Lua"
+)]
 struct Args {
     #[arg(
         short,
@@ -37,6 +43,12 @@ struct Args {
     input: String,
     #[arg(short, long, help = "Compiles the Saturnus script")]
     compile: bool,
+    #[arg(
+        short,
+        long,
+        help = "Specifies the output target runtime, only lua is supported for now."
+    )]
+    target: Option<String>,
     #[arg(
         short,
         long = "bin",
