@@ -25,6 +25,7 @@ pub mod runtime;
 mod tests;
 
 #[derive(Parser, Clone)]
+#[command(version = "1.0.1")]
 struct Args {
     #[arg(
         short,
@@ -36,6 +37,12 @@ struct Args {
     input: String,
     #[arg(short, long, help = "Compiles the Saturnus script")]
     compile: bool,
+    #[arg(
+        short,
+        long = "bin",
+        help = "Compiles the Saturnus script into an executable binary"
+    )]
+    binary: bool,
     #[arg(
         short = 'p',
         long = "print",

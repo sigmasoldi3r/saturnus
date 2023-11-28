@@ -1,5 +1,5 @@
 [workspace]
-members = ["janus", "."]
+members = ["janus", "saturnus_runtime", "."]
 
 [package]
 edition = "2021"
