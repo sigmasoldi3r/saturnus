@@ -1,0 +1,31 @@
+#!/usr/bin/env saturnus
+
+let input_path = "target/release/saturnus_runtime";
+
+let source = "-- A simple program
+local foo = 'bar';
+print('Yay the foo is ' .. foo .. '!');
+local is_it = true;
+if is_it then print('Yes...'); end";
+
+let fout = io.open("output", "wb");
+
+let fin = io.open(input_path, "rb");
+fout->write(fin->read("*a"));
+fin->close();
+fout->write(source);
+
+let size = {
+  let size = #?source;
+  let a = size & 0xFF;
+  let b = (size >> 8) & 0xFF;
+  let c = (size >> 8*2) & 0xFF;
+  let d = (size >> 8*3) & 0xFF;
+  let e = (size >> 8*4) & 0xFF;
+  let f = (size >> 8*5) & 0xFF;
+  let g = (size >> 8*6) & 0xFF;
+  let h = (size >> 8*7) & 0xFF;
+  return string.char(a, b, c, d, e, f, g, h);
+};
+fout->write(size);
+fout->close();
