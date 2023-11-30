@@ -26,7 +26,7 @@ mod tests;
 
 #[derive(Parser, Clone)]
 #[command(name = "Saturnus")]
-#[command(version = "v1.0.1")]
+#[command(version = "v1.1.0")]
 #[command(author = "Pablo B. <pablobc.1995@gmail.com>")]
 #[command(
     about = "Saturnus: A modern language that compiles to Lua",
@@ -39,6 +39,8 @@ struct Args {
         help = "An optional output file, if not provided the extension is replaced by .lua"
     )]
     output: Option<String>,
+    #[arg(long, short)]
+    verbose: bool,
     #[arg(help = "The input file to evaluate and/or compile")]
     input: String,
     #[arg(short, long, help = "Compiles the Saturnus script")]
@@ -160,7 +162,9 @@ fn try_run(options: CompilationOptions, input: String, indent: String) -> Result
     } = options;
 
     if args.compile {
-        println!("Compiling {:?}...", in_path);
+        if args.verbose {
+            println!("Compiling {:?}...", in_path);
+        }
         let output = compiler
             .visit_script(Builder::new(indent), &script)
             .map_err(|err| RuntimeError::CompilationError(err))?
