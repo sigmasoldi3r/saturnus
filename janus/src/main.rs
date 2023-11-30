@@ -1,5 +1,6 @@
 mod compilation;
 mod deps;
+mod dir;
 mod errors;
 mod janusfile;
 mod jobs;
@@ -45,10 +46,19 @@ fn process_build(args: Args) {
             build,
             dependencies,
         }: JanusWorkspaceConfig = workspace;
+        let dependencies = dependencies.unwrap_or_default();
         let build = build.unwrap_or_default();
         let result = match project_type.as_str() {
-            "lib" => CompilationHost::new().compile(compilation::CompilationMode::Lib, build),
-            "bin" => CompilationHost::new().compile(compilation::CompilationMode::Bin, build),
+            "lib" => CompilationHost::new().compile(
+                compilation::CompilationMode::Lib,
+                dependencies,
+                build,
+            ),
+            "bin" => CompilationHost::new().compile(
+                compilation::CompilationMode::Bin,
+                dependencies,
+                build,
+            ),
             _ => {
                 eprintln!("Invalid project type {}!", project_type);
                 Ok(())

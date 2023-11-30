@@ -34,13 +34,15 @@ pub enum DependencyDef {
     Options(DependencyObject),
 }
 
+pub type DependencyList = HashMap<String, DependencyDef>;
+
 #[derive(Debug, Deserialize)]
 pub struct JanusWorkspaceConfig {
     #[serde(rename = "type")]
     pub project_type: String,
     pub project: Option<JanusProject>,
     pub build: Option<JanusBuild>,
-    pub dependencies: Option<HashMap<String, DependencyDef>>,
+    pub dependencies: Option<DependencyList>,
 }
 
 /// Resolves the janus file
