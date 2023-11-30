@@ -217,8 +217,12 @@ fn main() {
                     out_file.write_all(output.as_bytes()).unwrap();
                 }
                 eprintln!("{}\nCompilation failed", err);
+                std::process::exit(-1);
             }
-            RuntimeError::CompilationError(err) => eprintln!("{:?}", err),
+            RuntimeError::CompilationError(err) => {
+                eprintln!("{:?}", err);
+                std::process::exit(-1);
+            }
         },
     }
 }
