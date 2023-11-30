@@ -16,7 +16,7 @@ pub fn create_dist_dirs(path: &PathBuf) {
         );
         ExitCode::CannotCreateDistFolders.exit();
     }
-    if let Err(cause) = create_dir_all(path.join("cache")) {
+    if let Err(cause) = create_dir_all(path.join("cache").join("objects")) {
         eprintln!(
             "Cannot create distribution cache directory! Caused by: {}",
             cause

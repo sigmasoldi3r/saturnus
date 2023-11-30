@@ -7,7 +7,7 @@ pub struct JanusBuild {
     pub source: Option<PathBuf>,
     pub output: Option<PathBuf>,
     pub main: Option<PathBuf>,
-    pub compact: Option<bool>,
+    pub format: Option<String>,
     pub target: Option<String>,
     pub module_system: Option<String>,
     pub no_std: Option<bool>,
@@ -29,6 +29,16 @@ pub struct DependencyObject {
 }
 
 #[derive(Debug, Deserialize)]
+pub enum OutputFormat {
+    File,
+    Directory,
+    FlatDirectory,
+    Binary,
+    Zip,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(untagged)]
 pub enum DependencyDef {
     PlainVersion(String),
     Options(DependencyObject),

@@ -1,12 +1,14 @@
-use std::{path::PathBuf, process::Command};
+use std::{fs, path::PathBuf, process::Command};
 
 use console::style;
+use indicatif::ProgressBar;
 
 use crate::{
     deps::resolve_deps,
     dir::create_dist_dirs,
+    display::get_bar,
     errors::ExitCode,
-    janusfile::{DependencyList, JanusBuild},
+    janusfile::{DependencyList, JanusBuild, JanusProject, OutputFormat},
 };
 
 fn get_output_folder(output: Option<PathBuf>) -> PathBuf {
@@ -60,7 +62,7 @@ pub enum ModuleSystem {
 pub struct CompilationInfo {
     pub output: PathBuf,
     pub source: PathBuf,
-    pub compact: bool,
+    pub format: OutputFormat,
     pub target: CompilationTarget,
     pub module_system: ModuleSystem,
     pub main: PathBuf,
@@ -75,14 +77,15 @@ impl CompilationHost {
     }
 
     /// Attempt to compile a single file.
-    fn compile_file(&self, info: &CompilationInfo, file_path: &PathBuf) {
+    fn compile_file(&self, info: &CompilationInfo, file_path: &PathBuf) -> PathBuf {
         let mut cmd = Command::new("saturnus");
         if info.mode == CompilationMode::Bin && &info.main == file_path {
-            println!("Pronic MAIN MAUIII");
+            // Here we should inject STD if no no-std flag is provided.
         }
         let mut out = info
             .output
             .join("cache")
+            .join("objects")
             .join(file_path.strip_prefix(&info.source).unwrap());
         match info.target {
             CompilationTarget::Lua => out.set_extension("lua"),
@@ -91,7 +94,7 @@ impl CompilationHost {
         cmd.arg("-c")
             .arg(file_path.to_str().unwrap())
             .arg("-o")
-            .arg(out);
+            .arg(&out);
         // Handle the final execution of the command.
         match cmd.spawn() {
             Ok(mut proc) => match proc.wait() {
@@ -115,6 +118,32 @@ impl CompilationHost {
                 ExitCode::FailedCompilation.exit();
             }
         }
+        out
+    }
+
+    /// Post compilation collection step
+    fn collect_objects(&self, info: &CompilationInfo, objects: Vec<PathBuf>) {
+        let base = info.output.join("cache").join("objects");
+        let target = info.output.join("target");
+        println!("Linking artifacts...");
+        match info.format {
+            OutputFormat::File => todo!("Single file production"),
+            OutputFormat::Directory => {
+                let pb = get_bar(objects.len() as u64);
+                for entry in objects.iter() {
+                    let base_target = entry.strip_prefix(&base).unwrap();
+                    let target = target.join(base_target);
+                    pb.set_message(format!("Linking {:?}...", &target));
+                    fs::create_dir_all(target.parent().unwrap()).unwrap();
+                    fs::copy(entry, target).unwrap();
+                    pb.inc(1);
+                }
+                pb.finish_with_message("Done");
+            }
+            OutputFormat::FlatDirectory => todo!("Directory flattening"),
+            OutputFormat::Binary => todo!("Binary file production"),
+            OutputFormat::Zip => todo!("Zip file production"),
+        }
     }
 
     /// Compilation entry point
@@ -123,35 +152,44 @@ impl CompilationHost {
         mode: CompilationMode,
         dependencies: DependencyList,
         info: JanusBuild,
+        meta: JanusProject,
     ) -> Result {
         let JanusBuild {
             output,
             source,
             main,
-            compact,
             target,
             module_system,
             no_std,
+            format,
         } = info;
         let output = get_output_folder(output);
         let source = get_source_folder(source);
-        let compact = compact.unwrap_or(true);
-        let target = target.unwrap_or("Lua".into());
-        let module_system = module_system.unwrap_or("sam".into());
         let main = main.unwrap_or("src/main.saturn".into());
         let no_std = no_std.unwrap_or(false);
-        let target = match target.as_str() {
+        let format = match format.unwrap_or("dir".to_owned()).as_str() {
+            "flat" => OutputFormat::FlatDirectory,
+            "dir" => OutputFormat::Directory,
+            "file" => OutputFormat::File,
+            "binary" => OutputFormat::Binary,
+            "zip" => OutputFormat::Zip,
+            format => {
+                eprintln!("Output format {format} not supported");
+                ExitCode::UnknownModuleSystem.exit();
+            }
+        };
+        let target = match target.unwrap_or("Lua".into()).as_str() {
             "Lua" => CompilationTarget::Lua,
-            _ => {
-                eprintln!("Target {} not supported", target);
+            target => {
+                eprintln!("Target {target} not supported");
                 ExitCode::TargetNotSupported.exit();
             }
         };
-        let module_system = match module_system.as_str() {
+        let module_system = match module_system.unwrap_or("sam".into()).as_str() {
             "sam" => ModuleSystem::Sam,
             "native" => ModuleSystem::Native,
-            _ => {
-                eprintln!("Unknown module system '{}'!", module_system);
+            module_system => {
+                eprintln!("Unknown module system '{module_system}'!");
                 ExitCode::UnknownModuleSystem.exit();
             }
         };
@@ -159,7 +197,7 @@ impl CompilationHost {
             mode,
             output,
             source,
-            compact,
+            format,
             target,
             module_system,
             main,
@@ -170,20 +208,15 @@ impl CompilationHost {
         resolve_deps(&info, dependencies);
         let paths = glob::glob("./**/*.saturn").unwrap();
         let total = glob::glob("./**/*.saturn").unwrap().count();
-        let mut i = 0;
+        println!("Compiling sources...");
+        let pb = get_bar(total as u64);
+        let mut objects = Vec::<PathBuf>::new();
         for entry in paths {
             match entry {
                 Ok(entry) => {
-                    i += 1;
-                    println!(
-                        "- {} {}{}",
-                        style(format!("{i}/{total}")).color256(9_u8).italic(),
-                        style(format!("Compiling {:?}", entry))
-                            .color256(8_u8)
-                            .italic(),
-                        style("...").color256(8_u8).italic()
-                    );
-                    self.compile_file(&info, &entry);
+                    pb.set_message(format!("Compiling {:?}...", entry));
+                    objects.push(self.compile_file(&info, &entry));
+                    pb.inc(1);
                 }
                 Err(err) => {
                     eprintln!(
@@ -201,6 +234,8 @@ impl CompilationHost {
                 }
             }
         }
+        pb.finish_with_message("Done");
+        self.collect_objects(&info, objects);
         Ok(())
     }
 }
