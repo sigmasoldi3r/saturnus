@@ -1,146 +1,110 @@
+mod compilation;
+mod janusfile;
 mod jobs;
 
-use std::fs;
+use std::{fs, path::PathBuf};
 
 use clap::{Parser, Subcommand};
+use compilation::CompilationError;
 use console::style;
 use glob::glob;
 use indicatif::ProgressBar;
-use serde::Deserialize;
 use std::process::Command;
+
+use crate::{
+    compilation::{BinaryCompiler, LibraryCompiler},
+    janusfile::JanusWorkspaceConfig,
+};
 
 #[derive(Parser)]
 struct Args {
     #[command(subcommand)]
     order: Order,
+    #[arg(
+        long,
+        short,
+        help = "Optionally, specify a path to a Janus.toml folder"
+    )]
+    path: Option<PathBuf>,
 }
 
 #[derive(Subcommand)]
 enum Order {
-    Build {},
+    /// Builds the current project according to Janus.toml file
+    Build,
+    /// Initializes a new empty Saturnus project
+    Init,
+    /// Runs the current project, or the examples if library
+    Run,
 }
 
-#[derive(Debug, Deserialize, Default)]
-struct JanusBuild {
-    sources: Option<Vec<String>>,
-    output: Option<String>,
-    additional_sources: Option<Vec<String>>,
+fn handle_compilation_error(err: CompilationError) {
+    match err {}
 }
 
-#[derive(Debug, Deserialize, Default)]
-struct JanusProject {
-    name: Option<String>,
-    description: Option<String>,
-    author: Option<String>,
-    version: Option<String>,
-}
-
-#[derive(Debug, Deserialize)]
-struct JanusWorkspaceConfig {
-    project: Option<JanusProject>,
-    build: Option<JanusBuild>,
-}
-
-fn parse_janus_file() -> Option<JanusWorkspaceConfig> {
-    let result = fs::read_to_string("Janus.toml");
-    match result {
-        Ok(content) => {
-            let result = toml::from_str::<JanusWorkspaceConfig>(content.as_str());
-            match result {
-                Ok(config) => Some(config),
-                Err(err) => {
-                    println!(
-                        "There's something wrong with the Janus project file: {}",
-                        err.to_string()
-                    );
-                    None
-                }
+fn process_build(args: Args) {
+    if let Some(workspace) = JanusWorkspaceConfig::parse_janus_file(&args.path) {
+        let JanusWorkspaceConfig {
+            project_type,
+            project: _,
+            build,
+        } = workspace;
+        let build = build.unwrap_or_default();
+        let result = match project_type.as_str() {
+            "lib" => LibraryCompiler::new().compile(build),
+            "bin" => BinaryCompiler::new().compile(build),
+            _ => {
+                eprintln!("Invalid project type {}!", project_type);
+                Ok(())
             }
+        };
+        match result {
+            Ok(_) => println!("Ok - project compiled"),
+            Err(err) => handle_compilation_error(err),
         }
-        Err(err) => {
-            println!(
-                "Could not read the Janus.toml project file! {}",
-                err.to_string()
-            );
-            None
-        }
-    }
-}
-
-fn collect_sources() -> Option<Vec<String>> {
-    let result = glob("./**/*.saturn")
-        .expect("GLOB ERROR")
-        .map(|x| x.unwrap().to_str().unwrap().to_string().trim().to_string())
-        .collect();
-    Some(result)
-}
-
-fn process_build() -> Option<()> {
-    let JanusWorkspaceConfig { project, build } = parse_janus_file()?;
-    let project = project.unwrap_or_default();
-    let build = build.unwrap_or_default();
-    println!("{} Collecting project info...", style("[1/4]").bold());
-    if project.name.is_none() {
-        println!(
-            "{} Project file does not have a name!",
-            style("WARNING:").yellow().bold()
+    } else {
+        eprintln!(
+            "Could not parse the janus file! Check the docs to see the correct format and fields."
         );
     }
-    if project.version.is_none() {
-        println!(
-            "{} Project file does not have a version!",
-            style("WARNING:").yellow().bold()
-        );
-    }
-    let tab = "     ";
-    if build.output.is_none() {
-        println!(
-            "{} {}",
-            tab,
-            style("All files will be compiled in-place")
-                .color256(8_u8)
-                .italic()
-                .dim()
-        );
-    }
-    println!("{} Collecting sources...", style("[2/4]").bold());
-    let sources = collect_sources()?;
-    // In the future this process will be parallelized
-    println!("{} Compiling sources...", style("[3/4]").bold());
-    let pb = ProgressBar::new(sources.len() as u64);
-    for source in sources {
-        let result = Command::new("saturnus")
-            .args(vec!["-c", source.as_str()])
-            .output();
-        if result.is_err() {
-            eprintln!(
-                "\n{} Failed to compile {}!",
-                style("FATAL:").bold().red(),
-                style(source.clone()).bold()
-            );
-        }
-        let output = result.unwrap();
-        if !output.status.success() {
-            eprintln!(
-                "\nFailed to compile {}!\n{}\n{} {}",
-                style(source.clone()).bold().underlined(),
-                style(String::from_utf8(output.stdout).unwrap())
-                    .dim()
-                    .color256(8_u8),
-                style("FATAL:").bold().red(),
-                String::from_utf8(output.stderr).unwrap()
-            );
-            return None;
-        }
-        pb.inc(1);
-    }
-    println!("{} Done!", style("[4/4]").bold());
-    Some(())
+    // println!("{} Collecting sources...", style("[2/4]").bold());
+    // let sources = collect_sources()?;
+    // // In the future this process will be parallelized
+    // println!("{} Compiling sources...", style("[3/4]").bold());
+    // let pb = ProgressBar::new(sources.len() as u64);
+    // for source in sources {
+    //     let result = Command::new("saturnus")
+    //         .args(vec!["-c", source.as_str()])
+    //         .output();
+    //     if result.is_err() {
+    //         eprintln!(
+    //             "\n{} Failed to compile {}!",
+    //             style("FATAL:").bold().red(),
+    //             style(source.clone()).bold()
+    //         );
+    //     }
+    //     let output = result.unwrap();
+    //     if !output.status.success() {
+    //         eprintln!(
+    //             "\nFailed to compile {}!\n{}\n{} {}",
+    //             style(source.clone()).bold().underlined(),
+    //             style(String::from_utf8(output.stdout).unwrap())
+    //                 .dim()
+    //                 .color256(8_u8),
+    //             style("FATAL:").bold().red(),
+    //             String::from_utf8(output.stderr).unwrap()
+    //         );
+    //         return None;
+    //     }
+    //     pb.inc(1);
+    // }
 }
 
 fn main() {
     let args = Args::parse();
     match args.order {
-        Order::Build {} => process_build().unwrap(),
+        Order::Build => process_build(args),
+        Order::Run => todo!("Not done"),
+        Order::Init => todo!("Not done"),
     }
 }
