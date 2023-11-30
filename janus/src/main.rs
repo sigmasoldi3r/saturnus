@@ -4,7 +4,6 @@ mod dir;
 mod display;
 mod errors;
 mod janusfile;
-mod jobs;
 
 use std::path::PathBuf;
 
@@ -80,37 +79,6 @@ fn process_build(args: Args) {
         );
         ExitCode::BadJanusFile.exit();
     }
-    // println!("{} Collecting sources...", style("[2/4]").bold());
-    // let sources = collect_sources()?;
-    // // In the future this process will be parallelized
-    // println!("{} Compiling sources...", style("[3/4]").bold());
-    // let pb = ProgressBar::new(sources.len() as u64);
-    // for source in sources {
-    //     let result = Command::new("saturnus")
-    //         .args(vec!["-c", source.as_str()])
-    //         .output();
-    //     if result.is_err() {
-    //         eprintln!(
-    //             "\n{} Failed to compile {}!",
-    //             style("FATAL:").bold().red(),
-    //             style(source.clone()).bold()
-    //         );
-    //     }
-    //     let output = result.unwrap();
-    //     if !output.status.success() {
-    //         eprintln!(
-    //             "\nFailed to compile {}!\n{}\n{} {}",
-    //             style(source.clone()).bold().underlined(),
-    //             style(String::from_utf8(output.stdout).unwrap())
-    //                 .dim()
-    //                 .color256(8_u8),
-    //             style("FATAL:").bold().red(),
-    //             String::from_utf8(output.stderr).unwrap()
-    //         );
-    //         return None;
-    //     }
-    //     pb.inc(1);
-    // }
 }
 
 fn main() {

@@ -1,7 +1,11 @@
-use std::{fs, path::PathBuf, process::Command};
+use std::{
+    fs::{self, File},
+    io::Write,
+    path::PathBuf,
+    process::Command,
+};
 
 use console::style;
-use indicatif::ProgressBar;
 
 use crate::{
     deps::resolve_deps,
@@ -127,7 +131,83 @@ impl CompilationHost {
         let target = info.output.join("target");
         println!("Linking artifacts...");
         match info.format {
-            OutputFormat::File => todo!("Single file production"),
+            OutputFormat::File => {
+                let pb = get_bar(objects.len() as u64);
+                let mut main: Option<PathBuf> = None;
+
+                let mut file_out = match info.target {
+                    CompilationTarget::Lua => {
+                        let mut file_out =
+                            File::create(info.output.join("target").join("main.lua")).unwrap();
+                        file_out
+                            .write_all(
+                                b"local __modules__ = {};
+do
+  local __native_require__ = require;
+  require = function(fp)
+    if __modules__[fp] ~= nil then
+      if package.loaded[fp] == nil then
+        package.loaded[fp] = __modules__[fp]();
+      end
+      return package.loaded[fp];
+    end
+    return __native_require__(fp);
+  end;
+end",
+                            )
+                            .unwrap();
+                        file_out
+                    }
+                };
+                let mut main_path = base.join(info.main.strip_prefix(&info.source).unwrap());
+                main_path.set_extension("lua");
+                for entry in objects.iter() {
+                    if entry == &main_path {
+                        main = Some(entry.clone());
+                        continue;
+                    }
+                    let base_target = entry.strip_prefix(&base).unwrap();
+                    let target = target.join(base_target);
+                    pb.set_message(format!("Linking {:?}...", &target));
+                    let src = fs::read_to_string(entry).unwrap();
+                    let mut path_name = entry.clone();
+                    path_name.set_extension("");
+                    let mut path_name = path_name.strip_prefix(&base).unwrap();
+                    if path_name.file_name().unwrap() == "init" {
+                        path_name = path_name.parent().unwrap();
+                    }
+                    let path_name = path_name
+                        .to_string_lossy()
+                        .to_string()
+                        .replace("\\", ".")
+                        .replace("/", ".");
+                    file_out
+                        .write_fmt(format_args!(
+                            "\n__modules__[\"{}\"] = function()\n",
+                            path_name
+                        ))
+                        .unwrap();
+                    file_out.write_all(&src.as_bytes()).unwrap();
+                    file_out.write(b"\nend;").unwrap();
+                    pb.inc(1);
+                }
+                if let Some(entry) = main {
+                    pb.set_message("Linking standard library...");
+                    file_out
+                        .write(b"\n__modules__[\"std\"] = function()\n")
+                        .unwrap();
+                    file_out
+                        .write_all(fs::read_to_string(base.join("std.lua")).unwrap().as_bytes())
+                        .unwrap();
+                    file_out.write(b"\nend;").unwrap();
+                    pb.set_message("Collecting main file...");
+                    let src = fs::read_to_string(entry).unwrap();
+                    file_out.write(b"\n").unwrap();
+                    file_out.write_all(&src.as_bytes()).unwrap();
+                    pb.inc(1);
+                }
+                pb.finish_with_message("Done");
+            }
             OutputFormat::Directory => {
                 let pb = get_bar(objects.len() as u64);
                 for entry in objects.iter() {
