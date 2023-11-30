@@ -1,3 +1,5 @@
+type = "lib"
+
 [project]
 name = "Saturnus Examples"
 author = "SigmaOctantis"

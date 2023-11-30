@@ -1,20 +1,15 @@
 mod compilation;
+mod deps;
+mod errors;
 mod janusfile;
 mod jobs;
 
-use std::{fs, path::PathBuf};
+use std::path::PathBuf;
 
 use clap::{Parser, Subcommand};
 use compilation::CompilationError;
-use console::style;
-use glob::glob;
-use indicatif::ProgressBar;
-use std::process::Command;
 
-use crate::{
-    compilation::{BinaryCompiler, LibraryCompiler},
-    janusfile::JanusWorkspaceConfig,
-};
+use crate::{compilation::CompilationHost, errors::ExitCode, janusfile::JanusWorkspaceConfig};
 
 #[derive(Parser)]
 struct Args {
@@ -48,11 +43,12 @@ fn process_build(args: Args) {
             project_type,
             project: _,
             build,
-        } = workspace;
+            dependencies,
+        }: JanusWorkspaceConfig = workspace;
         let build = build.unwrap_or_default();
         let result = match project_type.as_str() {
-            "lib" => LibraryCompiler::new().compile(build),
-            "bin" => BinaryCompiler::new().compile(build),
+            "lib" => CompilationHost::new().compile(compilation::CompilationMode::Lib, build),
+            "bin" => CompilationHost::new().compile(compilation::CompilationMode::Bin, build),
             _ => {
                 eprintln!("Invalid project type {}!", project_type);
                 Ok(())
@@ -66,6 +62,7 @@ fn process_build(args: Args) {
         eprintln!(
             "Could not parse the janus file! Check the docs to see the correct format and fields."
         );
+        ExitCode::BadJanusFile.exit();
     }
     // println!("{} Collecting sources...", style("[2/4]").bold());
     // let sources = collect_sources()?;

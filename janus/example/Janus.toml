@@ -1,0 +1,12 @@
+type = "bin"
+
+[project]
+name = "Janus example"
+description = "Shows a basic example of the Janus build tool"
+author = "sigmasoldi3r"
+version = "1.0.0"
+
+[build]
+
+[dependencies]
+test = { git = "https://github.com/sigmasoldi3r/example-saturnus-lib.git" }

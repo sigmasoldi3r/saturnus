@@ -1,0 +1,3 @@
+use octantis.example;
+
+print("Adder example: 2 + 2 = " ++ example.add(1, 2));

@@ -1,4 +1,4 @@
-use std::{fs, path::PathBuf};
+use std::{collections::HashMap, fs, path::PathBuf};
 
 use serde::Deserialize;
 
@@ -6,6 +6,11 @@ use serde::Deserialize;
 pub struct JanusBuild {
     pub source: Option<PathBuf>,
     pub output: Option<PathBuf>,
+    pub main: Option<PathBuf>,
+    pub compact: Option<bool>,
+    pub target: Option<String>,
+    pub module_system: Option<String>,
+    pub no_std: Option<bool>,
 }
 
 #[derive(Debug, Deserialize, Default)]
@@ -17,11 +22,25 @@ pub struct JanusProject {
 }
 
 #[derive(Debug, Deserialize)]
+pub struct DependencyObject {
+    pub version: Option<String>,
+    pub git: Option<String>,
+    pub features: Option<Vec<String>>,
+}
+
+#[derive(Debug, Deserialize)]
+pub enum DependencyDef {
+    PlainVersion(String),
+    Options(DependencyObject),
+}
+
+#[derive(Debug, Deserialize)]
 pub struct JanusWorkspaceConfig {
     #[serde(rename = "type")]
     pub project_type: String,
     pub project: Option<JanusProject>,
     pub build: Option<JanusBuild>,
+    pub dependencies: Option<HashMap<String, DependencyDef>>,
 }
 
 /// Resolves the janus file
