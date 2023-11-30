@@ -23,4 +23,11 @@ pub fn create_dist_dirs(path: &PathBuf) {
         );
         ExitCode::CannotCreateDistFolders.exit();
     }
+    if let Err(cause) = create_dir_all(path.join("dependencies")) {
+        eprintln!(
+            "Cannot create dependency cache directory! Caused by: {}",
+            cause
+        );
+        ExitCode::CannotCreateDistFolders.exit();
+    }
 }

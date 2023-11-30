@@ -80,7 +80,18 @@ impl CompilationHost {
         if info.mode == CompilationMode::Bin && &info.main == file_path {
             println!("Pronic MAIN MAUIII");
         }
-        let mut cmd = cmd.arg("-c").arg(file_path.to_str().unwrap());
+        let mut out = info
+            .output
+            .join("cache")
+            .join(file_path.strip_prefix(&info.source).unwrap());
+        match info.target {
+            CompilationTarget::Lua => out.set_extension("lua"),
+        };
+        std::fs::create_dir_all(out.parent().unwrap()).unwrap();
+        cmd.arg("-c")
+            .arg(file_path.to_str().unwrap())
+            .arg("-o")
+            .arg(out);
         // Handle the final execution of the command.
         match cmd.spawn() {
             Ok(mut proc) => match proc.wait() {
@@ -127,7 +138,7 @@ impl CompilationHost {
         let compact = compact.unwrap_or(true);
         let target = target.unwrap_or("Lua".into());
         let module_system = module_system.unwrap_or("sam".into());
-        let main = main.unwrap_or("main".into());
+        let main = main.unwrap_or("src/main.saturn".into());
         let no_std = no_std.unwrap_or(false);
         let target = match target.as_str() {
             "Lua" => CompilationTarget::Lua,

@@ -32,6 +32,8 @@ enum Order {
     Init,
     /// Runs the current project, or the examples if library
     Run,
+    /// Cleans the build cache only
+    Clean,
 }
 
 fn handle_compilation_error(err: CompilationError) {
@@ -113,5 +115,16 @@ fn main() {
         Order::Build => process_build(args),
         Order::Run => todo!("Not done"),
         Order::Init => todo!("Not done"),
+        Order::Clean => {
+            let info = JanusWorkspaceConfig::parse_janus_file(&args.path).unwrap();
+            std::fs::remove_dir_all(
+                info.build
+                    .unwrap_or_default()
+                    .output
+                    .unwrap_or("dist".into())
+                    .join("cache"),
+            )
+            .unwrap();
+        }
     }
 }
