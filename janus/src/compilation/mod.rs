@@ -152,14 +152,13 @@ impl CompilationHost {
                 } else {
                     out_path.with_extension("exe")
                 };
+                let mut open_options = OpenOptions::new();
+                let out = open_options.write(true).create(true).truncate(true);
+                #[cfg(target_family = "unix")]
                 use std::os::unix::fs::OpenOptionsExt;
-                let mut out = OpenOptions::new()
-                    .write(true)
-                    .create(true)
-                    .truncate(true)
-                    .mode(0o711)
-                    .open(out_path)
-                    .unwrap();
+                #[cfg(target_family = "unix")]
+                let mut out = out.mode(0o711);
+                let mut out = out.open(out_path).unwrap();
                 out.write_all(binaries).unwrap();
                 let main_src = fs::read(&path).unwrap();
                 out.write_all(&main_src).unwrap();
