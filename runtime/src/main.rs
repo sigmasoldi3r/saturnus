@@ -4,6 +4,8 @@ use std::{
     io::{self, BufReader, Read, Seek},
 };
 
+use rlua::{InitFlags, StdLib};
+
 const INDEX_SIZE: usize = 8;
 
 fn open_file() -> io::Result<File> {
@@ -29,8 +31,14 @@ fn main() -> io::Result<()> {
     bf.seek(io::SeekFrom::End(-(size + INDEX_SIZE as i64)))?;
     bf.read_to_end(&mut buffer)?;
     buffer.truncate(buffer.len() - INDEX_SIZE);
-    rlua::Lua::new()
+    // See https://github.com/amethyst/rlua/issues/264
+    unsafe {
+        rlua::Lua::unsafe_new_with_flags(
+            StdLib::ALL_NO_DEBUG,
+            InitFlags::DEFAULT - InitFlags::REMOVE_LOADLIB,
+        )
         .context(|ctx| ctx.load(&buffer).exec())
-        .unwrap();
+        .unwrap()
+    };
     Ok(())
 }
