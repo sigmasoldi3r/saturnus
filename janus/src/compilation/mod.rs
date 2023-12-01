@@ -1,5 +1,8 @@
+pub mod pipelines;
+pub mod utils;
+
 use std::{
-    fs::{self, File},
+    fs::{self, File, OpenOptions},
     io::Write,
     path::PathBuf,
     process::Command,
@@ -8,42 +11,13 @@ use std::{
 use console::style;
 
 use crate::{
+    compilation::utils::{get_output_folder, get_source_folder},
     deps::resolve_deps,
     dir::create_dist_dirs,
     display::get_bar,
     errors::ExitCode,
     janusfile::{DependencyList, JanusBuild, JanusProject, OutputFormat},
 };
-
-fn get_output_folder(output: Option<PathBuf>) -> PathBuf {
-    if let Some(output) = output {
-        output
-    } else {
-        println!(
-            "{}",
-            style("Dist folder not specified, will default to dist")
-                .color256(8_u8)
-                .italic()
-                .dim()
-        );
-        "dist".into()
-    }
-}
-
-fn get_source_folder(source: Option<PathBuf>) -> PathBuf {
-    if let Some(source) = source {
-        source
-    } else {
-        println!(
-            "{}",
-            style("Source folder not specified, will default to src")
-                .color256(8_u8)
-                .italic()
-                .dim()
-        );
-        "src".into()
-    }
-}
 
 pub enum CompilationError {}
 
@@ -126,93 +100,28 @@ impl CompilationHost {
     }
 
     /// Post compilation collection step
-    fn collect_objects(&self, info: &CompilationInfo, objects: Vec<PathBuf>) {
-        let base = info.output.join("cache").join("objects");
-        let target = info.output.join("target");
+    fn collect_objects(
+        &self,
+        project: &JanusProject,
+        info: &CompilationInfo,
+        objects: Vec<PathBuf>,
+    ) {
+        let objects_base_path = info.output.join("cache").join("objects");
+        let target_base_path = info.output.join("target");
         println!("Linking artifacts...");
         match info.format {
-            OutputFormat::File => {
-                let pb = get_bar(objects.len() as u64);
-                let mut main: Option<PathBuf> = None;
-
-                let mut file_out = match info.target {
-                    CompilationTarget::Lua => {
-                        let mut file_out =
-                            File::create(info.output.join("target").join("main.lua")).unwrap();
-                        file_out
-                            .write_all(
-                                b"local __modules__ = {};
-do
-  local __native_require__ = require;
-  require = function(fp)
-    if __modules__[fp] ~= nil then
-      if package.loaded[fp] == nil then
-        package.loaded[fp] = __modules__[fp]();
-      end
-      return package.loaded[fp];
-    end
-    return __native_require__(fp);
-  end;
-end",
-                            )
-                            .unwrap();
-                        file_out
-                    }
-                };
-                let mut main_path = base.join(info.main.strip_prefix(&info.source).unwrap());
-                main_path.set_extension("lua");
-                for entry in objects.iter() {
-                    if entry == &main_path {
-                        main = Some(entry.clone());
-                        continue;
-                    }
-                    let base_target = entry.strip_prefix(&base).unwrap();
-                    let target = target.join(base_target);
-                    pb.set_message(format!("Linking {:?}...", &target));
-                    let src = fs::read_to_string(entry).unwrap();
-                    let mut path_name = entry.clone();
-                    path_name.set_extension("");
-                    let mut path_name = path_name.strip_prefix(&base).unwrap();
-                    if path_name.file_name().unwrap() == "init" {
-                        path_name = path_name.parent().unwrap();
-                    }
-                    let path_name = path_name
-                        .to_string_lossy()
-                        .to_string()
-                        .replace("\\", ".")
-                        .replace("/", ".");
-                    file_out
-                        .write_fmt(format_args!(
-                            "\n__modules__[\"{}\"] = function()\n",
-                            path_name
-                        ))
-                        .unwrap();
-                    file_out.write_all(&src.as_bytes()).unwrap();
-                    file_out.write(b"\nend;").unwrap();
-                    pb.inc(1);
-                }
-                if let Some(entry) = main {
-                    pb.set_message("Linking standard library...");
-                    file_out
-                        .write(b"\n__modules__[\"std\"] = function()\n")
-                        .unwrap();
-                    file_out
-                        .write_all(fs::read_to_string(base.join("std.lua")).unwrap().as_bytes())
-                        .unwrap();
-                    file_out.write(b"\nend;").unwrap();
-                    pb.set_message("Collecting main file...");
-                    let src = fs::read_to_string(entry).unwrap();
-                    file_out.write(b"\n").unwrap();
-                    file_out.write_all(&src.as_bytes()).unwrap();
-                    pb.inc(1);
-                }
-                pb.finish_with_message("Done");
-            }
+            OutputFormat::File => pipelines::FilePipeline.collect_file(
+                &info,
+                &objects,
+                &objects_base_path,
+                &target_base_path,
+                None,
+            ),
             OutputFormat::Directory => {
                 let pb = get_bar(objects.len() as u64);
                 for entry in objects.iter() {
-                    let base_target = entry.strip_prefix(&base).unwrap();
-                    let target = target.join(base_target);
+                    let base_target = entry.strip_prefix(&objects_base_path).unwrap();
+                    let target = target_base_path.join(base_target);
                     pb.set_message(format!("Linking {:?}...", &target));
                     fs::create_dir_all(target.parent().unwrap()).unwrap();
                     fs::copy(entry, target).unwrap();
@@ -221,7 +130,41 @@ end",
                 pb.finish_with_message("Done");
             }
             OutputFormat::FlatDirectory => todo!("Directory flattening"),
-            OutputFormat::Binary => todo!("Binary file production"),
+            OutputFormat::Binary => {
+                let path = info.output.join("cache").join("main.lua");
+                pipelines::FilePipeline.collect_file(
+                    &info,
+                    &objects,
+                    &objects_base_path,
+                    &target_base_path,
+                    Some(path.clone()),
+                );
+                #[cfg(target_family = "windows")]
+                let binaries = include_bytes!("../../../target/release/runtime.exe");
+                #[cfg(target_family = "unix")]
+                let binaries = include_bytes!("../../../target/release/runtime");
+                let out_path = project.name.clone().unwrap_or("main".into());
+                let out_path = info.output.join("target").join(out_path);
+                #[cfg(target_family = "windows")]
+                let out_path = if let Some(ext) = out_path.extension() {
+                    let ext: String = ext.to_string_lossy().into();
+                    out_path.with_extension(ext + ".ext")
+                } else {
+                    out_path.with_extension("exe")
+                };
+                use std::os::unix::fs::OpenOptionsExt;
+                let mut out = OpenOptions::new()
+                    .write(true)
+                    .create(true)
+                    .truncate(true)
+                    .mode(0o711)
+                    .open(out_path)
+                    .unwrap();
+                out.write_all(binaries).unwrap();
+                let main_src = fs::read(&path).unwrap();
+                out.write_all(&main_src).unwrap();
+                out.write(&main_src.len().to_le_bytes()).unwrap();
+            }
             OutputFormat::Zip => todo!("Zip file production"),
         }
     }
@@ -249,9 +192,9 @@ end",
         let no_std = no_std.unwrap_or(false);
         let format = match format.unwrap_or("dir".to_owned()).as_str() {
             "flat" => OutputFormat::FlatDirectory,
-            "dir" => OutputFormat::Directory,
-            "file" => OutputFormat::File,
-            "binary" => OutputFormat::Binary,
+            "dir" | "plain" | "native" => OutputFormat::Directory,
+            "file" | "compact" => OutputFormat::File,
+            "binary" | "bin" | "exe" => OutputFormat::Binary,
             "zip" => OutputFormat::Zip,
             format => {
                 eprintln!("Output format {format} not supported");
@@ -315,7 +258,7 @@ end",
             }
         }
         pb.finish_with_message("Done");
-        self.collect_objects(&info, objects);
+        self.collect_objects(&meta, &info, objects);
         Ok(())
     }
 }

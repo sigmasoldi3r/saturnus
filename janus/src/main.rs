@@ -99,4 +99,5 @@ fn main() {
             .unwrap();
         }
     }
+    ExitCode::Ok.exit();
 }
