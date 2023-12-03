@@ -136,7 +136,7 @@ impl CompilationHost {
                 }
             }
             OutputFormat::Directory => {
-                let pb = get_bar(objects.len() as u64);
+                let pb = get_bar(objects.len() as u64 + 1);
                 for entry in objects.iter() {
                     let base_target = entry.strip_prefix(&objects_base_path).unwrap();
                     let target = target_base_path.join(base_target);
@@ -145,6 +145,13 @@ impl CompilationHost {
                     fs::copy(entry, target).unwrap();
                     pb.inc(1);
                 }
+                fs::write(
+                    target_base_path.join("std.lua"),
+                    fs::read_to_string(objects_base_path.join("std.lua"))
+                        .unwrap()
+                        .as_bytes(),
+                )
+                .unwrap();
                 pb.finish_with_message("Done");
             }
             OutputFormat::FlatDirectory => todo!("Directory flattening"),
