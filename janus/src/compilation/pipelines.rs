@@ -1,4 +1,5 @@
 use std::{
+    collections::HashSet,
     fs::{self, File},
     io::Write,
     path::PathBuf,
@@ -32,6 +33,7 @@ impl FilePipeline {
         objects_base_path: &PathBuf,
         target_base_path: &PathBuf,
         output: Option<PathBuf>,
+        exclude: &HashSet<PathBuf>,
     ) {
         let pb = get_bar(objects.len() as u64);
         let mut main: Option<PathBuf> = None;
@@ -48,6 +50,9 @@ impl FilePipeline {
         for entry in objects.iter() {
             if entry == &main_path {
                 main = Some(entry.clone());
+                continue;
+            }
+            if exclude.contains(entry) {
                 continue;
             }
             let base_target = entry.strip_prefix(&objects_base_path).unwrap();

@@ -2,6 +2,7 @@ pub mod pipelines;
 pub mod utils;
 
 use std::{
+    collections::HashSet,
     fs::{self, File, OpenOptions},
     io::Write,
     path::PathBuf,
@@ -105,18 +106,35 @@ impl CompilationHost {
         project: &JanusProject,
         info: &CompilationInfo,
         objects: Vec<PathBuf>,
+        external_modules: &HashSet<PathBuf>,
     ) {
         let objects_base_path = info.output.join("cache").join("objects");
         let target_base_path = info.output.join("target");
         println!("Linking artifacts...");
         match info.format {
-            OutputFormat::File => pipelines::FilePipeline.collect_file(
-                &info,
-                &objects,
-                &objects_base_path,
-                &target_base_path,
-                None,
-            ),
+            OutputFormat::File => {
+                pipelines::FilePipeline.collect_file(
+                    &info,
+                    &objects,
+                    &objects_base_path,
+                    &target_base_path,
+                    None,
+                    external_modules,
+                );
+                if external_modules.len() > 0 {
+                    println!("\nLinking additional artifacts...");
+                    let pb = get_bar(objects.len() as u64);
+                    for entry in external_modules.iter() {
+                        let base_target = entry.strip_prefix(&objects_base_path).unwrap();
+                        let target = target_base_path.join(base_target);
+                        pb.set_message(format!("Linking additional source {:?}...", &target));
+                        fs::create_dir_all(target.parent().unwrap()).unwrap();
+                        fs::copy(entry, target).unwrap();
+                        pb.inc(1);
+                    }
+                    pb.finish_with_message("Done");
+                }
+            }
             OutputFormat::Directory => {
                 let pb = get_bar(objects.len() as u64);
                 for entry in objects.iter() {
@@ -138,6 +156,7 @@ impl CompilationHost {
                     &objects_base_path,
                     &target_base_path,
                     Some(path.clone()),
+                    external_modules,
                 );
                 #[cfg(target_family = "windows")]
                 let binaries = include_bytes!("../../../target/release/runtime.exe");
@@ -184,6 +203,7 @@ impl CompilationHost {
             module_system,
             no_std,
             format,
+            modules,
         } = info;
         let output = get_output_folder(output);
         let source = get_source_folder(source);
@@ -233,11 +253,27 @@ impl CompilationHost {
         println!("Compiling sources...");
         let pb = get_bar(total as u64);
         let mut objects = Vec::<PathBuf>::new();
+        let mut external_modules = HashSet::<PathBuf>::new();
+        let external_modules_origin = {
+            let mut set = HashSet::new();
+            if let Some(mods) = modules {
+                if let Some(ext) = mods.external {
+                    for mod_path in ext {
+                        set.insert(mod_path);
+                    }
+                }
+            }
+            set
+        };
         for entry in paths {
             match entry {
                 Ok(entry) => {
                     pb.set_message(format!("Compiling {:?}...", entry));
-                    objects.push(self.compile_file(&info, &entry));
+                    let object = self.compile_file(&info, &entry);
+                    objects.push(object.clone());
+                    if external_modules_origin.contains(&entry) {
+                        external_modules.insert(object);
+                    }
                     pb.inc(1);
                 }
                 Err(err) => {
@@ -257,7 +293,7 @@ impl CompilationHost {
             }
         }
         pb.finish_with_message("Done");
-        self.collect_objects(&meta, &info, objects);
+        self.collect_objects(&meta, &info, objects, &external_modules);
         Ok(())
     }
 }

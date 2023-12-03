@@ -2,6 +2,11 @@ use std::{collections::HashMap, fs, path::PathBuf};
 
 use serde::Deserialize;
 
+#[derive(Debug, Deserialize)]
+pub struct ModulesOptions {
+    pub external: Option<Vec<PathBuf>>,
+}
+
 #[derive(Debug, Deserialize, Default)]
 pub struct JanusBuild {
     pub source: Option<PathBuf>,
@@ -11,6 +16,7 @@ pub struct JanusBuild {
     pub target: Option<String>,
     pub module_system: Option<String>,
     pub no_std: Option<bool>,
+    pub modules: Option<ModulesOptions>,
 }
 
 #[derive(Debug, Deserialize, Default)]
