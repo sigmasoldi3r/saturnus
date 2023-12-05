@@ -342,6 +342,30 @@ let foo = "foo" --> "bar";
 // Will yield "foobarbarfoo"
 ```
 
+## Crazy stuff
+
+You can even expect code like this:
+```rs
+let Comp = props => _<:div:>("Foo " ++ props.text ++ "!")</:div:>_;
+
+let App = () => _
+    <:div:>[
+        "foo",
+        _<:hr:/>_,
+        _<:p:>[
+            "This is a paragraph",
+            " ",
+            "or two", // I know that div should not be a child of p
+            _<:div:>"yes"<:div:/>_,
+            _<:Comp { text: "bar" } :/>_
+        ]</:p:>_
+    ]</:div:>
+_;
+println(render(App));
+```
+To work in Saturnus! In fact that is a small react-like library currently
+being written in Saturnus.
+
 ## Why replace Lua?
 
 I like many aspects of Lua, specially how fast and lightweight the VM is. But
