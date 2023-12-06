@@ -11,20 +11,6 @@ use super::{CompilationInfo, CompilationTarget};
 
 pub struct FilePipeline;
 impl FilePipeline {
-    pub const LUA_GLUE_HEADER: &'static [u8] = b"local __modules__ = {};
-    do
-      local __native_require__ = require;
-      require = function(fp)
-        if __modules__[fp] ~= nil then
-          if package.loaded[fp] == nil then
-            package.loaded[fp] = __modules__[fp]();
-          end
-          return package.loaded[fp];
-        end
-        return __native_require__(fp);
-      end;
-    end";
-
     /// Collects all the source objects into a single file, if supported by the target.
     pub fn collect_file(
         &self,
@@ -40,9 +26,7 @@ impl FilePipeline {
         let mut file_out = match info.target {
             CompilationTarget::Lua => {
                 let out_path = info.output.join("target").join("main.lua");
-                let mut file_out = File::create(output.unwrap_or(out_path)).unwrap();
-                file_out.write_all(Self::LUA_GLUE_HEADER).unwrap();
-                file_out
+                File::create(output.unwrap_or(out_path)).unwrap()
             }
         };
         let mut main_path = objects_base_path.join(info.main.strip_prefix(&info.source).unwrap());
@@ -72,7 +56,7 @@ impl FilePipeline {
                 .replace("/", ".");
             file_out
                 .write_fmt(format_args!(
-                    "\n__modules__[\"{}\"] = function()\n",
+                    "\npackage.preload[\"{}\"] = function()\n",
                     path_name
                 ))
                 .unwrap();
@@ -83,7 +67,7 @@ impl FilePipeline {
         if let Some(entry) = main {
             pb.set_message("Linking standard library...");
             file_out
-                .write(b"\n__modules__[\"std\"] = function()\n")
+                .write(b"\npackage.preload[\"std\"] = function()\n")
                 .unwrap();
             file_out
                 .write_all(

@@ -1,10 +1,5 @@
 {
-  "rust-analyzer.linkedProjects": [
-    "./tools/janus/Cargo.toml",
-    "./Cargo.toml"
-  ],
+  "rust-analyzer.linkedProjects": ["./Cargo.toml"],
   "rust-analyzer.procMacro.enable": false,
-  "cSpell.words": [
-    "Saturnus"
-  ]
+  "cSpell.words": ["Saturnus"]
 }

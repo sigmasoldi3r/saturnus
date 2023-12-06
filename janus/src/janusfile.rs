@@ -1,13 +1,13 @@
 use std::{collections::HashMap, fs, path::PathBuf};
 
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Serialize)]
 pub struct ModulesOptions {
     pub external: Option<Vec<PathBuf>>,
 }
 
-#[derive(Debug, Deserialize, Default)]
+#[derive(Debug, Deserialize, Serialize, Default)]
 pub struct JanusBuild {
     pub source: Option<PathBuf>,
     pub output: Option<PathBuf>,
@@ -19,7 +19,7 @@ pub struct JanusBuild {
     pub modules: Option<ModulesOptions>,
 }
 
-#[derive(Debug, Deserialize, Default)]
+#[derive(Debug, Deserialize, Serialize, Default)]
 pub struct JanusProject {
     pub name: Option<String>,
     pub description: Option<String>,
@@ -27,14 +27,14 @@ pub struct JanusProject {
     pub version: Option<String>,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Serialize)]
 pub struct DependencyObject {
     pub version: Option<String>,
     pub git: Option<String>,
     pub features: Option<Vec<String>>,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Serialize)]
 pub enum OutputFormat {
     File,
     Directory,
@@ -43,7 +43,7 @@ pub enum OutputFormat {
     Zip,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Serialize)]
 #[serde(untagged)]
 pub enum DependencyDef {
     PlainVersion(String),
@@ -52,7 +52,7 @@ pub enum DependencyDef {
 
 pub type DependencyList = HashMap<String, DependencyDef>;
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Serialize)]
 pub struct JanusWorkspaceConfig {
     #[serde(rename = "type")]
     pub project_type: String,
