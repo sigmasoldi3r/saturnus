@@ -1,16 +1,19 @@
 use std::collections::HashMap;
 
-use crate::parser::ast::{self, Expression, StringLiteral};
+use crate::parser::ast::{
+    self, CallExpression, CallSubExpression, Expression, Identifier, MemberExpression,
+    StringLiteral,
+};
 
 use super::info::InputFileInfo;
 
-struct MacroExpander;
+// struct MacroExpander;
 
-impl MacroExpander {
-    fn expand(call: &ast::CallExpression) -> ast::ScriptOrExpression {
-        todo!()
-    }
-}
+// impl MacroExpander {
+//     fn expand(call: &ast::CallExpression) -> ast::ScriptOrExpression {
+//         todo!()
+//     }
+// }
 
 pub trait Macro {
     fn expand_call(&self, ast: &ast::MacroCallExpression) -> ast::Expression;
@@ -19,7 +22,16 @@ pub trait Macro {
 struct PanicMacro(InputFileInfo);
 impl Macro for PanicMacro {
     fn expand_call(&self, ast: &ast::MacroCallExpression) -> ast::Expression {
-        todo!("panic! macro")
+        Expression::Call(Box::new(CallExpression {
+            head: CallSubExpression {
+                callee: Some(MemberExpression {
+                    head: Expression::Identifier(Identifier("error".to_string())),
+                    tail: vec![],
+                }),
+                arguments: ast.arguments.clone().unwrap_or(vec![]),
+            },
+            tail: vec![],
+        }))
     }
 }
 

@@ -6,9 +6,9 @@ pub enum ExitCode {
     TargetNotSupported,
     UnknownModuleSystem,
     CannotCreateDistFolders,
-    CannotResolveDependencies,
+    // CannotResolveDependencies,
     FailedCompilation,
-    Unknown,
+    // Unknown,
     Ok,
 }
 impl ExitCode {
