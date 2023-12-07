@@ -19,9 +19,9 @@ impl ExitCode {
             ExitCode::TargetNotSupported => exit(3),
             ExitCode::UnknownModuleSystem => exit(4),
             ExitCode::CannotCreateDistFolders => exit(5),
-            ExitCode::CannotResolveDependencies => exit(6),
+            // ExitCode::CannotResolveDependencies => exit(6),
             ExitCode::FailedCompilation => exit(7),
-            ExitCode::Unknown => exit(-1),
+            // ExitCode::Unknown => exit(-1),
             ExitCode::Ok => exit(0),
         }
     }
