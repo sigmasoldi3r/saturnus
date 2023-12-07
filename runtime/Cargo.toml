@@ -7,5 +7,5 @@ version = "0.1.0"
 
 [dependencies]
 rlua = "0.19.4"
-
+console = "0.15.5"
 # egui = "0.24.1"

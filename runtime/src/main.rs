@@ -4,6 +4,7 @@ use std::{
     io::{self, BufReader, Read, Seek},
 };
 
+use console::style;
 use rlua::{InitFlags, Result, StdLib};
 
 const INDEX_SIZE: usize = 8;
@@ -44,12 +45,16 @@ fn main() -> io::Result<()> {
             InitFlags::DEFAULT - InitFlags::REMOVE_LOADLIB,
         )
     };
-    lua.context(|ctx| -> Result<()> {
+    let res = lua.context(|ctx| -> Result<()> {
         let _g = ctx.globals();
         _g.set("argv", args)?;
         ctx.load(&script).exec()?;
         Ok(())
-    })
-    .unwrap();
+    });
+    if let Err(err) = res {
+        if let rlua::Error::RuntimeError(message) = err {
+            eprintln!("{}", style(format!("Runtime error! {message}")).red());
+        }
+    }
     Ok(())
 }
