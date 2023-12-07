@@ -134,7 +134,22 @@ peg::parser! {
 
         rule call_expression() -> CallExpression
             = head:(
-                callee:member_expression() _ arguments:call_arguments()
+                  callee:member_expression() _ "in" _ arguments:do_literal()
+                    { CallSubExpression { callee: Some(callee), arguments:vec![
+                        Expression::Lambda(Box::new(Lambda{
+                            arguments: vec![Argument {
+                                name: Identifier("it".into()),
+                                spread: false,
+                                decorators: vec![]
+                            }, Argument {
+                                name: Identifier("rest".into()),
+                                spread: true,
+                                decorators: vec![]
+                            }],
+                            body: ScriptOrExpression::Script(arguments.body)
+                        }))
+                    ] }.into() }
+                / callee:member_expression() _ arguments:call_arguments()
                     { CallSubExpression { callee: Some(callee), arguments }.into() }
                 / callee:member_expression() _ arg:table_expression()
                     { CallSubExpression { callee: Some(callee), arguments: vec![arg] } }

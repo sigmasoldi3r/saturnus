@@ -26,7 +26,7 @@ mod tests;
 
 #[derive(Parser, Clone)]
 #[command(name = "Saturnus")]
-#[command(version = "v1.1.0")]
+#[command(version = "v1.1.1")]
 #[command(author = "Pablo B. <pablobc.1995@gmail.com>")]
 #[command(
     about = "Saturnus: A modern language that compiles to Lua",

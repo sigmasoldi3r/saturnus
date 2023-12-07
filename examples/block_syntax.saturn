@@ -1,0 +1,4 @@
+
+let foo = protect in {
+  print("Me");
+};
