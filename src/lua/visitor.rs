@@ -385,8 +385,13 @@ impl Visitor for LuaEmitter {
                 self.gen_destruct(ctx, stmt.value.as_ref().unwrap(), e)?
             }
             ast::AssignmentTarget::Identifier(e) => {
-                let ctx = ctx.line().put("local ").put(e.0.clone()).put(" = ");
-                let ctx = self.visit_expression(ctx, stmt.value.as_ref().unwrap())?;
+                let ctx = ctx.line().put("local ").put(e.0.clone());
+                let ctx = if let Some(value) = &stmt.value {
+                    let ctx = ctx.put(" = ");
+                    self.visit_expression(ctx, value)?
+                } else {
+                    ctx
+                };
                 ctx.put(";")
             }
         };
