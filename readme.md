@@ -38,6 +38,13 @@ saturnus --help
 Now _Saturnus_ has a simple build system, meet Janus: The official _Saturnus_
 programming language build toolkit.
 
+> **Note**
+>
+> You can skip this step by creating a folder and running the command:
+> ```
+> janus init
+> ```
+
 To build a Janus workspace, you need to create a file named `Janus.toml`, here
 is an example of a working project file:
 
