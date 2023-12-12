@@ -1,0 +1,6 @@
+#!/bin/env saturnus
+
+os.execute("git pull");
+os.execute("cargo install --path .");
+os.execute("cd runtime && cargo build --release");
+os.execute("cargo install --path janus");
