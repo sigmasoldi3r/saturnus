@@ -138,7 +138,8 @@ impl CompilationHost {
             }
             OutputFormat::Directory => {
                 let pb = get_bar(objects.len() as u64 + 1);
-                for entry in objects.iter() {
+                for entry in glob::glob("./dist/cache/objects/**/*.lua").unwrap() {
+                    let entry = entry.expect("Failed to resolve glob dep on directory");
                     let base_target = entry.strip_prefix(&objects_base_path).unwrap();
                     let target = target_base_path.join(base_target);
                     pb.set_message(format!("Linking {:?}...", &target));
