@@ -21,7 +21,7 @@ impl FilePipeline {
         output: Option<PathBuf>,
         exclude: &HashSet<PathBuf>,
     ) {
-        let pb = get_bar(objects.len() as u64);
+        let pb = get_bar(glob::glob("./dist/cache/objects/**/*.lua").unwrap().count() as u64);
         let mut main: Option<PathBuf> = None;
         let mut file_out = match info.target {
             CompilationTarget::Lua => {
@@ -31,18 +31,19 @@ impl FilePipeline {
         };
         let mut main_path = objects_base_path.join(info.main.strip_prefix(&info.source).unwrap());
         main_path.set_extension("lua");
-        for entry in objects.iter() {
-            if entry == &main_path {
+        for entry in glob::glob("./dist/cache/objects/**/*.lua").unwrap() {
+            let entry = entry.expect("Could not unwrap an entry path");
+            if &entry == &main_path {
                 main = Some(entry.clone());
                 continue;
             }
-            if exclude.contains(entry) {
+            if exclude.contains(&entry) {
                 continue;
             }
             let base_target = entry.strip_prefix(&objects_base_path).unwrap();
             let target = target_base_path.join(base_target);
             pb.set_message(format!("Linking {:?}...", &target));
-            let src = fs::read_to_string(entry).unwrap();
+            let src = fs::read_to_string(&entry).unwrap();
             let mut path_name = entry.clone();
             path_name.set_extension("");
             let mut path_name = path_name.strip_prefix(&objects_base_path).unwrap();

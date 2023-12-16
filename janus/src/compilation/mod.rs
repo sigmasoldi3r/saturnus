@@ -10,6 +10,7 @@ use std::{
 };
 
 use console::style;
+use copy_dir::copy_dir;
 
 use crate::{
     compilation::utils::{get_output_folder, get_source_folder},
@@ -255,8 +256,8 @@ impl CompilationHost {
         // Those two steps cause exit if failed
         create_dist_dirs(&info.output);
         resolve_deps(&info, dependencies);
-        let paths = glob::glob("./**/*.saturn").unwrap();
-        let total = glob::glob("./**/*.saturn").unwrap().count();
+        let paths = glob::glob("./src/**/*.saturn").unwrap();
+        let total = glob::glob("./src/**/*.saturn").unwrap().count();
         println!("Compiling sources...");
         let pb = get_bar(total as u64);
         let mut objects = Vec::<PathBuf>::new();
