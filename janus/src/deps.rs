@@ -33,15 +33,19 @@ fn resolve_dep_options(name: &String, options: &DependencyObject, bar: &Progress
         }
     }
     bar.set_message(format!("Compiling {name}..."));
-    let status = Command::new("janus")
+    let output = Command::new("janus")
         .arg("build")
         .current_dir(format!("dist/dependencies/{name}"))
         .stdout(Stdio::null())
         .stderr(Stdio::null())
-        .status()
+        .output()
         .expect("Failed to compile the dependency!");
-    if !status.success() {
-        panic!("Failed to compile the dependency!");
+    if !output.status.success() {
+        panic!(
+            "Failed to compile '{}' dependency!\nReason:\n{}",
+            name,
+            String::from_utf8_lossy(&output.stderr),
+        );
     }
     bar.set_message(format!("Copying {name} artifacts..."));
     if !Path::new(&format!("dist/cache/objects/{name}")).exists() {

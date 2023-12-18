@@ -66,18 +66,6 @@ impl FilePipeline {
             pb.inc(1);
         }
         if let Some(entry) = main {
-            pb.set_message("Linking standard library...");
-            file_out
-                .write(b"\npackage.preload[\"std\"] = function()\n")
-                .unwrap();
-            file_out
-                .write_all(
-                    fs::read_to_string(objects_base_path.join("std.lua"))
-                        .unwrap()
-                        .as_bytes(),
-                )
-                .unwrap();
-            file_out.write(b"\nend;").unwrap();
             pb.set_message("Collecting main file...");
             let src = fs::read_to_string(entry).unwrap();
             file_out.write(b"\n").unwrap();

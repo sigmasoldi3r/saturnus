@@ -75,6 +75,10 @@ impl CompilationHost {
             .arg(file_path.to_str().unwrap())
             .arg("-o")
             .arg(&out);
+        if &info.main != file_path {
+            // If main, omit no STD
+            cmd.arg("--no-std");
+        }
         // Handle the final execution of the command.
         match cmd.spawn() {
             Ok(mut proc) => match proc.wait() {
@@ -147,13 +151,6 @@ impl CompilationHost {
                     fs::copy(entry, target).unwrap();
                     pb.inc(1);
                 }
-                fs::write(
-                    target_base_path.join("std.lua"),
-                    fs::read_to_string(objects_base_path.join("std.lua"))
-                        .unwrap()
-                        .as_bytes(),
-                )
-                .unwrap();
                 pb.finish_with_message("Done");
             }
             OutputFormat::FlatDirectory => todo!("Directory flattening"),

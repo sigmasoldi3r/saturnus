@@ -85,6 +85,12 @@ struct Args {
         help = "Outputs the saturnus code to stdout preprocessed but without compiling"
     )]
     dump_saturnus: bool,
+    // May be useful in the future
+    // #[arg(
+    //     long,
+    //     help = "Dumps the std library compiled"
+    // )]
+    // dump_std: bool,
     #[arg(
         short = 'm',
         long = "mod",
@@ -136,7 +142,11 @@ fn precompile_std(compiler: &dyn Visitor) -> Result<(String, md5::Digest), Runti
     Ok((std_src, crc))
 }
 
-fn runtime_eval(script: &Script, compiler: &dyn Visitor, args: &Args) -> Result<(), RuntimeError> {
+fn compile_main(
+    script: &Script,
+    compiler: &dyn Visitor,
+    args: &Args,
+) -> Result<String, RuntimeError> {
     let mut src = compiler
         .visit_script(Builder::new("  "), &script)
         .map_err(|err| RuntimeError::CompilationError(err))?
@@ -148,6 +158,11 @@ fn runtime_eval(script: &Script, compiler: &dyn Visitor, args: &Args) -> Result<
             std_src, src
         );
     }
+    Ok(src)
+}
+
+fn runtime_eval(script: &Script, compiler: &dyn Visitor, args: &Args) -> Result<(), RuntimeError> {
+    let src = compile_main(script, compiler, args)?;
     let lua = rlua::Lua::new();
     lua.context(move |ctx| -> rlua::Result<()> {
         ctx.load(&src).eval()?;
@@ -193,10 +208,7 @@ fn try_run(options: CompilationOptions, input: String, indent: String) -> Result
         if args.verbose {
             println!("Compiling {:?}...", in_path);
         }
-        let output = compiler
-            .visit_script(Builder::new(indent), &script)
-            .map_err(|err| RuntimeError::CompilationError(err))?
-            .collect();
+        let output = compile_main(&script, &compiler, &args)?;
         if args.print {
             println!("\n------\n\n");
             std::io::stdout().write_all(output.as_bytes()).unwrap();
