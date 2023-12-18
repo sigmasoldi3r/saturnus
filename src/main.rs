@@ -7,6 +7,7 @@ use std::{
 use clap::Parser;
 use code::info::InputFileInfo;
 use errors::report_error;
+use lua::visitor::LuaEmitter;
 use parser::Script;
 use runtime::RuntimeError;
 
@@ -26,7 +27,7 @@ mod tests;
 
 #[derive(Parser, Clone)]
 #[command(name = "Saturnus")]
-#[command(version = "v1.1.1")]
+#[command(version = "v0.2.0")]
 #[command(author = "Pablo B. <pablobc.1995@gmail.com>")]
 #[command(
     about = "Saturnus: A modern language that compiles to Lua",
@@ -76,8 +77,9 @@ struct Args {
     indent: usize,
     #[arg(long, help = "Skips the std library")]
     no_std: bool,
-    #[arg(long, help = "Inline the std library in each script")]
-    inline_std: bool,
+    // Now std is inlined atop the entry point!
+    // #[arg(long, help = "Inline the std library in each script")]
+    // inline_std: bool,
     #[arg(
         long,
         help = "Outputs the saturnus code to stdout preprocessed but without compiling"
@@ -122,10 +124,7 @@ struct CompilationOptions {
 //     }
 // }
 
-fn try_run(options: CompilationOptions, input: String, indent: String) -> Result<(), RuntimeError> {
-    let compiler = lua::visitor::LuaEmitter::new(InputFileInfo {
-        full_path: PathBuf::from(&options.in_path),
-    });
+fn precompile_std(compiler: &dyn Visitor) -> Result<(String, md5::Digest), RuntimeError> {
     // Precompile STD
     let std_src = include_str!("assets/std.saturn");
     let std_src = Script::parse(std_src.to_owned()).unwrap();
@@ -134,17 +133,46 @@ fn try_run(options: CompilationOptions, input: String, indent: String) -> Result
         .unwrap()
         .collect();
     let crc = md5::compute(std_src.as_bytes());
+    Ok((std_src, crc))
+}
 
-    if !options.args.no_std {
-        let mut path = std::path::PathBuf::new();
-        path.push(&options.out_path);
-        path.pop();
-        path.push("std.lua");
-        let r = std::fs::read_to_string(&path).map(|r| md5::compute(r.as_bytes()));
-        if r.is_err() || r.unwrap() != crc {
-            std::fs::write(&path, std_src).unwrap();
-        }
+fn runtime_eval(script: &Script, compiler: &dyn Visitor, args: &Args) -> Result<(), RuntimeError> {
+    let mut src = compiler
+        .visit_script(Builder::new("  "), &script)
+        .map_err(|err| RuntimeError::CompilationError(err))?
+        .collect();
+    if !args.no_std {
+        let (std_src, _) = precompile_std(compiler)?;
+        src = format!(
+            "package.preload[\"std\"] = function()\n{}\nend;\n{}",
+            std_src, src
+        );
     }
+    let lua = rlua::Lua::new();
+    lua.context(move |ctx| -> rlua::Result<()> {
+        ctx.load(&src).eval()?;
+        Ok(())
+    })
+    .map_err(|err| RuntimeError::EvaluationError(err))?;
+    Ok(())
+}
+
+fn try_run(options: CompilationOptions, input: String, indent: String) -> Result<(), RuntimeError> {
+    let compiler = lua::visitor::LuaEmitter::new(InputFileInfo {
+        full_path: PathBuf::from(&options.in_path),
+    });
+
+    // We won't pop out that pesky "std.lua" file anymore!
+    // if !options.args.no_std {
+    //     let mut path = std::path::PathBuf::new();
+    //     path.push(&options.out_path);
+    //     path.pop();
+    //     path.push("std.lua");
+    //     let r = std::fs::read_to_string(&path).map(|r| md5::compute(r.as_bytes()));
+    //     if r.is_err() || r.unwrap() != crc {
+    //         std::fs::write(&path, std_src).unwrap();
+    //     }
+    // }
 
     // scrap_modules(&mut compiler.module_mapping, &options.args.modules);
 
@@ -177,9 +205,7 @@ fn try_run(options: CompilationOptions, input: String, indent: String) -> Result
             out_file.write_all(output.as_bytes()).unwrap();
         }
     } else {
-        let host: runtime::RuntimeHost =
-            runtime::RuntimeHost::new(indent.clone(), Box::new(compiler));
-        host.evaluate(&script)?;
+        runtime_eval(&script, &compiler, &args)?;
     }
 
     Ok(())

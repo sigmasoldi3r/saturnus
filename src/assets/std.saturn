@@ -83,6 +83,37 @@ class Tuple {
   }
 }
 
+let ext = {
+  fn split(sep) = (self) => {
+    sep = sep ?? "%s";
+    let t = [];
+    for frag in self->gmatch("([^" ++ sep ++ "]+)") {
+      t[#?t+1] = frag;
+    }
+    return t;
+  };
+  fn join(sep) = (self) => table.concat(self, sep);
+  fn map(f) = (self) => {
+    let t = [];
+    for (k, v) in Object.entries(self) {
+      t[k] = f(v, k, self);
+    }
+    return t;
+  };
+  fn reduce(f, seed) = (self) => {
+    for (k, v) in Object.entries(self) {
+      seed = f(seed, v, k, self);
+    }
+    return seed;
+  };
+  return {
+    split,
+    join,
+    map,
+    reduce
+  };
+};
+
 // The RTTI module
 class rtti {
   fn arguments(*args) {
@@ -145,13 +176,8 @@ fn abstract() {
 }
 
 // STD Custom operators
-fn `|>`(left, right) {
-  return right(left);
-}
-
-fn `<|`(left, right) {
-  return left(right);
-}
+fn `|>`(left, right) =  right(left);
+fn `<|`(left, right) =  left(right);
 
 fn `::`(arr, elem) {
   <extern "Lua">
@@ -179,40 +205,20 @@ fn `:::`(left, right) {
   panic("Operator ::: not supported on this platform");
 }
 
-fn `+?`(left, right) {
-  return left and (left + right);
-}
-fn `+??`(left, right) {
-  return left and (left + right) or right;
-}
+fn `+?`(left, right) =  left and (left + right);
+fn `+??`(left, right) =  left and (left + right) or right;
 
-fn `++?`(left, right) {
-  return left and (left ++ right);
-}
-fn `++??`(left, right) {
-  return left and (left ++ right) or right;
-}
+fn `++?`(left, right) =  left and (left ++ right);
+fn `++??`(left, right) =  left and (left ++ right) or right;
 
-fn `-?`(left, right) {
-  return left and (left - right);
-}
-fn `-??`(left, right) {
-  return left and (left - right) or right;
-}
+fn `-?`(left, right) =  left and (left - right);
+fn `-??`(left, right) =  left and (left - right) or right;
 
-fn `*?`(left, right) {
-  return left and (left * right);
-}
-fn `*??`(left, right) {
-  return left and (left * right) or right;
-}
+fn `*?`(left, right) =  left and (left * right);
+fn `*??`(left, right) =  left and (left * right) or right;
 
-fn `/?`(left, right) {
-  return left and (left / right);
-}
-fn `/??`(left, right) {
-  return left and (left / right) or right;
-}
+fn `/?`(left, right) =  left and (left / right);
+fn `/??`(left, right) =  left and (left / right) or right;
 
 fn forward_iterator(from, to, step) {
   let i = from;
@@ -252,6 +258,8 @@ fn `..`(from, target) {
   return backward_iterator(from, to, step);
 }
 
+fn `->>`(self, method) = method(self);
+
 return {
   Object,
   Tuple,
@@ -266,6 +274,7 @@ return {
     `:::`, `..`,  `|>`,  `<|`,
     `+?`,  `+??`, `++?`, `++??`,
     `-?`,  `-??`, `*?`,  `*??`,
-    `/?`,  `/??`, `::`
-  }
+    `/?`,  `/??`, `::`, `->>`
+  },
+  ext
 };

@@ -25,6 +25,10 @@ pub struct EvaluationOutput {
 /// the virtual machine, parser and such.
 ///
 /// This host will take care of evaluating the incoming Saturnus code.
+#[deprecated(
+    since = "v0.2.0",
+    note = "We have to rethink how runtime is evaluated! - Saturnus's primary VM will be always Lua."
+)]
 pub struct RuntimeHost {
     host: rlua::Lua,
     compiler: Box<dyn Visitor>,
@@ -46,6 +50,7 @@ impl RuntimeHost {
         self.evaluate(&parsed)
     }
 
+    #[deprecated]
     pub fn evaluate(&self, script: &Script) -> Result<EvaluationOutput, RuntimeError> {
         let code = self
             .compiler
