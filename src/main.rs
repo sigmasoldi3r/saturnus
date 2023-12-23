@@ -7,7 +7,7 @@ use std::{
 use clap::Parser;
 use code::info::InputFileInfo;
 use errors::report_error;
-use lua::visitor::LuaEmitter;
+use lua::{helpers::generate_module_chunk, visitor::LuaEmitter};
 use parser::Script;
 use runtime::RuntimeError;
 
@@ -154,8 +154,9 @@ fn compile_main(
     if !args.no_std {
         let (std_src, _) = precompile_std(compiler)?;
         src = format!(
-            "package.preload[\"std\"] = function()\n{}\nend;\n{}",
-            std_src, src
+            "{}\n{}",
+            generate_module_chunk(&"std".into(), &std_src),
+            src
         );
     }
     Ok(src)
