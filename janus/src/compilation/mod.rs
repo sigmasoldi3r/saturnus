@@ -77,15 +77,19 @@ impl CompilationHost {
             .arg("-o")
             .arg(&out);
         // If not the main file, skip the STD header injection
-        match &info.main {
-            PathBufOrPathBufList::PathBuf(main) => {
-                if main != file_path {
-                    cmd.arg("--no-std");
+        if info.no_std || info.mode == CompilationMode::Lib {
+            cmd.arg("--no-std");
+        } else {
+            match &info.main {
+                PathBufOrPathBufList::PathBuf(main) => {
+                    if main != file_path {
+                        cmd.arg("--no-std");
+                    }
                 }
-            }
-            PathBufOrPathBufList::PathBufList(mains) => {
-                if !mains.contains(file_path) {
-                    cmd.arg("--no-std");
+                PathBufOrPathBufList::PathBufList(mains) => {
+                    if !mains.contains(file_path) {
+                        cmd.arg("--no-std");
+                    }
                 }
             }
         }
