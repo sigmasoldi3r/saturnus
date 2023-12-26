@@ -7,11 +7,18 @@ pub struct ModulesOptions {
     pub external: Option<Vec<PathBuf>>,
 }
 
+#[derive(Debug, Deserialize, Serialize)]
+#[serde(untagged)]
+pub enum PathBufOrPathBufList {
+    PathBuf(PathBuf),
+    PathBufList(Vec<PathBuf>),
+}
+
 #[derive(Debug, Deserialize, Serialize, Default)]
 pub struct JanusBuild {
     pub source: Option<PathBuf>,
     pub output: Option<PathBuf>,
-    pub main: Option<PathBuf>,
+    pub main: Option<PathBufOrPathBufList>,
     pub format: Option<String>,
     pub target: Option<String>,
     pub module_system: Option<String>,

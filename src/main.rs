@@ -52,12 +52,13 @@ struct Args {
         help = "Specifies the output target runtime, only lua is supported for now."
     )]
     target: Option<String>,
-    #[arg(
-        short,
-        long = "bin",
-        help = "Compiles the Saturnus script into an executable binary"
-    )]
-    binary: bool,
+    // This is now part of Janus
+    // #[arg(
+    //     short,
+    //     long = "bin",
+    //     help = "Compiles the Saturnus script into an executable binary"
+    // )]
+    // binary: bool,
     #[arg(
         short = 'p',
         long = "print",
@@ -85,18 +86,16 @@ struct Args {
         help = "Outputs the saturnus code to stdout preprocessed but without compiling"
     )]
     dump_saturnus: bool,
-    // May be useful in the future
-    // #[arg(
-    //     long,
-    //     help = "Dumps the std library compiled"
-    // )]
-    // dump_std: bool,
     #[arg(
         short = 'm',
         long = "mod",
         help = "Additional module root paths to load"
     )]
     modules: Vec<String>,
+    #[arg(long, help = "Extracts the STD library compiled")]
+    extract_std_compiled: Option<PathBuf>,
+    #[arg(long, help = "Extracts the STD library raw (Saturnus code)")]
+    extract_std_raw: Option<PathBuf>,
 }
 
 fn get_default_output(str: &Path) -> String {
@@ -130,9 +129,11 @@ struct CompilationOptions {
 //     }
 // }
 
+const STD_SRC: &'static str = include_str!("assets/std.saturn");
+
 fn precompile_std(compiler: &dyn Visitor) -> Result<(String, md5::Digest), RuntimeError> {
     // Precompile STD
-    let std_src = include_str!("assets/std.saturn");
+    let std_src = STD_SRC;
     let std_src = Script::parse(std_src.to_owned()).unwrap();
     let std_src = compiler
         .visit_script(Builder::new("  "), &std_src)
@@ -233,6 +234,19 @@ fn main() {
         " ".repeat(args.indent)
     };
     use std::fs::read_to_string;
+
+    {
+        let compiler = lua::visitor::LuaEmitter::new(InputFileInfo {
+            full_path: PathBuf::from("std.saturn"),
+        });
+        // Dump STD if provided
+        if let Some(raw_std) = &args.extract_std_raw {
+            std::fs::write(raw_std, STD_SRC).unwrap();
+        }
+        if let Some(compiled_std) = &args.extract_std_compiled {
+            std::fs::write(compiled_std, precompile_std(&compiler).unwrap().0).unwrap();
+        }
+    }
 
     // Read input files
     let in_path = Path::new(&args.input);

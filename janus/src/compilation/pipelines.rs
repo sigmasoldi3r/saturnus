@@ -22,19 +22,29 @@ impl FilePipeline {
         exclude: &HashSet<PathBuf>,
     ) {
         let pb = get_bar(glob::glob("./dist/cache/objects/**/*.lua").unwrap().count() as u64);
-        let mut main: Option<PathBuf> = None;
+        let mut mains: Vec<PathBuf> = vec![];
         let mut file_out = match info.target {
             CompilationTarget::Lua => {
                 let out_path = info.output.join("target").join("main.lua");
                 File::create(output.unwrap_or(out_path)).unwrap()
             }
         };
-        let mut main_path = objects_base_path.join(info.main.strip_prefix(&info.source).unwrap());
-        main_path.set_extension("lua");
+        let mut main_paths = match &info.main {
+            crate::janusfile::PathBufOrPathBufList::PathBuf(main) => {
+                vec![objects_base_path.join(main.strip_prefix(&info.source).unwrap())]
+            }
+            crate::janusfile::PathBufOrPathBufList::PathBufList(mains) => mains
+                .iter()
+                .map(|main| objects_base_path.join(main.strip_prefix(&info.source).unwrap()))
+                .collect(),
+        };
+        for path in &mut main_paths {
+            path.set_extension("lua");
+        }
         for entry in glob::glob("./dist/cache/objects/**/*.lua").unwrap() {
             let entry = entry.expect("Could not unwrap an entry path");
-            if &entry == &main_path {
-                main = Some(entry.clone());
+            if main_paths.contains(&entry) {
+                mains.push(entry.clone());
                 continue;
             }
             if exclude.contains(&entry) {
@@ -65,8 +75,8 @@ impl FilePipeline {
             file_out.write(b"\nend;").unwrap();
             pb.inc(1);
         }
-        if let Some(entry) = main {
-            pb.set_message("Collecting main file...");
+        for entry in mains {
+            pb.set_message("Collecting entry files...");
             let src = fs::read_to_string(entry).unwrap();
             file_out.write(b"\n").unwrap();
             file_out.write_all(&src.as_bytes()).unwrap();

@@ -18,7 +18,7 @@ use crate::{
     dir::create_dist_dirs,
     display::get_bar,
     errors::ExitCode,
-    janusfile::{DependencyList, JanusBuild, JanusProject, OutputFormat},
+    janusfile::{DependencyList, JanusBuild, JanusProject, OutputFormat, PathBufOrPathBufList},
 };
 
 pub enum CompilationError {}
@@ -45,7 +45,7 @@ pub struct CompilationInfo {
     pub format: OutputFormat,
     pub target: CompilationTarget,
     pub module_system: ModuleSystem,
-    pub main: PathBuf,
+    pub main: PathBufOrPathBufList,
     pub no_std: bool,
     pub mode: CompilationMode,
 }
@@ -59,9 +59,10 @@ impl CompilationHost {
     /// Attempt to compile a single file.
     fn compile_file(&self, info: &CompilationInfo, file_path: &PathBuf) -> PathBuf {
         let mut cmd = Command::new("saturnus");
-        if info.mode == CompilationMode::Bin && &info.main == file_path {
-            // Here we should inject STD if no no-std flag is provided.
-        }
+        // TODO: Review this
+        // if info.mode == CompilationMode::Bin && &info.main == file_path {
+        //     // Here we should inject STD if no no-std flag is provided.
+        // }
         let mut out = info
             .output
             .join("cache")
@@ -75,9 +76,18 @@ impl CompilationHost {
             .arg(file_path.to_str().unwrap())
             .arg("-o")
             .arg(&out);
-        if &info.main != file_path {
-            // If main, omit no STD
-            cmd.arg("--no-std");
+        // If not the main file, skip the STD header injection
+        match &info.main {
+            PathBufOrPathBufList::PathBuf(main) => {
+                if main != file_path {
+                    cmd.arg("--no-std");
+                }
+            }
+            PathBufOrPathBufList::PathBufList(mains) => {
+                if !mains.contains(file_path) {
+                    cmd.arg("--no-std");
+                }
+            }
         }
         // Handle the final execution of the command.
         match cmd.spawn() {
@@ -213,7 +223,7 @@ impl CompilationHost {
         } = info;
         let output = get_output_folder(output);
         let source = get_source_folder(source);
-        let main = main.unwrap_or("src/main.saturn".into());
+        let main = main.unwrap_or(PathBufOrPathBufList::PathBuf("src/main.saturn".into()));
         let no_std = no_std.unwrap_or(false);
         let format = match format.unwrap_or("dir".to_owned()).as_str() {
             "flat" => OutputFormat::FlatDirectory,

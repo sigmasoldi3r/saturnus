@@ -2,5 +2,5 @@
 
 git pull
 cargo install --path .
-cd runtime && cargo build --release
+cd runtime && cargo build --release && cd ..
 cargo install --path janus
