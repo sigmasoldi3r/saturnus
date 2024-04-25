@@ -347,6 +347,9 @@ fn `-->`(left, right) {
 
 let foo = "foo" --> "bar";
 // Will yield "foobarbarfoo"
+
+// This also means that one could write:
+let reducted = [1, 2, 3]->reduce(`+`);
 ```
 
 ## Crazy stuff
@@ -370,8 +373,7 @@ let App = () => _
 _;
 println(render(App));
 ```
-To work in Saturnus! In fact that is a small react-like library currently
-being written in Saturnus.
+To work in Saturnus!
 
 ## Why replace Lua?
 
