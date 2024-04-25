@@ -50,7 +50,7 @@ is an example of a working project file:
 
 ```toml
 [project]
-name = "Helo Saturnus!"
+name = "Hello Saturnus!"
 author = "You & Me"
 version = "1.0.0"
 
