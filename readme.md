@@ -40,6 +40,6 @@ world.greet();
 >
 > - Dynamic dispatch is now `.`, previously `->`.
 > - Static dispatch is back to `::`.
-> - Lambda syntax is now block oriented: `{ a, b => a + b }`, unlike the old one.
+> - Lambda syntax is now block oriented: `{ a, b => a + b }`, unlike the old one (`() => {}`).
 
-_More syntax will be added to the docs as the project develops.
+_More syntax will be added to the docs as the project develops._
