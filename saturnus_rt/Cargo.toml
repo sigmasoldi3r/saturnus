@@ -1,0 +1,7 @@
+[package]
+name = "saturnus_rt"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+mlua = { version = "0.10", features = ["lua53", "vendored"] }

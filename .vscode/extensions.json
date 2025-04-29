@@ -1,0 +1,8 @@
+{
+    "recommendations": [
+        "tamasfe.even-better-toml",
+        "barbosshack.crates-io",
+        "rust-lang.rust-analyzer",
+        "guyutongxue.lalrpop-syntax-highlight"
+    ]
+}

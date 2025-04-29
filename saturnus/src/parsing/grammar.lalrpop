@@ -1,0 +1,404 @@
+use std::str::FromStr;
+use crate::parsing::ast;
+use crate::parsing::ast::IntoStatement;
+use crate::parsing::ast::IntoExpr;
+
+grammar;
+
+match {
+    "and",
+    "or",
+    "not",
+    "true",
+    "false",
+    r"\s*" => { },
+    r"//[^\n\r]*[\n\r]*" => { },
+    r"/\*[^*]*\*+(?:[^/*][^*]*\*+)*/" => { },
+} else {
+    r"[A-Za-z_][A-Za-z_0-9]*",
+    _,
+}
+
+Comma<T>: Vec<T> = {
+    <mut v:(<T> ",")*> <e:T?> => match e {
+        None => v,
+        Some(e) => {
+            v.push(e);
+            v
+        }
+    }
+};
+
+pub Program: Vec<ast::Statement> = Statement*;
+
+Statement: ast::Statement = {
+    AssignmentStatement,
+    UseStatement,
+    IfStatement,
+    LetStatement,
+    FnStatement,
+    ClassDef,
+    ForStatement,
+    LoopStatement,
+    WhileStatement,
+    SkipStatement,
+    BreakStatement,
+    ExprStatement,
+    ReturnStatement,
+};
+
+AssignmentTarget: ast::AssignmentTarget = {
+    Identifier => ast::AssignmentTarget::Identifier(match <> { ast::Expr::Identifier(v) => v, _ => panic!() }),
+    MemberExpr => ast::AssignmentTarget::Member(match <> { ast::Expr::Member(v) => v, _ => panic!() }),
+    ArrayAccessExpr => ast::AssignmentTarget::ArrayAccess(match <> { ast::Expr::ArrayAccess(v) => v, _ => panic!() }),
+};
+
+AssignmentOpBranch: ast::Operator = {
+    "+=" => ast::Operator::Add,
+    "-=" => ast::Operator::Sub,
+    "++=" => ast::Operator::StrCat,
+    "*=" => ast::Operator::Mul,
+    "/=" => ast::Operator::Div,
+    "**=" => ast::Operator::Pow,
+    "..=" => ast::Operator::Range,
+    "and=" => ast::Operator::And,
+    "or=" => ast::Operator::Or,
+    "~=" => ast::Operator::BNot,
+    "|=" => ast::Operator::BOr,
+    "&=" => ast::Operator::BAnd,
+    "^=" => ast::Operator::BXor,
+    ">>=" => ast::Operator::RShift,
+    ">>>=" => ast::Operator::RShiftRot,
+    "<<=" => ast::Operator::LShift,
+    "<<<=" => ast::Operator::LShiftRot,
+    r"[\^+-/*+-.:~%&$!|?><]+=" => ast::Operator::Custom(String::from(<>)),
+};
+
+AssignmentOp: Option<ast::Operator> = {
+    "=" => None,
+    AssignmentOpBranch => Some(<>)
+};
+
+AssignmentStatement: ast::Statement
+    = <left:AssignmentTarget> <op:AssignmentOp> <right:Expr> ";"
+    => ast::Assignment::new(left, op, right).into_statement();
+
+SkipStatement: ast::Statement = "skip" ";" => ast::Statement::Skip(ast::Skip);
+
+BreakStatement: ast::Statement = "break" ";" => ast::Statement::Break(ast::Break);
+
+ReturnStatement: ast::Statement = "return" <Expr> ";" => ast::Statement::Return(ast::Return { value: Box::new(<>) });
+
+UseStatement: ast::Statement = "use" <UseEntry> ";" => <>.into_statement();
+
+UseEntry: ast::Use
+    = <first:Identifier> <tail:("::" <Identifier>)*> <use_tree:("::" <UseTree>)?>
+    => {
+        let mut path = vec![first.unwrap_identifier()];
+        path.extend(tail.into_iter().map(|e| e.unwrap_identifier()).collect::<Vec<_>>());
+        ast::Use { path, use_tree }
+    };
+
+UseTree: Vec<ast::Use>
+    = "{" <first:UseEntry?> <tail:("," <UseEntry>)*> ","? "}"
+    => {
+        let mut entries = vec![];
+        if let Some(first) = first {
+            entries.push(first);
+        }
+        entries.extend(tail);
+        entries
+    };
+
+FnDef: ast::Fn
+    = <is_pub:"pub"?> <is_static:"static"?> <is_partial:"partial"?> "fn" <name:Identifier> "(" <args:ParamList?> ")" <body:FnBody>
+    => {
+        let mut modifiers = ast::DefModifiers::new();
+        modifiers.set_pub(is_pub.is_some());
+        modifiers.set_static(is_static.is_some());
+        modifiers.set_partial(is_partial.is_some());
+        ast::Fn::new(name.unwrap_identifier(), modifiers, args.unwrap_or(vec![]), body)
+    };
+
+FnBody: Vec<ast::Statement> = {
+    "=" <Expr> ";" => vec![ast::Return::new(<>)],
+    Block,
+};
+
+FnStatement: ast::Statement = <FnDef> => ast::Statement::Fn(<>);
+
+ClassDef: ast::Statement =
+    <is_pub:"pub"?> <is_static:"static"?> "class" <name:Identifier> <parent:(":" <Identifier>)?> "{" <fields:ClassField*> "}"
+    => {
+        let mut modifiers = ast::DefModifiers::new();
+        modifiers.set_pub(is_pub.is_some());
+        modifiers.set_static(is_static.is_some());
+        ast::ClassDef::new(name.unwrap_identifier(), modifiers, parent.map(ast::Expr::unwrap_identifier), fields)
+    };
+
+ClassField: ast::ClassField = {
+    FnDef => ast::ClassField::Fn(<>),
+    LetDef => ast::ClassField::Let(<>),
+};
+
+Destructure: ast::Destructure = {
+    <Identifier> => ast::Destructure::Identifier(<>.unwrap_identifier()),
+    "[" <DestructureComma> "]" => ast::Destructure::Array(<>),
+    "{" <DestructureComma> "}" => ast::Destructure::Map(<>),
+    "(" <DestructureComma> ")" => ast::Destructure::Tuple(<>),
+};
+
+DestructureEntry: ast::DestructureEntry = {
+    <Identifier> => ast::DestructureEntry::Identifier(<>.unwrap_identifier()),
+    "[" <DestructureComma> "]" => ast::DestructureEntry::Array(<>),
+    "{" <DestructureComma> "}" => ast::DestructureEntry::Map(<>),
+    "(" <DestructureComma> ")" => ast::DestructureEntry::Tuple(<>),
+    <name:Identifier> ":" <dest:DestructureEntry> => ast::DestructureEntry::Aliasing(name.unwrap_identifier(), Box::new(dest)),
+};
+
+DestructureComma: Vec<ast::DestructureEntry> =
+    <first:DestructureEntry> <tail:("," <DestructureEntry>)*>
+    => {
+        let mut args = vec![first];
+        args.extend(tail);
+        args
+    };
+
+LetStatement: ast::Statement = <LetDef> => ast::Statement::Let(<>);
+
+LetDef: ast::Let =
+    <is_pub:"pub"?> <is_static:"static"?> "let" <name:Destructure> <type_def:TypeConstraint?> <initializer:("=" <Expr>)?> ";"
+    => {
+        let mut modifiers = ast::DefModifiers::new();
+        modifiers.set_pub(is_pub.is_some());
+        modifiers.set_static(is_static.is_some());
+        ast::Let { name, modifiers, type_def, initializer }
+    };
+
+IfStatement: ast::Statement =
+    "if" <condition:Expr> <body:Block>
+    <else_if_block:ElseIfBlock*>
+    <else_block:ElseBlock?>
+    => ast::IfStatement::new(condition, body, else_if_block, else_block);
+
+ElseIfBlock: ast::ElseIf =
+    "else" "if" <condition:Expr> <body:Block>
+    => ast::ElseIf { condition: Box::new(condition), body };
+
+ElseBlock = "else" <Block>;
+
+ForStatement: ast::Statement =
+    "for" <assignment:Destructure> "in" <expr:Expr> <body:Block> => ast::For::new(assignment, expr, body);
+
+WhileStatement: ast::Statement =
+    "while" <condition:Expr> <body:Block> => ast::While::new(condition, body);
+
+LoopStatement: ast::Statement =
+    "loop" <body:Block> => ast::Loop::new(body);
+
+ExprStatement: ast::Statement = <Expr> ";" => ast::Statement::Expr(<>);
+
+Block = "{" <Program> "}";
+
+pub Expr: ast::Expr = {
+    #[precedence(level="0")]
+    <op:OpUnary> <right:Expr> => ast::Uop::new(op, right),
+    #[precedence(level="0")]
+    Primary,
+    #[precedence(level="1")] #[assoc(side="left")]
+    <left:Expr> <op:OpBinary> <right:Expr> => ast::Bop::new(left, op, right),
+    #[precedence(level="2")] #[assoc(side="left")]
+    <left:Expr> <op:OpMath> <right:Expr> => ast::Bop::new(left, op, right),
+    #[precedence(level="3")] #[assoc(side="left")]
+    <left:Expr> <op:OpMul> <right:Expr> => ast::Bop::new(left, op, right),
+    #[precedence(level="4")] #[assoc(side="left")]
+    <left:Expr> <op:OpAdd> <right:Expr> => ast::Bop::new(left, op, right),
+    #[precedence(level="5")] #[assoc(side="left")]
+    <left:Expr> <op:OpComparison> <right:Expr> => ast::Bop::new(left, op, right),
+    #[precedence(level="6")] #[assoc(side="left")]
+    <left:Expr> <op:OpLogic> <right:Expr> => ast::Bop::new(left, op, right),
+    #[precedence(level="7")] #[assoc(side="left")]
+    <left:Expr> <op:OpCustom> <right:Expr> => ast::Bop::new(left, op, right),
+};
+
+Primary = {
+    MemberExpr,
+    CallExpr,
+    ArrayAccessExpr,
+    LambdaExpr,
+    LiteralExpr,
+    Identifier,
+    "(" <Expr> ")",
+};
+
+LambdaExpr: ast::Expr = {
+    "{" <body:LambdaBody> "}" => ast::LambdaExpr::new(vec![ast::Param { name: ast::Identifier::new("it", false).unwrap_identifier(), type_def: None }], body),
+    "{" <params:ParamList> "=>" <body:LambdaBody> "}" => ast::LambdaExpr::new(params, body),
+};
+
+LambdaBody: Vec<ast::Statement> = {
+    <Expr> => vec![ast::Return::new(<>)],
+    Statement*,
+};
+
+ParamList: Vec<ast::Param> = {
+    <first:ParamDef> <tail:("," <ParamDef>)+> => {
+        let mut args = vec![first];
+        args.extend(tail);
+        args
+    },
+    <ParamDef> => vec![<>],
+};
+
+ParamDef: ast::Param =
+    <name:Identifier> <type_def:TypeConstraint?>
+    => ast::Param { name: name.unwrap_identifier(), type_def };
+
+TypeConstraint = ":" <RawTypeDef>;
+
+RawTypeDef: ast::TypeDef =
+    <name:Identifier> <generic_args:GenericArgList?>
+    => ast::TypeDef { name: name.unwrap_identifier(), generic_args };
+
+GenericArgList: Vec<ast::TypeDef> =
+    "<" <first:RawTypeDef> <tail:("," <RawTypeDef>)*> ">"
+    => {
+        let mut args = vec![first];
+        args.extend(tail);
+        args
+    };
+
+MemberExpr: ast::Expr =
+    <target:Primary> <op:MemberOp> <field:Identifier> => ast::Member::new(target, op, field);
+
+MemberOp: ast::MemberOp = {
+    "?." => ast::MemberOp::CoalesceMember,
+    "." => ast::MemberOp::Member,
+    "::" => ast::MemberOp::Static,
+};
+
+ArrayAccessExpr: ast::Expr = {
+    <base:Primary> "?." <args:ArrayAccessArgs> => ast::ArrayAccess::new(base, args, true),
+    <base:Primary> <args:ArrayAccessArgs> => ast::ArrayAccess::new(base, args, false)    
+};
+
+ArrayAccessArgs: Vec<ast::Expr> = {
+    "[" <Expr> "]" => vec![<>],
+    "[" <CommaExpr> "]",
+};
+
+CallExpr: ast::Expr = {
+    <base:Primary> "?." <args:CallArgs> => ast::Call::new(base, args, true),
+    <base:Primary> <args:CallArgs> => ast::Call::new(base, args, false),
+    <base:Primary> "." <arg:MapLiteral> => ast::Call::new(base, vec![arg.into_expr()], false),
+    <base:Primary> "." <arg:ArrayLiteral> => ast::Call::new(base, vec![arg.into_expr()], false),
+    <base:Primary> "." <arg:TupleLiteral> => ast::Call::new(base, vec![arg.into_expr()], false),
+    <base:Primary> "." <arg:LambdaExpr> => ast::Call::new(base, vec![arg], false),
+    <base:Primary> <arg:String> => ast::Call::new(base, vec![arg.into_expr()], false),
+};
+
+CallArgs = "(" <Comma<Expr>> ")";
+
+CommaExpr: Vec<ast::Expr> =
+    <first:Expr> <next:("," <Expr>)+> => {
+        let mut args = vec![first];
+        args.extend(next);
+        args
+    };
+
+LiteralExpr: ast::Expr = {
+    Number => ast::Expr::Number(<>),
+    String => ast::Expr::SatString(<>),
+    Boolean => ast::Expr::Boolean(<>),
+    MapLiteral => ast::Expr::MapLiteral(<>),
+    ArrayLiteral => ast::Expr::ArrayLiteral(<>),
+    TupleLiteral => ast::Expr::TupleLiteral(<>),
+};
+
+MapKey: ast::MapKey = {
+    String => ast::MapKey::SatString(<>),
+    Identifier => ast::MapKey::Identifier(<>.unwrap_identifier()),
+    "[" <Expr> "]" => ast::MapKey::Expr(<>),
+};
+
+MapEntry: (ast::MapKey, ast::Expr) = {
+    <key:MapKey> ":" <value:Expr> => (key, value),
+    <key:Identifier> => (ast::MapKey::Identifier(key.clone().unwrap_identifier()), key),
+};
+
+MapLiteral: ast::MapLiteral = "'{" <entries:Comma<MapEntry>> "}" => ast::MapLiteral { entries };
+
+ArrayLiteral: ast::ArrayLiteral = "[" <values:Comma<Expr>> "]" => ast::ArrayLiteral { values };
+
+TupleLiteral: ast::TupleLiteral = {
+    "(" ")" => ast::TupleLiteral { values: vec![] },
+    "(" <first:Expr> <tail:("," <Expr>)+> ")" => {
+        let mut values = vec![first];
+        values.extend(tail.into_iter());
+        ast::TupleLiteral { values }
+    },
+}
+
+Number: ast::Number = {
+    IntLit => ast::Number::Int(<>),
+    FloatLit => ast::Number::Float(<>),
+};
+
+Boolean: ast::Boolean = {
+    "true" => ast::Boolean::True,
+    "false" => ast::Boolean::False,
+};
+
+IntLit: i64 = r"[0-9]+" => i64::from_str(<>).unwrap();
+FloatLit: f64 = r"[0-9]+\.[0-9]+" => f64::from_str(<>).unwrap();
+
+String: ast::SatString =
+    <l:r#""(\\\\|\\"|[^"\\])*""#> => ast::SatString { value: l[1..l.len()-1].into() };
+
+Identifier: ast::Expr = {
+    r"[A-Za-z_][A-Za-z_0-9]*" => ast::Identifier::new(<>, false),
+    r"`[^`]*`" => ast::Identifier::new(<>, true),
+};
+
+OpAdd: ast::Operator = {
+    "+" => ast::Operator::Add,
+    "-" => ast::Operator::Sub,
+    "++" => ast::Operator::StrCat,
+};
+OpMul: ast::Operator = {
+    "*" => ast::Operator::Mul,
+    "/" => ast::Operator::Div,
+};
+OpMath: ast::Operator = {
+    "**" => ast::Operator::Pow,
+    ".." => ast::Operator::Range,
+};
+OpComparison: ast::Operator = {
+    "<" => ast::Operator::Lt,
+    "<=" => ast::Operator::LtEq,
+    ">" => ast::Operator::Gt,
+    ">=" => ast::Operator::GtEq,
+    "==" => ast::Operator::Eq,
+    "!=" => ast::Operator::Neq,
+};
+OpLogic: ast::Operator = {
+    "and" => ast::Operator::And,
+    "or" => ast::Operator::Or,
+};
+OpUnary: ast::Operator = {
+    "not" => ast::Operator::Not,
+    "-" => ast::Operator::Sub,
+    "~" => ast::Operator::BNot,
+};
+OpBinary: ast::Operator = {
+    "|" => ast::Operator::BOr,
+    "&" => ast::Operator::BAnd,
+    "^" => ast::Operator::BXor,
+    ">>" => ast::Operator::RShift,
+    ">>>" => ast::Operator::RShiftRot,
+    "<<" => ast::Operator::LShift,
+    "<<<" => ast::Operator::LShiftRot,
+};
+OpCustom: ast::Operator = {
+    r"[\^+-/*.:~%&$!|?><]+" => ast::Operator::Custom(String::from(<>))
+};
