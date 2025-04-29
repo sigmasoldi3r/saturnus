@@ -1121,6 +1121,7 @@ impl Compiler for LuaCompiler {
         mut source: CompilerSource,
         options: CompilerOptions,
     ) -> std::result::Result<String, CompilerError> {
+        self.module_root_expr = Identifier::new("__modules__", false);
         if let Some(mod_path) = &options.override_mod_path {
             source.location = Some(mod_path.clone());
         }
@@ -1164,6 +1165,6 @@ impl Compiler for LuaCompiler {
         };
         self.compile_program(ast)?;
         let output = std::mem::replace(&mut self.code, IndentedBuilder::new()).unwrap();
-        Ok(format!("-- Compiled with Saturnus{output}"))
+        Ok(output)
     }
 }

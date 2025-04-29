@@ -1,5 +1,3 @@
-use std::collections::HashMap;
-
 use st_macros::{bitmask_impl, wrapper_enum};
 
 #[derive(Debug, Clone)]

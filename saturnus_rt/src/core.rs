@@ -1,5 +1,7 @@
 use std::{collections::HashMap, fmt::Debug, hash::Hash, sync::Arc};
 
+use serde::{Serialize, ser::SerializeMap};
+
 pub trait IntoSaturnus {
     fn into_saturnus(self) -> Any;
 }
@@ -149,4 +151,57 @@ pub enum Any {
     Object(Table),
     Function(Callable),
     Unit,
+}
+
+impl Serialize for Any {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        match self {
+            Any::Integer(val) => serializer.serialize_i64(*val),
+            Any::Decimal(decimal) => serializer.serialize_f64(decimal.0),
+            Any::Boolean(val) => serializer.serialize_bool(*val),
+            Any::String(val) => serializer.serialize_str(val.as_str()),
+            Any::Object(table) => table.serialize(serializer),
+            Any::Function(_) => unimplemented!(),
+            Any::Unit => serializer.serialize_unit(),
+        }
+    }
+}
+
+impl Serialize for Table {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        let map = serializer.serialize_map(Some(self.data.len()));
+        match map {
+            Ok(mut sm) => {
+                for (k, v) in self.iter() {
+                    if let Err(err) = sm.serialize_key(k) {
+                        return Err(err);
+                    }
+                    if let Err(err) = sm.serialize_value(v) {
+                        return Err(err);
+                    }
+                }
+                sm.end()
+            }
+            Err(err) => Err(err),
+        }
+    }
+}
+
+#[macro_export]
+macro_rules! table {
+    ( $( $key:expr => $value:expr ),* $(,)* ) => {
+        {
+            let mut table = Table::new();
+            $(
+                table.set($key, $value);
+            )*
+            table
+        }
+    };
 }

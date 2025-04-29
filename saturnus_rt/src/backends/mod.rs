@@ -5,8 +5,9 @@ mod lua;
 pub use lua::LuaRt;
 
 #[derive(Debug)]
-pub enum RuntimeError {
-    Unknown(String),
+pub struct RuntimeError {
+    pub message: String,
+    pub source_name: String,
 }
 
 pub struct RtEnv {
@@ -14,7 +15,7 @@ pub struct RtEnv {
 }
 
 pub trait Runtime {
-    fn run(&mut self, code: String) -> Result<(), RuntimeError>;
+    fn run(&mut self, chunks: Vec<(String, String)>) -> Result<(), RuntimeError>;
 }
 
 pub struct RtProvider;

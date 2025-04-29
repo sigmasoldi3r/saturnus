@@ -5,14 +5,16 @@ use std::{
     fs::File,
     io::{Read, Write},
     path::PathBuf,
+    process::exit,
 };
 
 use cli::{Args, CompileTarget};
+use colored::Colorize;
 use options::OptionsAdapter;
 use saturnus::compiling::{Compiler, CompilerOptions, CompilerSource, backends::LuaCompiler};
 use saturnus_rt::{
     backends::{LuaRt, RtEnv, Runtime},
-    core::Table,
+    stdlib,
 };
 
 fn read_file_as_source(mut input: PathBuf) -> Result<CompilerSource, std::io::Error> {
@@ -47,16 +49,47 @@ fn compile(
     write!(out_file, "{out}").unwrap();
 }
 
-fn run(input: PathBuf, options: CompilerOptions, dump_ir: bool) {
-    let source = read_file_as_source(input).unwrap();
-    let ir = LuaCompiler::new().compile(source, options).unwrap();
+trait ErrorReporter<T> {
+    fn report_errors(self) -> Result<T, ()>;
+}
+impl<T, E> ErrorReporter<T> for Result<T, E>
+where
+    E: std::fmt::Debug,
+{
+    fn report_errors(self) -> Result<T, ()> {
+        match self {
+            Ok(ok) => Ok(ok),
+            Err(err) => {
+                eprintln!("{}", format!("{err:?}").red());
+                Err(())
+            }
+        }
+    }
+}
+
+fn run(input: PathBuf, options: CompilerOptions, dump_ir: bool) -> Result<(), ()> {
+    let source_loc = input.clone().to_str().unwrap_or("").to_owned();
+    let source = read_file_as_source(input).report_errors()?;
+    let mut luac = LuaCompiler::new();
+    let ir = luac.compile(source, options.clone()).report_errors()?;
     if dump_ir {
-        println!("{ir}");
+        println!("{}\n", format!("{ir}").dimmed());
     }
     let mut rt = LuaRt::default(RtEnv {
-        globals: Table::new(),
+        globals: stdlib::init_native_modules(),
     });
-    rt.run(ir).unwrap();
+    let stdlib_ir = luac
+        .compile(
+            CompilerSource {
+                source: saturnus_rt::stdlib::SOURCE.to_owned(),
+                location: Some(PathBuf::from("std")),
+            },
+            options.clone(),
+        )
+        .report_errors()?;
+    rt.run(vec![(stdlib_ir, "stdlib".into()), (ir, source_loc)])
+        .report_errors()?;
+    Ok(())
 }
 
 fn main() {
@@ -71,6 +104,9 @@ fn main() {
             output,
             ..
         } => compile(input, options, target, output),
-        Args::Run { input, dump_ir } => run(input, options, dump_ir),
+        Args::Run { input, dump_ir } => match run(input, options, dump_ir) {
+            Ok(()) => (),
+            Err(()) => exit(1),
+        },
     }
 }

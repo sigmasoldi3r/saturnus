@@ -70,27 +70,40 @@ impl LuaRt {
     pub fn default(config: RtEnv) -> Self {
         Self { config }
     }
-    fn to_runtime(error: mlua::Error) -> RuntimeError {
-        RuntimeError::Unknown(error.to_string())
-    }
     fn init_globals(&self, lua: &mlua::Lua) -> Result<(), RuntimeError> {
         let globals = lua.globals();
         for (k, v) in self.config.globals.iter() {
             globals
                 .set(
-                    k.clone().into_lua(&lua).map_err(Self::to_runtime)?,
-                    v.clone().into_lua(&lua).map_err(Self::to_runtime)?,
+                    k.clone().into_lua(&lua).map_err(|err| RuntimeError {
+                        message: format!("Panic! Initialization of environment failed! Cannot set key:\n{err}"),
+                        source_name: "".into(),
+                    })?,
+                    v.clone().into_lua(&lua).map_err(|err| RuntimeError {
+                        message: format!("Panic! Initialization of environment failed! Cannot set value:\n{err}"),
+                        source_name: "".into(),
+                    })?,
                 )
-                .map_err(Self::to_runtime)?;
+                .map_err(|err| RuntimeError {
+                    message: format!("Panic! Initialization of environment failed! Cannot mutate global environment:\n{err}"),
+                    source_name: "".into(),
+                })?;
         }
         Ok(())
     }
 }
 impl Runtime for LuaRt {
-    fn run(&mut self, code: String) -> Result<(), RuntimeError> {
+    fn run(&mut self, chunks: Vec<(String, String)>) -> Result<(), RuntimeError> {
         let lua = mlua::Lua::new();
         self.init_globals(&lua)?;
-        lua.load(code).exec().map_err(Self::to_runtime)?;
+        for (code, source_name) in chunks.into_iter() {
+            lua.load(format!("do\n\n{code}\n\nend"))
+                .exec()
+                .map_err(|err| RuntimeError {
+                    message: format!("{err}"),
+                    source_name,
+                })?;
+        }
         Ok(())
     }
 }

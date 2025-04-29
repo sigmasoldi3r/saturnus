@@ -16,6 +16,26 @@ a direct replacement of _Lua_ scripts.
 > optimizations, and new expressions that were deemed too hard to parse
 > previously.
 
+## Test it out
+
+Clone the repository, then run inside:
+
+```sh
+cargo run --bin saturnc -- run -i examples/simple_get.st
+```
+
+You should see something akin to:
+
+```
+Status = 200 OK
+Body = {
+  "userId": 1,
+  "id": 1,
+  "title": "delectus aut autem",
+  "completed": false
+}
+```
+
 ## How does it look?
 
 > [!TIP]

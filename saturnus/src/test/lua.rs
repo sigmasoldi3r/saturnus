@@ -90,6 +90,6 @@ fn test_simple_program() {
     globals.set("std", std_lib);
     let mut rt = LuaRt::default(RtEnv { globals });
     let out = c.compile(source, options).unwrap();
-    let out = rt.run(out).unwrap();
+    let out = rt.run(vec![(out, String::new())]).unwrap();
     println!("---- Lua Output ----\n{out:?}");
 }
