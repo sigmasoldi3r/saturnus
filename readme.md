@@ -1,6 +1,6 @@
 # Saturnus
 
-A generar-purpose, high level programming language that aims to be
+A general-purpose, high level programming language that aims to be
 a direct replacement of _Lua_ scripts.
 
 > [!WARNING]  
