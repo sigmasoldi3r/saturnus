@@ -92,7 +92,8 @@ fn run(input: PathBuf, options: CompilerOptions, dump_ir: bool) -> Result<(), ()
     Ok(())
 }
 
-fn main() {
+#[tokio::main]
+async fn main() {
     use clap::Parser as _;
     let args = Args::parse();
     let adapter = OptionsAdapter::new();

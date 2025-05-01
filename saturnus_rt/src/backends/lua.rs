@@ -1,4 +1,7 @@
-use mlua::IntoLua;
+use std::{clone, sync::Arc};
+
+use minijinja::value;
+use mlua::{IntoLua, Variadic};
 
 use crate::core::{Any, Callable, IntoSaturnus, Table};
 
@@ -18,39 +21,79 @@ impl IntoSaturnus for mlua::Value {
         match self {
             mlua::Value::Nil => Any::Unit,
             mlua::Value::Boolean(v) => Any::Boolean(v),
-            mlua::Value::LightUserData(light_user_data) => todo!(),
             mlua::Value::Integer(v) => Any::Integer(v),
             mlua::Value::Number(v) => v.into_saturnus(),
             mlua::Value::String(v) => Any::String(v.to_string_lossy()),
             mlua::Value::Table(table) => table_to_saturnus(table),
-            mlua::Value::Function(function) => Any::Unit,
-            mlua::Value::Thread(thread) => todo!(),
-            mlua::Value::UserData(any_user_data) => todo!(),
-            mlua::Value::Error(error) => todo!(),
-            mlua::Value::Other(value_ref) => todo!(),
+            _ => unimplemented!(
+                "Can't convert them contextless or does not make sense, use other conversion methods."
+            ),
         }
     }
 }
 
-impl IntoLua for Table {
-    fn into_lua(self, lua: &mlua::Lua) -> mlua::Result<mlua::Value> {
-        let tbl = lua.create_table_from(self.into_iter())?;
+fn convert_any(lua: Arc<mlua::Lua>) -> impl Fn(mlua::Value) -> Any {
+    move |value| match value {
+        mlua::Value::Function(function) => Callable::new({
+            let lua = lua.clone();
+            move |args| {
+                let mut argv = Variadic::<mlua::Value>::new();
+                for arg in args.into_iter() {
+                    argv.push(arg.into_lua(lua.clone()).unwrap());
+                }
+                let result = function
+                    .call::<mlua::Value>(argv)
+                    .map(convert_any(lua.clone()));
+                match result {
+                    Ok(value) => value,
+                    Err(err) => {
+                        eprintln!("{err:?}");
+                        Any::Unit
+                    }
+                }
+            }
+        })
+        .into_saturnus(),
+        mlua::Value::LightUserData(light_user_data) => todo!(),
+        mlua::Value::Thread(thread) => todo!(),
+        mlua::Value::UserData(any_user_data) => todo!(),
+        mlua::Value::Error(error) => todo!(),
+        mlua::Value::Other(value_ref) => todo!(),
+        other => other.into_saturnus(),
+    }
+}
+
+trait IntoLuaArc {
+    fn into_lua(self, lua: Arc<mlua::Lua>) -> mlua::Result<mlua::Value>;
+}
+impl IntoLuaArc for Table {
+    fn into_lua(self, lua: Arc<mlua::Lua>) -> mlua::Result<mlua::Value> {
+        let tbl = lua.create_table()?;
+        for (k, v) in self.into_iter() {
+            tbl.set(k.into_lua(lua.clone())?, v.into_lua(lua.clone())?)?;
+        }
         mlua::Result::Ok(mlua::Value::Table(tbl))
     }
 }
-impl IntoLua for Callable {
-    fn into_lua(self, lua: &mlua::Lua) -> mlua::Result<mlua::Value> {
+impl IntoLuaArc for Callable {
+    fn into_lua(self, lua: Arc<mlua::Lua>) -> mlua::Result<mlua::Value> {
         let inner = self.into_inner();
-        mlua::Result::Ok(mlua::Value::Function(lua.create_function(
-            move |lua, args: mlua::Variadic<mlua::Value>| {
-                let result = inner(args.into_iter().map(IntoSaturnus::into_saturnus).collect());
-                Ok(result.into_lua(lua))
-            },
-        )?))
+        mlua::Result::Ok(mlua::Value::Function(lua.create_async_function({
+            let lua = lua.clone();
+            move |_, args: mlua::Variadic<mlua::Value>| {
+                let inner = inner.clone();
+                let lua = lua.clone();
+                async move {
+                    let result = inner(args.into_iter().map(convert_any(lua.clone())).collect());
+
+                    Ok(result.into_lua(lua.clone()))
+                }
+            }
+        })?))
     }
 }
-impl IntoLua for Any {
-    fn into_lua(self, lua: &mlua::Lua) -> mlua::Result<mlua::Value> {
+impl IntoLuaArc for Any {
+    fn into_lua(self, lua: Arc<mlua::Lua>) -> mlua::Result<mlua::Value> {
         match self {
             Any::Integer(value) => mlua::Result::Ok(mlua::Value::Integer(value)),
             Any::Decimal(value) => mlua::Result::Ok(mlua::Value::Number(value.into_inner())),
@@ -59,6 +102,7 @@ impl IntoLua for Any {
             Any::Object(table) => table.into_lua(lua),
             Any::Function(callable) => callable.into_lua(lua),
             Any::Unit => mlua::Result::Ok(mlua::Value::Nil),
+            _ => unimplemented!(),
         }
     }
 }
@@ -70,16 +114,16 @@ impl LuaRt {
     pub fn default(config: RtEnv) -> Self {
         Self { config }
     }
-    fn init_globals(&self, lua: &mlua::Lua) -> Result<(), RuntimeError> {
+    fn init_globals(&self, lua: Arc<mlua::Lua>) -> Result<(), RuntimeError> {
         let globals = lua.globals();
         for (k, v) in self.config.globals.iter() {
             globals
                 .set(
-                    k.clone().into_lua(&lua).map_err(|err| RuntimeError {
+                    k.clone().into_lua(lua.clone()).map_err(|err| RuntimeError {
                         message: format!("Panic! Initialization of environment failed! Cannot set key:\n{err}"),
                         source_name: "".into(),
                     })?,
-                    v.clone().into_lua(&lua).map_err(|err| RuntimeError {
+                    v.clone().into_lua(lua.clone()).map_err(|err| RuntimeError {
                         message: format!("Panic! Initialization of environment failed! Cannot set value:\n{err}"),
                         source_name: "".into(),
                     })?,
@@ -94,8 +138,8 @@ impl LuaRt {
 }
 impl Runtime for LuaRt {
     fn run(&mut self, chunks: Vec<(String, String)>) -> Result<(), RuntimeError> {
-        let lua = mlua::Lua::new();
-        self.init_globals(&lua)?;
+        let lua = Arc::new(mlua::Lua::new());
+        self.init_globals(lua.clone())?;
         for (code, source_name) in chunks.into_iter() {
             lua.load(format!("do\n\n{code}\n\nend"))
                 .exec()

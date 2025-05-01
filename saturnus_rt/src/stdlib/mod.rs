@@ -1,5 +1,7 @@
+use std::{result, str::FromStr};
+
 use crate::{
-    core::{Any, Callable, Table},
+    core::{Any, Callable, IntoSaturnus, Table},
     table,
 };
 
@@ -41,6 +43,7 @@ pub trait AnyAssertions {
     fn assert_optional_string(self) -> Option<Any>;
     fn assert_table(self) -> Option<Table>;
     fn assert_optional_table(self) -> Option<Any>;
+    fn assert_callable(self) -> Option<Callable>;
 }
 impl AnyAssertions for Any {
     fn assert_int(self) -> Option<i64> {
@@ -123,6 +126,12 @@ impl AnyAssertions for Any {
             _ => None,
         }
     }
+    fn assert_callable(self) -> Option<Callable> {
+        match self {
+            Any::Function(cb) => Some(cb),
+            _ => None,
+        }
+    }
 }
 
 pub trait AnyCasts {
@@ -160,7 +169,7 @@ impl MiniJinjaCompilerFn {
 
 pub struct Net;
 impl Net {
-    pub fn raw_get() -> Callable {
+    pub fn raw_get_sync() -> Callable {
         use std::io::Read;
         Callable::new(|args| {
             let Any::String(url) = args.get_arg(0) else {
@@ -188,6 +197,77 @@ impl Net {
             }
         })
     }
+    pub fn raw_request() -> Callable {
+        Callable::new(|args| {
+            let Some(tbl) = args.get_arg(0).assert_table() else {
+                eprintln!("First argument must be a table!");
+                return Any::Unit;
+            };
+            let Some(cb) = args.get_arg(1).assert_callable() else {
+                eprintln!("Second argument must be a callback!");
+                return Any::Unit;
+            };
+            let Some(url) = tbl.get("url").and_then(|val| val.assert_string()) else {
+                eprintln!("Missing url");
+                return Any::Unit;
+            };
+            let method = tbl
+                .get("method")
+                .and_then(|val| val.assert_string())
+                .map(|val| match val.to_lowercase().as_str() {
+                    "get" => reqwest::Method::GET,
+                    "connect" => reqwest::Method::CONNECT,
+                    "delete" => reqwest::Method::DELETE,
+                    "head" => reqwest::Method::HEAD,
+                    "options" => reqwest::Method::OPTIONS,
+                    "patch" => reqwest::Method::PATCH,
+                    "post" => reqwest::Method::POST,
+                    "put" => reqwest::Method::PUT,
+                    "trace" => reqwest::Method::TRACE,
+                    _ => reqwest::Method::default(),
+                })
+                .unwrap_or(reqwest::Method::GET);
+            let Ok(url) = reqwest::Url::from_str(&url) else {
+                eprintln!("Invalid url {url:?}");
+                return Any::Unit;
+            };
+            let body = tbl.get("body");
+            tokio::spawn(async move {
+                loop {
+                    let client = reqwest::Client::new();
+                    let req = client.request(method, url);
+                    let req = if let Some(body) = body.and_then(|val| val.assert_string()) {
+                        req.body(body)
+                    } else {
+                        req
+                    };
+                    let res = match req.send().await {
+                        Ok(result) => result,
+                        Err(err) => {
+                            eprintln!("{err:?}");
+                            break;
+                        }
+                    };
+                    let cb = cb.into_inner();
+                    let body = match res.text().await {
+                        Ok(result) => result,
+                        Err(err) => {
+                            eprintln!("{err}");
+                            break;
+                        }
+                    };
+                    cb(vec![
+                        table! {
+                            "body" => body,
+                        }
+                        .into_saturnus(),
+                    ]);
+                    break;
+                }
+            });
+            Any::Unit
+        })
+    }
 }
 
 pub fn init_native_modules() -> Table {
@@ -196,7 +276,10 @@ pub fn init_native_modules() -> Table {
             "std" => table! {
                 "template" => MiniJinjaCompilerFn::new(),
                 "net" => table!{
-                    "get" => Net::raw_get()
+                    "sync" => table! {
+                        "get" => Net::raw_get_sync()
+                    },
+                    "request" => Net::raw_request(),
                 }
             }
         }

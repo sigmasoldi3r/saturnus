@@ -105,12 +105,12 @@ impl PartialEq for Decimal {
     }
 }
 
-type FnDef = dyn Fn(Vec<Any>) -> Any;
+type FnDef = dyn Fn(Vec<Any>) -> Any + Send + Sync;
 
 #[derive(Clone)]
 pub struct Callable(Arc<FnDef>);
 impl Callable {
-    pub fn new(func: impl Fn(Vec<Any>) -> Any + 'static) -> Self {
+    pub fn new(func: impl Fn(Vec<Any>) -> Any + 'static + Send + Sync) -> Self {
         Self(Arc::new(func))
     }
     pub fn into_inner(self) -> Arc<FnDef> {
@@ -151,7 +151,11 @@ pub enum Any {
     Object(Table),
     Function(Callable),
     Unit,
+    Future(Box<impl Future<Any>>),
 }
+
+unsafe impl Send for Any {}
+unsafe impl Sync for Any {}
 
 impl Serialize for Any {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
@@ -166,6 +170,7 @@ impl Serialize for Any {
             Any::Object(table) => table.serialize(serializer),
             Any::Function(_) => unimplemented!(),
             Any::Unit => serializer.serialize_unit(),
+            _ => unimplemented!(),
         }
     }
 }
