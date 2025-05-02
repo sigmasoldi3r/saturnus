@@ -1381,6 +1381,7 @@ version = "0.1.0"
 dependencies = [
  "clap",
  "colored",
+ "saturnstd",
  "saturnus",
  "saturnus_rt",
  "tokio",
@@ -1398,6 +1399,7 @@ dependencies = [
  "lalrpop-util",
  "lazy_static",
  "regex",
+ "saturnstd",
  "saturnus_rt",
  "st_macros",
 ]
@@ -1410,8 +1412,10 @@ dependencies = [
  "mlua",
  "regex",
  "reqwest",
+ "saturnstd",
  "serde",
  "serde_json",
+ "st_macros",
  "tokio",
  "toml",
 ]

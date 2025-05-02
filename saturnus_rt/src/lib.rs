@@ -1,3 +1,3 @@
-pub mod backends;
-pub mod core;
-pub mod stdlib;
+pub mod mem;
+pub mod native;
+pub mod vm;

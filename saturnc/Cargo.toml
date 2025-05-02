@@ -7,6 +7,7 @@ edition = "2024"
 clap = { version = "4.5.32", features = ["derive"] }
 colored = "3.0.0"
 
+saturnstd = { path = "../saturnstd" }
 saturnus = { path = "../saturnus" }
 saturnus_rt = { path = "../saturnus_rt" }
 tokio = { version = "1.44.2", features = ["full"] }

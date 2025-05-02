@@ -1,14 +1,4 @@
-pub fn add(left: u64, right: u64) -> u64 {
-    left + right
-}
+pub const STDLIB_CODE: &'static str = include_str!("./stdlib.st");
+pub const CORE_CODE: &'static str = include_str!("./core.st");
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn it_works() {
-        let result = add(2, 2);
-        assert_eq!(result, 4);
-    }
-}
+pub trait Ir: ToString {}

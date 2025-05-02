@@ -1,5 +1,7 @@
 use std::path::PathBuf;
 
+use saturnstd::Ir;
+
 pub mod backends;
 
 #[derive(Debug, Clone)]
@@ -61,7 +63,7 @@ pub trait Compiler {
         &mut self,
         source: CompilerSource,
         options: CompilerOptions,
-    ) -> std::result::Result<String, CompilerError>;
+    ) -> std::result::Result<Box<dyn Ir>, CompilerError>;
 }
 
 pub type Result = std::result::Result<(), CompilerError>;

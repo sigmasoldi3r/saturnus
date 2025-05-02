@@ -61,6 +61,8 @@ pub enum Args {
         /// Instead of inferring the module path from the input, it uses the given module path.
         #[arg(long, short)]
         mod_path: Option<PathBuf>,
+        #[arg(long)]
+        strip_core_types: bool,
     },
     Run {
         /// The input file to run with saturnus runtime.

@@ -10,5 +10,6 @@ lalrpop = "0.22.1"
 lalrpop-util = { version = "0.22.1", features = ["lexer", "unicode"] }
 st_macros = { path = "../st_macros" }
 saturnus_rt = { path = "../saturnus_rt" }
+saturnstd = { path = "../saturnstd" }
 regex = "1.11.1"
 lazy_static = "1.5.0"

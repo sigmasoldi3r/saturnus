@@ -12,10 +12,7 @@ use cli::{Args, CompileTarget};
 use colored::Colorize;
 use options::OptionsAdapter;
 use saturnus::compiling::{Compiler, CompilerOptions, CompilerSource, backends::LuaCompiler};
-use saturnus_rt::{
-    backends::{LuaRt, RtEnv, Runtime},
-    stdlib,
-};
+use saturnus_rt::{native, table_get, table_set, vm::StVm};
 
 fn read_file_as_source(mut input: PathBuf) -> Result<CompilerSource, std::io::Error> {
     let mut source = String::new();
@@ -42,11 +39,12 @@ fn compile(
         }
     };
     let source = read_file_as_source(input).unwrap();
+    let mut c = LuaCompiler::new();
     let out = match target {
-        CompileTarget::Lua => LuaCompiler::new().compile(source, options).unwrap(),
+        CompileTarget::Lua => c.compile(source, options).unwrap(),
     };
     let mut out_file = File::create(&output).unwrap();
-    write!(out_file, "{out}").unwrap();
+    write!(out_file, "{}", out.to_string()).unwrap();
 }
 
 trait ErrorReporter<T> {
@@ -67,28 +65,36 @@ where
     }
 }
 
-fn run(input: PathBuf, options: CompilerOptions, dump_ir: bool) -> Result<(), ()> {
+async fn run(input: PathBuf, options: CompilerOptions, dump_ir: bool) -> Result<(), ()> {
     let source_loc = input.clone().to_str().unwrap_or("").to_owned();
     let source = read_file_as_source(input).report_errors()?;
     let mut luac = LuaCompiler::new();
     let ir = luac.compile(source, options.clone()).report_errors()?;
     if dump_ir {
-        println!("{}\n", format!("{ir}").dimmed());
+        println!("{}\n", format!("{}", ir.to_string()).dimmed());
     }
-    let mut rt = LuaRt::default(RtEnv {
-        globals: stdlib::init_native_modules(),
-    });
+    let vm = StVm::new();
     let stdlib_ir = luac
         .compile(
             CompilerSource {
-                source: saturnus_rt::stdlib::SOURCE.to_owned(),
+                source: saturnstd::STDLIB_CODE.to_owned(),
                 location: Some(PathBuf::from("std")),
             },
             options.clone(),
         )
         .report_errors()?;
-    rt.run(vec![(stdlib_ir, "stdlib".into()), (ir, source_loc)])
+    // Load the cross platform stdlib
+    vm.lock()
+        .load_program(stdlib_ir)
+        .exec()
+        .await
         .report_errors()?;
+    // Now Saturnus-Platform only functions.
+    let mut globals = vm.lock().get_globals();
+    let mut __modules__ = table_get!(vm; globals, "__modules__").unwrap_table();
+    table_set!(vm; __modules__, "net" => native::net::load_mod(vm.clone()));
+    table_set!(vm; globals, "__modules__" => __modules__);
+    vm.lock().load_program(ir).exec().await.report_errors()?;
     Ok(())
 }
 
@@ -105,7 +111,7 @@ async fn main() {
             output,
             ..
         } => compile(input, options, target, output),
-        Args::Run { input, dump_ir } => match run(input, options, dump_ir) {
+        Args::Run { input, dump_ir } => match run(input, options, dump_ir).await {
             Ok(()) => (),
             Err(()) => exit(1),
         },

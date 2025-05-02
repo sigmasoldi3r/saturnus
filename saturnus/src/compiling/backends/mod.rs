@@ -16,7 +16,7 @@ use crate::{
     },
 };
 
-use super::{Compiler, CompilerError, CompilerOptions, CompilerSource, ModuleType, Result};
+use super::{Compiler, CompilerError, CompilerOptions, CompilerSource, Ir, ModuleType, Result};
 
 pub struct LuaCompiler {
     code: IndentedBuilder,
@@ -1115,12 +1115,20 @@ lazy_static! {
     static ref PATH_SEGMENT_START: Regex = Regex::new(r"^[^A-Za-z_]").unwrap();
 }
 
+struct LuaIr(String);
+impl ToString for LuaIr {
+    fn to_string(&self) -> String {
+        self.0.clone()
+    }
+}
+impl Ir for LuaIr {}
+
 impl Compiler for LuaCompiler {
     fn compile(
         &mut self,
         mut source: CompilerSource,
         options: CompilerOptions,
-    ) -> std::result::Result<String, CompilerError> {
+    ) -> std::result::Result<Box<dyn Ir>, CompilerError> {
         self.module_root_expr = Identifier::new("__modules__", false);
         if let Some(mod_path) = &options.override_mod_path {
             source.location = Some(mod_path.clone());
@@ -1165,6 +1173,6 @@ impl Compiler for LuaCompiler {
         };
         self.compile_program(ast)?;
         let output = std::mem::replace(&mut self.code, IndentedBuilder::new()).unwrap();
-        Ok(output)
+        Ok(Box::new(LuaIr(output)))
     }
 }
