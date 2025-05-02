@@ -2,6 +2,7 @@ mod cli;
 mod options;
 
 use std::{
+    ffi::c_void,
     fs::File,
     io::{Read, Write},
     path::PathBuf,
@@ -65,7 +66,12 @@ where
     }
 }
 
-async fn run(input: PathBuf, options: CompilerOptions, dump_ir: bool) -> Result<(), ()> {
+async fn run(
+    input: PathBuf,
+    options: CompilerOptions,
+    lib: Vec<PathBuf>,
+    dump_ir: bool,
+) -> Result<(), ()> {
     let source_loc = input.clone().to_str().unwrap_or("").to_owned();
     let source = read_file_as_source(input).report_errors()?;
     let mut luac = LuaCompiler::new();
@@ -93,6 +99,20 @@ async fn run(input: PathBuf, options: CompilerOptions, dump_ir: bool) -> Result<
     let mut globals = vm.lock().get_globals();
     let mut __modules__ = table_get!(vm; globals, "__modules__").unwrap_table();
     table_set!(vm; __modules__, "net" => native::net::load_mod(vm.clone()));
+    table_set!(vm; __modules__, "JSON" => native::json::load_mod(vm.clone()));
+    // Loading native libraries
+    for lib in lib {
+        println!("Loading native module {lib:?}...");
+        unsafe {
+            let lib = libloading::Library::new(lib).report_errors()?;
+            let load_lib: libloading::Symbol<unsafe extern "stdcall" fn()> =
+                lib.get(b"__load_saturnus_modules__").report_errors()?;
+            //let vm_clone = vm.clone();
+            //let ptr = std::mem::transmute(&vm_clone);
+            // We get access_violation and I don't know why :/
+            load_lib();
+        }
+    }
     table_set!(vm; globals, "__modules__" => __modules__);
     vm.lock().load_program(ir).exec().await.report_errors()?;
     Ok(())
@@ -111,7 +131,11 @@ async fn main() {
             output,
             ..
         } => compile(input, options, target, output),
-        Args::Run { input, dump_ir } => match run(input, options, dump_ir).await {
+        Args::Run {
+            input,
+            dump_ir,
+            lib,
+        } => match run(input, options, lib.unwrap_or_default(), dump_ir).await {
             Ok(()) => (),
             Err(()) => exit(1),
         },

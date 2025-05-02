@@ -1,0 +1,11 @@
+[package]
+name = "example_lib"
+version = "0.1.0"
+edition = "2024"
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+saturnus_rt = { path = "../saturnus_rt" }
+st_macros = { path = "../st_macros" }

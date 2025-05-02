@@ -48,3 +48,22 @@ pub mod net {
         vm.lock().invoke(cb, vec![res.into_any()])
     }
 }
+
+#[module]
+pub mod json {
+    use crate::{
+        mem::St,
+        vm::{
+            Result, StVm,
+            types::{Any, Table},
+        },
+    };
+
+    pub async fn stringify(vm: St<StVm>, args: Vec<Any>) -> Result<Any> {
+        todo!()
+    }
+
+    pub async fn parse(vm: St<StVm>, args: Vec<Any>) -> Result<Any> {
+        todo!()
+    }
+}

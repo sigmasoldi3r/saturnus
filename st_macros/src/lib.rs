@@ -1,5 +1,3 @@
-mod utils;
-
 use proc_macro::TokenStream;
 use quote::{ToTokens, quote};
 use syn::{

@@ -71,5 +71,8 @@ pub enum Args {
         /// Dumps the compiled code to the console, used to debug runtime errors that may be caused by the compiler.
         #[arg(long)]
         dump_ir: bool,
+        /// A list of paths for saturnus runtime to load native extensions dynamically. Must be dynamic libraries.
+        #[arg(long, short)]
+        lib: Option<Vec<PathBuf>>,
     },
 }
