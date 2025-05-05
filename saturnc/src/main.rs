@@ -2,18 +2,22 @@ mod cli;
 mod options;
 
 use std::{
-    ffi::c_void,
     fs::File,
     io::{Read, Write},
     path::PathBuf,
     process::exit,
+    rc::Rc,
 };
 
 use cli::{Args, CompileTarget};
 use colored::Colorize;
 use options::OptionsAdapter;
 use saturnus::compiling::{Compiler, CompilerOptions, CompilerSource, backends::LuaCompiler};
-use saturnus_rt::{native, table_get, table_set, vm::StVm};
+use saturnus_rt::{
+    mem::St,
+    native, table_get, table_set,
+    vm::{StVm, types::Any},
+};
 
 fn read_file_as_source(mut input: PathBuf) -> Result<CompilerSource, std::io::Error> {
     let mut source = String::new();
@@ -101,16 +105,38 @@ async fn run(
     table_set!(vm; __modules__, "net" => native::net::load_mod(vm.clone()));
     table_set!(vm; __modules__, "JSON" => native::json::load_mod(vm.clone()));
     // Loading native libraries
-    for lib in lib {
-        println!("Loading native module {lib:?}...");
+    for lib_name in lib {
+        println!("Loading native module {lib_name:?}...");
         unsafe {
-            let lib = libloading::Library::new(lib).report_errors()?;
-            let load_lib: libloading::Symbol<unsafe extern "stdcall" fn()> =
-                lib.get(b"__load_saturnus_modules__").report_errors()?;
-            //let vm_clone = vm.clone();
-            //let ptr = std::mem::transmute(&vm_clone);
-            // We get access_violation and I don't know why :/
-            load_lib();
+            let lib = St::new(libloading::Library::new(lib_name.clone()).report_errors()?);
+            let guard = lib.lock();
+            let get_symbol_table: libloading::Symbol<extern "C" fn() -> (String, Vec<String>)> =
+                guard.get(b"__saturnus_module_symbols__").report_errors()?;
+            let (id, symbols) = get_symbol_table();
+            let mut mod_table = vm.lock().create_table().report_errors()?;
+            for symbol in symbols {
+                println!("Loading native wrapper {id}::{symbol}...");
+                let wrapper = vm
+                    .lock()
+                    .create_fn({
+                        let lib = lib.clone();
+                        let symbol = symbol.clone();
+                        move |vm, args| {
+                            let lib = lib.clone();
+                            let symbol = symbol.clone();
+                            async move {
+                                let lib = lib.lock();
+                                let func: libloading::Symbol<
+                                    fn(St<StVm>, Vec<Any>) -> saturnus_rt::vm::Result<Any>,
+                                > = lib.get(symbol.as_bytes()).unwrap();
+                                func(vm, args)
+                            }
+                        }
+                    })
+                    .report_errors()?;
+                table_set!(vm; mod_table, symbol => wrapper);
+            }
+            table_set!(vm; __modules__, id => mod_table);
         }
     }
     table_set!(vm; globals, "__modules__" => __modules__);

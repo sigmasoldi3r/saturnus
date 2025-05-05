@@ -40,7 +40,7 @@ macro_rules! table_set {
 #[macro_export]
 macro_rules! table {
     ( $vm:expr; $( $k:expr => $v:expr ),* $(,)? ) => { {
-        let mut tbl = $vm.create_table().unwrap();
+        let mut tbl = $vm.lock().create_table().unwrap();
         $( tbl.set($k, $v); )+
         tbl
     } };

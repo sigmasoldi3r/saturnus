@@ -194,9 +194,11 @@ pub fn module(_attr: TokenStream, item: TokenStream) -> TokenStream {
         .into_iter()
         .map(|item| {
             quote! {
-                let name = vm.lock().create_string(stringify!(#item));
-                let value = vm.lock().create_fn(#item).unwrap();
-                vm.lock().set_table(&mut tbl, name, value);
+                {
+                    let key = vm.lock().create_string(stringify!(#item));
+                    let value = vm.lock().create_fn(#item).unwrap();
+                    vm.lock().set_table(&mut tbl, key, value);
+                }
             }
         })
         .collect::<Vec<_>>();

@@ -1,5 +1,5 @@
 // Example of native library for saturnus!
 
-use test;
+use example;
 
-print("Summing natively, 2 + 3 + 4 = " ++ test::sum(2, 3, 4));
+print("Summing natively, 2 + 3 + 4 = " ++ example::sum(2, 3, 4));
