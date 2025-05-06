@@ -6,7 +6,6 @@ use std::{
     io::{Read, Write},
     path::PathBuf,
     process::exit,
-    rc::Rc,
 };
 
 use cli::{Args, CompileTarget};
@@ -94,30 +93,25 @@ async fn run(
         )
         .report_errors()?;
     // Load the cross platform stdlib
-    vm.lock()
-        .load_program(stdlib_ir)
-        .exec()
-        .await
-        .report_errors()?;
+    vm.load_program(stdlib_ir).exec().report_errors()?;
     // Now Saturnus-Platform only functions.
-    let mut globals = vm.lock().get_globals();
+    let mut globals = vm.get_globals();
     let mut __modules__ = table_get!(vm; globals, "__modules__").unwrap_table();
-    table_set!(vm; __modules__, "net" => native::net::load_mod(vm.clone()));
-    table_set!(vm; __modules__, "JSON" => native::json::load_mod(vm.clone()));
+    table_set!(vm; __modules__, "net" => native::net::load_mod(&vm));
+    table_set!(vm; __modules__, "JSON" => native::json::load_mod(&vm));
     // Loading native libraries
     for lib_name in lib {
         println!("Loading native module {lib_name:?}...");
         unsafe {
             let lib = St::new(libloading::Library::new(lib_name.clone()).report_errors()?);
-            let guard = lib.lock();
+            let guard = lib.lock().await;
             let get_symbol_table: libloading::Symbol<extern "C" fn() -> (String, Vec<String>)> =
                 guard.get(b"__saturnus_module_symbols__").report_errors()?;
             let (id, symbols) = get_symbol_table();
-            let mut mod_table = vm.lock().create_table().report_errors()?;
+            let mut mod_table = vm.create_table().report_errors()?;
             for symbol in symbols {
                 println!("Loading native wrapper {id}::{symbol}...");
                 let wrapper = vm
-                    .lock()
                     .create_fn({
                         let lib = lib.clone();
                         let symbol = symbol.clone();
@@ -125,9 +119,9 @@ async fn run(
                             let lib = lib.clone();
                             let symbol = symbol.clone();
                             async move {
-                                let lib = lib.lock();
+                                let lib = lib.lock().await;
                                 let func: libloading::Symbol<
-                                    fn(St<StVm>, Vec<Any>) -> saturnus_rt::vm::Result<Any>,
+                                    fn(StVm, Vec<Any>) -> saturnus_rt::vm::Result<Any>,
                                 > = lib.get(symbol.as_bytes()).unwrap();
                                 func(vm, args)
                             }
@@ -140,7 +134,8 @@ async fn run(
         }
     }
     table_set!(vm; globals, "__modules__" => __modules__);
-    vm.lock().load_program(ir).exec().await.report_errors()?;
+    vm.load_program(ir).exec().report_errors()?;
+    vm.process_pending().await;
     Ok(())
 }
 
@@ -161,9 +156,12 @@ async fn main() {
             input,
             dump_ir,
             lib,
-        } => match run(input, options, lib.unwrap_or_default(), dump_ir).await {
-            Ok(()) => (),
-            Err(()) => exit(1),
-        },
+        } => {
+            let task = tokio::spawn(run(input, options, lib.unwrap_or_default(), dump_ir));
+            match task.await.unwrap() {
+                Ok(()) => (),
+                Err(()) => exit(1),
+            }
+        }
     }
 }

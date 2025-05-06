@@ -1,6 +1,10 @@
 use mlua::IntoLua;
 use st_macros::{IntoSaturnus, wrapper_enum};
 
+use crate::mem::St;
+
+use super::StVm;
+
 #[derive(Debug, Clone, IntoSaturnus)]
 pub struct Table {
     pub(super) value: mlua::Table,
@@ -23,25 +27,35 @@ impl Table {
 #[macro_export]
 macro_rules! table_get {
     ( $vm:expr; $tbl:expr , $k:expr ) => {{
-        let key = $vm.lock().create_string($k);
-        $vm.lock().get_table(&$tbl, key)
+        let key = $vm.create_string($k);
+        $vm.get_table(&$tbl, key)
     }};
 }
 
 #[macro_export]
 macro_rules! table_set {
     ( $vm:expr; $tbl:expr , $k:expr => $v:expr ) => {{
-        let key = $vm.lock().create_string($k);
+        let key = $vm.create_string($k);
         let value = $v;
-        $vm.lock().set_table(&mut $tbl, key, value)
+        $vm.set_table(&mut $tbl, key, value)
     }};
 }
 
 #[macro_export]
 macro_rules! table {
     ( $vm:expr; $( $k:expr => $v:expr ),* $(,)? ) => { {
-        let mut tbl = $vm.lock().create_table().unwrap();
+        let mut tbl = $vm.create_table().unwrap();
         $( tbl.set($k, $v); )+
+        tbl
+    } };
+}
+
+#[macro_export]
+macro_rules! tuple {
+    ( $vm:expr; $( $v:expr ),* $(,)? ) => { {
+        let mut tbl = $vm.create_table().unwrap();
+        let mut i = 0;
+        $( tbl.set(format!("__{i}"), $v); i += 1; )+
         tbl
     } };
 }
@@ -130,6 +144,9 @@ impl IntoSaturnus for Any {
 
 pub trait IntoSaturnus {
     fn into_saturnus(self) -> Any;
+}
+pub trait AsSaturnus {
+    fn as_saturnus(&self, vm: &St<StVm>) -> Any;
 }
 
 pub(crate) mod conversion {

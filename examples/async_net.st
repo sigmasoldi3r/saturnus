@@ -1,5 +1,6 @@
 // This example illustrates a basic usage of the async (default) net library.
 use net;
+use JSON;
 
 let url = "https://jsonplaceholder.typicode.com/todos/1";
 
@@ -7,8 +8,13 @@ print "Starting request";
 
 net::request('{ url, method: "get" }, { res =>
     let { body } = res;
-
-    print("Body = " ++ tostring(body));  
+    let ( ok, err ) = JSON::parse(body);
+    if err != () {
+        print("Invalid body: '" ++ body ++ "'");
+        return ();
+    }
+    let { id, title } = ok;
+    print("Entry [" ++ id ++ "] = '" ++ title ++ "'");
 });
 
 print "Done";

@@ -1,56 +1,30 @@
 // Some memory management utilitites.
 
-use std::{
-    fmt::{Debug, Display, Pointer},
-    ops::{Deref, DerefMut},
-    sync::{Arc, Mutex, MutexGuard},
-};
+use std::{fmt::Debug, ops::Deref, sync::Arc};
+use tokio::sync::Mutex;
 
-pub struct StGuard<'a, T> {
-    guard: MutexGuard<'a, T>,
-}
-impl<T> Deref for StGuard<'_, T> {
-    type Target = T;
-    fn deref(&self) -> &Self::Target {
-        self.guard.deref()
-    }
-}
-impl<T> DerefMut for StGuard<'_, T> {
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        self.guard.deref_mut()
-    }
-}
-
+#[derive(Debug)]
 pub struct St<T> {
-    handle: Arc<Mutex<T>>,
+    data: Arc<Mutex<T>>,
 }
 impl<T> St<T> {
-    pub fn new(value: T) -> Self {
+    pub fn new(data: T) -> Self {
         Self {
-            handle: Arc::new(Mutex::new(value)),
+            data: Arc::new(Mutex::new(data)),
         }
     }
-    pub fn lock(&self) -> StGuard<T> {
-        StGuard {
-            guard: self.handle.lock().expect("Poisoned handle!"),
-        }
+}
+impl<T> Deref for St<T> {
+    type Target = Mutex<T>;
+    fn deref(&self) -> &Self::Target {
+        self.data.deref()
     }
 }
 impl<T> Clone for St<T> {
     fn clone(&self) -> Self {
         Self {
-            handle: self.handle.clone(),
+            data: self.data.clone(),
         }
-    }
-}
-impl<T: Debug> Debug for St<T> {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("St").field("handle", &self.handle).finish()
-    }
-}
-impl<T: Display> Display for St<T> {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        self.handle.fmt(f)
     }
 }
 
@@ -62,3 +36,4 @@ where
         St::new(self)
     }
 }
+impl<T> IntoRefCount for T {}
