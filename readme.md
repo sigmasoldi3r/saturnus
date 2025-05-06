@@ -27,13 +27,9 @@ cargo run --bin saturnc -- run -i examples/simple_get.st
 You should see something akin to:
 
 ```
-Status = 200 OK
-Body = {
-  "userId": 1,
-  "id": 1,
-  "title": "delectus aut autem",
-  "completed": false
-}
+Starting request
+Done, response should arrive soon
+Entry [1] = 'delectus aut autem'
 ```
 
 ## How does it look?
