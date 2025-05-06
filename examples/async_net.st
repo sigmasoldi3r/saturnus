@@ -1,4 +1,4 @@
-// This example illustrates a basic usage of the async (default) net library.
+// This example illustrates a basic usage of the async net library.
 use net;
 use JSON;
 
@@ -10,11 +10,11 @@ net::request('{ url, method: "get" }, { res =>
     let { body } = res;
     let ( ok, err ) = JSON::parse(body);
     if err != () {
-        print("Invalid body: '" ++ body ++ "'");
+        print("Invalid body: '" ++ body ++ "' caused by " ++ err);
         return ();
     }
     let { id, title } = ok;
     print("Entry [" ++ id ++ "] = '" ++ title ++ "'");
 });
 
-print "Done";
+print "Done, response should arrive soon";
