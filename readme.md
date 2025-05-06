@@ -63,3 +63,16 @@ world.greet();
 > - Lambda syntax is now block oriented: `{ a, b => a + b }`, unlike the old one (`() => {}`).
 
 _More syntax will be added to the docs as the project develops._
+
+## Roadmap
+
+> [!NOTE]
+> Is more or less ordered by priority.
+
+- **[ONGOING]**: Implement a robust runtime that can handle async programming and web services.
+- Add coroutine sugar syntax `{ a, b ~> "This is a coroutine" }`
+- Fix basic missing features (Unary ops).
+- Parse process and compile macro declarations `macro! foo {...}`
+- Parse and compile macro calls `some!("macro")`
+- Parse and compile runtime decorators `@some("thing") class Foo {...}`
+- Parse and compile macro decorators `@some!("thing") class Foo {...}`

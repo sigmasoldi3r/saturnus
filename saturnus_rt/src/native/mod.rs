@@ -3,18 +3,100 @@ use st_macros::module;
 #[module]
 pub mod net {
 
-    use std::time::Duration;
-
     use reqwest::Method;
+    use tokio::{
+        io::{AsyncReadExt, AsyncWriteExt},
+        net::TcpListener,
+    };
 
     use crate::{
-        mem::St,
         table, table_get, table_set,
         vm::{
             Result, StError, StVm,
             types::{Any, IntoAny, Table},
         },
     };
+
+    pub async fn server(vm: StVm, args: Vec<Any>) -> Result<Any> {
+        let Any::Table(options) = args[0].clone() else {
+            return Err(StError::type_error("First argument must be a table"));
+        };
+        let start = vm.create_fn(move |vm: StVm, args: Vec<Any>| {
+            let cb = args[1].clone().unwrap_function();
+            let options = options.clone();
+            async move {
+                let port = options.get("port").unwrap().unwrap_i64();
+                vm.clone()
+                    .spawn(async move {
+                        let listener = TcpListener::bind(format!("0.0.0.0:{port}")).await.unwrap();
+                        loop {
+                            let (stream, _) = listener.accept().await.unwrap();
+                            let vm = vm.clone();
+                            let cb = cb.clone();
+                            vm.clone()
+                                .spawn(async move {
+                                    let (read, write) = stream.into_split();
+                                    let read_fn = vm
+                                        .create_fn({
+                                            let read =
+                                                std::sync::Arc::new(tokio::sync::Mutex::new(read));
+                                            move |vm, _| {
+                                                let read = read.clone();
+                                                async move {
+                                                    let mut buf = vec![];
+                                                    read.lock()
+                                                        .await
+                                                        .read_to_end(&mut buf)
+                                                        .await
+                                                        .unwrap();
+                                                    return Ok(vm
+                                                        .create_string(
+                                                            String::from_utf8(buf).unwrap(),
+                                                        )
+                                                        .into_any());
+                                                }
+                                            }
+                                        })
+                                        .unwrap();
+                                    let write_fn = vm
+                                        .create_fn({
+                                            let write =
+                                                std::sync::Arc::new(tokio::sync::Mutex::new(write));
+                                            move |_, args| {
+                                                let write = write.clone();
+                                                async move {
+                                                    for arg in args {
+                                                        let s = arg.to_string();
+                                                        write
+                                                            .lock()
+                                                            .await
+                                                            .write(s.as_bytes())
+                                                            .await
+                                                            .unwrap();
+                                                    }
+                                                    return Ok(Any::unit());
+                                                }
+                                            }
+                                        })
+                                        .unwrap();
+                                    let tbl = table! { vm;
+                                        "write" => write_fn,
+                                        "read" => read_fn,
+                                    };
+                                    vm.invoke(cb.clone(), vec![tbl.into_any()]).unwrap();
+                                })
+                                .await;
+                        }
+                    })
+                    .await;
+                Ok(Any::unit())
+            }
+        })?;
+        let tbl = table! { vm;
+            "start" => start
+        };
+        Ok(tbl.into_any())
+    }
 
     pub async fn request(vm: StVm, args: Vec<Any>) -> Result<Any> {
         let Any::Table(options) = args[0].clone() else {

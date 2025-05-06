@@ -1,8 +1,9 @@
 use proc_macro::TokenStream;
+use proc_macro2::{Span, TokenTree};
 use quote::{ToTokens, quote};
 use syn::{
-    AttributeArgs, Ident, ItemEnum, ItemMod, ItemStruct, NestedMeta, parse_macro_input,
-    spanned::Spanned,
+    AttributeArgs, FnArg, Ident, ItemEnum, ItemFn, ItemMod, ItemStruct, NestedMeta, ReturnType,
+    Type, Visibility, parse_macro_input, spanned::Spanned,
 };
 
 #[proc_macro_attribute]
@@ -172,6 +173,50 @@ pub fn derive_into_saturnus(items: TokenStream) -> TokenStream {
     .into()
 }
 
+macro_rules! check {
+    ( $left:pat => $right:expr, $( $a:pat => $b:expr ),+  ) => {
+       check!($left => $right); $( check!($a => $b); )+
+    };
+    ( $left:pat => $right:expr ) => {
+        let $left = $right else {
+            return false;
+        };
+    };
+}
+
+fn is_st_proc(item_fn: &ItemFn) -> bool {
+    let ItemFn { sig, .. } = item_fn;
+    check! {
+        ReturnType::Type(_, t) => &sig.output,
+        Type::Path(tp) => &**t,
+        Some(name) => tp.path.segments.first(),
+        Visibility::Public(_) => &item_fn.vis
+    }
+    let mut input_iter = sig.inputs.iter();
+    check! {
+        Some(first) => input_iter.next(),
+        FnArg::Typed(first) => first,
+        Type::Path(first) => &*first.ty,
+        Some(first) => first.path.get_ident()
+    }
+    // check! {
+    //     Some(second) => input_iter.next(),
+    //     FnArg::Typed(second) => second,
+    //     Type::Path(second_type) => &*second.ty,
+    //     Some(second) => second_type.path.get_ident(),
+    //     Some(s_args) => second_type.path.segments.first()
+    // }
+    // let mut s_args = s_args.arguments.to_token_stream().into_iter();
+    // check! {
+    //     Some(_) => s_args.next(),
+    //     Some(args) => s_args.next(),
+    //     TokenTree::Ident(args) => args
+    // }
+    sig.asyncness.is_some() && name.ident.to_string() == "Result" && first.to_string() == "StVm"
+    // && second.to_string() == "Vec"
+    // && args.to_string() == "Any"
+}
+
 #[proc_macro_attribute]
 pub fn module(_attr: TokenStream, item: TokenStream) -> TokenStream {
     let mod_def = parse_macro_input!(item as ItemMod);
@@ -182,7 +227,9 @@ pub fn module(_attr: TokenStream, item: TokenStream) -> TokenStream {
         .into_iter()
         .map(|item| match item {
             syn::Item::Fn(item_fn) => {
-                targets.push(item_fn.sig.ident.clone());
+                if is_st_proc(&item_fn) {
+                    targets.push(item_fn.sig.ident.clone());
+                }
                 item_fn.to_token_stream()
             }
             _ => item.to_token_stream(),

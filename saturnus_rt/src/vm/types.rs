@@ -1,4 +1,4 @@
-use mlua::IntoLua;
+use mlua::{IntoLua, ObjectLike};
 use st_macros::{IntoSaturnus, wrapper_enum};
 
 use crate::mem::St;
@@ -43,8 +43,9 @@ macro_rules! table_set {
 
 #[macro_export]
 macro_rules! table {
+    ( $vm:expr; ) => { $vm.create_table().unwrap() };
     ( $vm:expr; $( $k:expr => $v:expr ),* $(,)? ) => { {
-        let mut tbl = $vm.create_table().unwrap();
+        let mut tbl = table!($vm;);
         $( tbl.set($k, $v); )+
         tbl
     } };
@@ -54,8 +55,8 @@ macro_rules! table {
 macro_rules! tuple {
     ( $vm:expr; $( $v:expr ),* $(,)? ) => { {
         let mut tbl = $vm.create_table().unwrap();
-        let mut i = 0;
-        $( tbl.set(format!("__{i}"), $v); i += 1; )+
+        let mut i = -1;
+        $( i += 1; tbl.set(format!("__{i}"), $v); )+
         tbl
     } };
 }
@@ -139,6 +140,23 @@ impl Any {
 impl IntoSaturnus for Any {
     fn into_saturnus(self) -> Any {
         self
+    }
+}
+impl ToString for Any {
+    fn to_string(&self) -> String {
+        match self {
+            Any::Table(table) => table.value.to_string().unwrap_or("".into()),
+            Any::Function(function) => format!("Function {:?}", function.internal.to_pointer()),
+            Any::Coroutine(coroutine) => format!("Coroutine {:?}", coroutine.internal.to_pointer()),
+            Any::Integer(val) => val.to_string(),
+            Any::Decimal(val) => val.to_string(),
+            Any::Boolean(val) => val.to_string(),
+            Any::Str(val) => val.value.to_string_lossy(),
+            Any::Unit(_) => "()".into(),
+            Any::Never(_) => "!".into(),
+            Any::Nothing(_) => "nothing".into(),
+            Any::Other(_) => "other".into(),
+        }
     }
 }
 
