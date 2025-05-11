@@ -1,4 +1,4 @@
-use st_macros::module;
+use macros::module;
 
 #[module]
 pub mod net {
@@ -36,6 +36,8 @@ pub mod net {
                             vm.clone()
                                 .spawn(async move {
                                     let (read, write) = stream.into_split();
+                                    read.readable().await.unwrap();
+                                    write.writable().await.unwrap();
                                     let read_fn = vm
                                         .create_fn({
                                             let read =
@@ -51,7 +53,8 @@ pub mod net {
                                                         .unwrap();
                                                     return Ok(vm
                                                         .create_string(
-                                                            String::from_utf8(buf).unwrap(),
+                                                            String::from_utf8_lossy(&buf)
+                                                                .into_owned(),
                                                         )
                                                         .into_any());
                                                 }
@@ -65,15 +68,12 @@ pub mod net {
                                             move |_, args| {
                                                 let write = write.clone();
                                                 async move {
+                                                    let mut write = write.lock().await;
                                                     for arg in args {
                                                         let s = arg.to_string();
-                                                        write
-                                                            .lock()
-                                                            .await
-                                                            .write(s.as_bytes())
-                                                            .await
-                                                            .unwrap();
+                                                        write.write(s.as_bytes()).await.unwrap();
                                                     }
+                                                    write.flush().await.unwrap();
                                                     return Ok(Any::unit());
                                                 }
                                             }

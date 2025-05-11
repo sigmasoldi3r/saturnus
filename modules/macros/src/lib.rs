@@ -1,9 +1,17 @@
+mod db;
+mod targets;
+
 use proc_macro::TokenStream;
-use proc_macro2::{Span, TokenTree};
+use proc_macro2::Span;
 use quote::{ToTokens, quote};
 use syn::{
-    AttributeArgs, FnArg, Ident, ItemEnum, ItemFn, ItemMod, ItemStruct, NestedMeta, ReturnType,
-    Type, Visibility, parse_macro_input, spanned::Spanned,
+    Attribute, BinOp, Expr, ExprAssign, ExprBinary, FnArg, Ident, ItemEnum, ItemFn, ItemMod,
+    ItemStruct, Meta, ReturnType, Type, Visibility,
+    parse::Parser,
+    parse_macro_input,
+    punctuated::Punctuated,
+    spanned::Spanned,
+    token::{Const, EqEq, Static},
 };
 
 #[proc_macro_attribute]
@@ -109,39 +117,41 @@ pub fn wrapper_enum(_attr: TokenStream, item: TokenStream) -> TokenStream {
 #[proc_macro_attribute]
 pub fn bitmask_impl(attr: TokenStream, item: TokenStream) -> TokenStream {
     let struct_def = parse_macro_input!(item as ItemStruct);
-    let attr = parse_macro_input!(attr as AttributeArgs);
+    let attr = Punctuated::<syn::LitStr, syn::Token![,]>::parse_terminated
+        .parse(attr)
+        .unwrap();
 
     let name = struct_def.ident.clone();
 
     let mut i = 0u8;
-    let fields = attr.iter().map(|ident| {
-        let NestedMeta::Meta(meta) = ident else {
-            return quote!(compile_error!("Should use only identifiers as parameters!"));
-        };
-        let ident = meta.path().get_ident().unwrap();
-        let set_ident = Ident::new(format!("set_{}", ident.to_string()).as_str(), ident.span());
-        let is_ident = Ident::new(format!("is_{}", ident.to_string()).as_str(), ident.span());
-        let mask = 0x1u8 << i;
-        let not_mask = !mask;
-        i += 1;
-        let constant_ident = Ident::new(
-            format!("BITMASK_{}", ident.to_string().to_uppercase()).as_str(),
-            ident.span(),
-        );
-        quote! {
-            pub const #constant_ident: u8 = #mask;
-            pub fn #is_ident(&self) -> bool {
-                (self.mask & #mask) > 0
-            }
-            pub fn #set_ident(&mut self, value: bool) {
-                if value {
-                    self.mask |= #mask;
-                } else {
-                    self.mask &= #not_mask;
+    let fields = attr
+        .iter()
+        .map(|ident| {
+            let ident = ident.value();
+            let set_ident = Ident::new(format!("set_{ident}").as_str(), Span::call_site());
+            let is_ident = Ident::new(format!("is_{ident}").as_str(), Span::call_site());
+            let mask = 0x1u8 << i;
+            let not_mask = !mask;
+            i += 1;
+            let constant_ident = Ident::new(
+                format!("BITMASK_{}", ident.to_uppercase()).as_str(),
+                ident.span(),
+            );
+            quote! {
+                pub const #constant_ident: u8 = #mask;
+                pub fn #is_ident(&self) -> bool {
+                    (self.mask & #mask) > 0
+                }
+                pub fn #set_ident(&mut self, value: bool) {
+                    if value {
+                        self.mask |= #mask;
+                    } else {
+                        self.mask &= #not_mask;
+                    }
                 }
             }
-        }
-    });
+        })
+        .collect::<Vec<_>>();
 
     let expanded = quote! {
         #struct_def
@@ -258,6 +268,32 @@ pub fn module(_attr: TokenStream, item: TokenStream) -> TokenStream {
                 tbl
             }
         }
+    }
+    .into()
+}
+
+#[proc_macro_attribute]
+pub fn generate_bindings(attr: TokenStream, item: TokenStream) -> TokenStream {
+    let exp = Punctuated::<ExprAssign, syn::Token![,]>::parse_terminated
+        .parse(attr)
+        .unwrap();
+    for attr in exp {
+        let Expr::Path(param) = &*attr.left else {
+            panic!("Unknown expression found.");
+        };
+        let key = param
+            .path
+            .get_ident()
+            .expect("Unexpected identifier")
+            .to_string();
+        match key.as_str() {
+            "target" => return targets::compile_target(item, *attr.right),
+
+            key => panic!("Unknown parameter '{key}'!"),
+        }
+    }
+    quote! {
+        compile_error!("No targets found!");
     }
     .into()
 }

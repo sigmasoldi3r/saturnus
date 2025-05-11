@@ -7,5 +7,5 @@ edition = "2024"
 crate-type = ["cdylib"]
 
 [dependencies]
-saturnus_rt = { path = "../saturnus_rt" }
-st_macros = { path = "../st_macros" }
+runtime = { path = "../../modules/runtime" }
+macros = { path = "../../modules/macros" }

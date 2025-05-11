@@ -1,0 +1,2766 @@
+[created_at]
+value = 1746982204739
+
+[modified_at]
+value = 1746982205076
+
+[[table_spaces.lua_bindgen.tables.lua_impl_block]]
+attr = []
+inputs = []
+is_async = false
+is_const = false
+is_unsafe = false
+name = "drop"
+output = ""
+variant = "fn"
+vis = ""
+
+[table_spaces.lua_bindgen.tables.lua_impl_block.receiver]
+is_mutable = true
+is_ref = true
+
+[[table_spaces.lua_bindgen.tables.lua_impl_block]]
+attr = ["#[inline]"]
+inputs = []
+is_async = false
+is_const = false
+is_unsafe = false
+name = "clone"
+output = "Self"
+variant = "fn"
+vis = ""
+
+[table_spaces.lua_bindgen.tables.lua_impl_block.receiver]
+is_mutable = false
+is_ref = true
+
+[[table_spaces.lua_bindgen.tables.lua_impl_block]]
+attr = []
+is_async = false
+is_const = false
+is_unsafe = false
+name = "fmt"
+output = "fmt :: Result"
+variant = "fn"
+vis = ""
+
+[[table_spaces.lua_bindgen.tables.lua_impl_block.inputs]]
+name = "f"
+type_def = "& mut fmt :: Formatter"
+
+[table_spaces.lua_bindgen.tables.lua_impl_block.receiver]
+is_mutable = false
+is_ref = true
+
+[[table_spaces.lua_bindgen.tables.lua_impl_block]]
+attr = ["#[inline]"]
+inputs = []
+is_async = false
+is_const = false
+is_unsafe = false
+name = "default"
+output = "Self"
+variant = "fn"
+vis = ""
+
+[table_spaces.lua_bindgen.tables.lua_impl_block.receiver.no_value]
+
+[[table_spaces.lua_bindgen.tables.lua_impl_block]]
+attr = [
+    """
+#[doc =
+" Creates a new Lua state and loads the **safe** subset of the standard libraries."]""",
+    '#[doc = ""]',
+    '#[doc = " # Safety"]',
+    """
+#[doc =
+" The created Lua state will have _some_ safety guarantees and will not allow to load unsafe"]""",
+    '#[doc = " standard libraries or C modules."]',
+    '#[doc = ""]',
+    """
+#[doc =
+" See [`StdLib`] documentation for a list of unsafe modules that cannot be loaded."]""",
+]
+inputs = []
+is_async = false
+is_const = false
+is_unsafe = false
+name = "new"
+output = "Lua"
+variant = "fn"
+vis = "pub"
+
+[table_spaces.lua_bindgen.tables.lua_impl_block.receiver.no_value]
+
+[[table_spaces.lua_bindgen.tables.lua_impl_block]]
+attr = [
+    '#[doc = " Creates a new Lua state and loads all the standard libraries."]',
+    '#[doc = ""]',
+    '#[doc = " # Safety"]',
+    """
+#[doc =
+" The created Lua state will not have safety guarantees and will allow to load C modules."]""",
+]
+inputs = []
+is_async = false
+is_const = false
+is_unsafe = true
+name = "unsafe_new"
+output = "Lua"
+variant = "fn"
+vis = "pub"
+
+[table_spaces.lua_bindgen.tables.lua_impl_block.receiver.no_value]
+
+[[table_spaces.lua_bindgen.tables.lua_impl_block]]
+attr = [
+    """
+#[doc =
+" Creates a new Lua state and loads the specified safe subset of the standard libraries."]""",
+    '#[doc = ""]',
+    """
+#[doc =
+" Use the [`StdLib`] flags to specify the libraries you want to load."]""",
+    '#[doc = ""]',
+    '#[doc = " # Safety"]',
+    """
+#[doc =
+" The created Lua state will have _some_ safety guarantees and will not allow to load unsafe"]""",
+    '#[doc = " standard libraries or C modules."]',
+    '#[doc = ""]',
+    """
+#[doc =
+" See [`StdLib`] documentation for a list of unsafe modules that cannot be loaded."]""",
+]
+is_async = false
+is_const = false
+is_unsafe = false
+name = "new_with"
+output = "Result < Lua >"
+variant = "fn"
+vis = "pub"
+
+[[table_spaces.lua_bindgen.tables.lua_impl_block.inputs]]
+name = "libs"
+type_def = "StdLib"
+
+[[table_spaces.lua_bindgen.tables.lua_impl_block.inputs]]
+name = "options"
+type_def = "LuaOptions"
+
+[table_spaces.lua_bindgen.tables.lua_impl_block.receiver.no_value]
+
+[[table_spaces.lua_bindgen.tables.lua_impl_block]]
+attr = [
+    """
+#[doc =
+" Creates a new Lua state and loads the specified subset of the standard libraries."]""",
+    '#[doc = ""]',
+    """
+#[doc =
+" Use the [`StdLib`] flags to specify the libraries you want to load."]""",
+    '#[doc = ""]',
+    '#[doc = " # Safety"]',
+    """
+#[doc =
+" The created Lua state will not have safety guarantees and allow to load C modules."]""",
+]
+is_async = false
+is_const = false
+is_unsafe = true
+name = "unsafe_new_with"
+output = "Lua"
+variant = "fn"
+vis = "pub"
+
+[[table_spaces.lua_bindgen.tables.lua_impl_block.inputs]]
+name = "libs"
+type_def = "StdLib"
+
+[[table_spaces.lua_bindgen.tables.lua_impl_block.inputs]]
+name = "options"
+type_def = "LuaOptions"
+
+[table_spaces.lua_bindgen.tables.lua_impl_block.receiver.no_value]
+
+[[table_spaces.lua_bindgen.tables.lua_impl_block]]
+attr = ['#[doc = " Creates a new Lua state with required `libs` and `options`"]']
+is_async = false
+is_const = false
+is_unsafe = true
+name = "inner_new"
+output = "Lua"
+variant = "fn"
+vis = ""
+
+[[table_spaces.lua_bindgen.tables.lua_impl_block.inputs]]
+name = "libs"
+type_def = "StdLib"
+
+[[table_spaces.lua_bindgen.tables.lua_impl_block.inputs]]
+name = "options"
+type_def = "LuaOptions"
+
+[table_spaces.lua_bindgen.tables.lua_impl_block.receiver.no_value]
+
+[[table_spaces.lua_bindgen.tables.lua_impl_block]]
+attr = [
+    '#[doc = " Constructs a new Lua instance from an existing raw state."]',
+    '#[doc = ""]',
+    """
+#[doc =
+" Once called, a returned Lua state is cached in the registry and can be retrieved"]""",
+    '#[doc = " by calling this function again."]',
+    "#[allow(clippy::missing_safety_doc)]",
+    "#[inline]",
+]
+is_async = false
+is_const = false
+is_unsafe = true
+name = "init_from_ptr"
+output = "Lua"
+variant = "fn"
+vis = "pub"
+
+[[table_spaces.lua_bindgen.tables.lua_impl_block.inputs]]
+name = "state"
+type_def = "* mut ffi :: lua_State"
+
+[table_spaces.lua_bindgen.tables.lua_impl_block.receiver.no_value]
+
+[[table_spaces.lua_bindgen.tables.lua_impl_block]]
+attr = [
+    '#[doc = " Calls provided function passing a raw lua state."]',
+    '#[doc = ""]',
+    """
+#[doc =
+" The arguments will be pushed onto the stack before calling the function."]""",
+    '#[doc = ""]',
+    """
+#[doc =
+" This method ensures that the Lua instance is locked while the function is called"]""",
+    '#[doc = " and restores Lua stack after the function returns."]',
+    '#[doc = ""]',
+    '#[doc = " # Example"]',
+    '#[doc = " ```"]',
+    '#[doc = " # use mlua::{Lua, Result};"]',
+    '#[doc = " # fn main() -> Result<()> {"]',
+    '#[doc = " let lua = Lua::new();"]',
+    '#[doc = " let n: i32 = unsafe {"]',
+    '#[doc = "     let nums = (3, 4, 5);"]',
+    '#[doc = "     lua.exec_raw(nums, |state| {"]',
+    '#[doc = "         let n = ffi::lua_gettop(state);"]',
+    '#[doc = "         let mut sum = 0;"]',
+    '#[doc = "         for i in 1..=n {"]',
+    '#[doc = "             sum += ffi::lua_tointeger(state, i);"]',
+    '#[doc = "         }"]',
+    '#[doc = "         ffi::lua_pop(state, n);"]',
+    '#[doc = "         ffi::lua_pushinteger(state, sum);"]',
+    '#[doc = "     })"]',
+    '#[doc = " }?;"]',
+    '#[doc = " assert_eq!(n, 12);"]',
+    '#[doc = " # Ok(())"]',
+    '#[doc = " # }"]',
+    '#[doc = " ```"]',
+    "#[allow(clippy::missing_safety_doc)]",
+]
+is_async = false
+is_const = false
+is_unsafe = true
+name = "exec_raw"
+output = "Result < R >"
+variant = "fn"
+vis = "pub"
+
+[[table_spaces.lua_bindgen.tables.lua_impl_block.inputs]]
+name = "args"
+type_def = "impl IntoLuaMulti"
+
+[[table_spaces.lua_bindgen.tables.lua_impl_block.inputs]]
+name = "f"
+type_def = "impl FnOnce(* mut ffi :: lua_State)"
+
+[table_spaces.lua_bindgen.tables.lua_impl_block.receiver]
+is_mutable = false
+is_ref = true
+
+[[table_spaces.lua_bindgen.tables.lua_impl_block]]
+attr = [
+    "#[doc(hidden)]",
+    '#[deprecated(since = "0.10.0", note = "please use `load_std_libs` instead")]',
+]
+is_async = false
+is_const = false
+is_unsafe = false
+name = "load_from_std_lib"
+output = "Result < () >"
+variant = "fn"
+vis = "pub"
+
+[[table_spaces.lua_bindgen.tables.lua_impl_block.inputs]]
+name = "libs"
+type_def = "StdLib"
+
+[table_spaces.lua_bindgen.tables.lua_impl_block.receiver]
+is_mutable = false
+is_ref = true
+
+[[table_spaces.lua_bindgen.tables.lua_impl_block]]
+attr = [
+    """
+#[doc =
+" Loads the specified subset of the standard libraries into an existing Lua state."]""",
+    '#[doc = ""]',
+    """
+#[doc =
+" Use the [`StdLib`] flags to specify the libraries you want to load."]""",
+]
+is_async = false
+is_const = false
+is_unsafe = false
+name = "load_std_libs"
+output = "Result < () >"
+variant = "fn"
+vis = "pub"
+
+[[table_spaces.lua_bindgen.tables.lua_impl_block.inputs]]
+name = "libs"
+type_def = "StdLib"
+
+[table_spaces.lua_bindgen.tables.lua_impl_block.receiver]
+is_mutable = false
+is_ref = true
+
+[[table_spaces.lua_bindgen.tables.lua_impl_block]]
+attr = [
+    """
+#[doc =
+" Loads module `modname` into an existing Lua state using the specified entrypoint"]""",
+    '#[doc = " function."]',
+    '#[doc = ""]',
+    """
+#[doc =
+" Internally calls the Lua function `func` with the string `modname` as an argument,"]""",
+    """
+#[doc =
+" sets the call result to `package.loaded[modname]` and returns copy of the result."]""",
+    '#[doc = ""]',
+    """
+#[doc =
+" If `package.loaded[modname]` value is not nil, returns copy of the value without"]""",
+    '#[doc = " calling the function."]',
+    '#[doc = ""]',
+    """
+#[doc =
+" If the function does not return a non-nil value then this method assigns true to"]""",
+    '#[doc = " `package.loaded[modname]`."]',
+    '#[doc = ""]',
+    '''#[doc = " Behavior is similar to Lua\'s [`require`] function."]''',
+    '#[doc = ""]',
+    """
+#[doc =
+" [`require`]: https://www.lua.org/manual/5.4/manual.html#pdf-require"]""",
+]
+is_async = false
+is_const = false
+is_unsafe = false
+name = "load_from_function"
+output = "Result < T >"
+variant = "fn"
+vis = "pub"
+
+[[table_spaces.lua_bindgen.tables.lua_impl_block.inputs]]
+name = "modname"
+type_def = "& str"
+
+[[table_spaces.lua_bindgen.tables.lua_impl_block.inputs]]
+name = "func"
+type_def = "Function"
+
+[table_spaces.lua_bindgen.tables.lua_impl_block.receiver]
+is_mutable = false
+is_ref = true
+
+[[table_spaces.lua_bindgen.tables.lua_impl_block]]
+attr = [
+    '#[doc = " Unloads module `modname`."]',
+    '#[doc = ""]',
+    """
+#[doc =
+" Removes module from the [`package.loaded`] table which allows to load it again."]""",
+    """
+#[doc =
+" It does not support unloading binary Lua modules since they are internally cached and can be"]""",
+    '#[doc = " unloaded only by closing Lua state."]',
+    '#[doc = ""]',
+    """
+#[doc =
+" [`package.loaded`]: https://www.lua.org/manual/5.4/manual.html#pdf-package.loaded"]""",
+]
+is_async = false
+is_const = false
+is_unsafe = false
+name = "unload"
+output = "Result < () >"
+variant = "fn"
+vis = "pub"
+
+[[table_spaces.lua_bindgen.tables.lua_impl_block.inputs]]
+name = "modname"
+type_def = "& str"
+
+[table_spaces.lua_bindgen.tables.lua_impl_block.receiver]
+is_mutable = false
+is_ref = true
+
+[[table_spaces.lua_bindgen.tables.lua_impl_block]]
+attr = [
+    "#[doc(hidden)]",
+    "#[cfg(not(tarpaulin_include))]",
+]
+is_async = false
+is_const = false
+is_unsafe = true
+name = "entrypoint"
+output = "c_int"
+variant = "fn"
+vis = "pub"
+
+[[table_spaces.lua_bindgen.tables.lua_impl_block.inputs]]
+name = "state"
+type_def = "* mut ffi :: lua_State"
+
+[[table_spaces.lua_bindgen.tables.lua_impl_block.inputs]]
+name = "func"
+type_def = "F"
+
+[table_spaces.lua_bindgen.tables.lua_impl_block.receiver.no_value]
+
+[[table_spaces.lua_bindgen.tables.lua_impl_block]]
+attr = [
+    "#[doc(hidden)]",
+    "#[cfg(not(tarpaulin_include))]",
+]
+is_async = false
+is_const = false
+is_unsafe = true
+name = "entrypoint1"
+output = "c_int"
+variant = "fn"
+vis = "pub"
+
+[[table_spaces.lua_bindgen.tables.lua_impl_block.inputs]]
+name = "state"
+type_def = "* mut ffi :: lua_State"
+
+[[table_spaces.lua_bindgen.tables.lua_impl_block.inputs]]
+name = "func"
+type_def = "F"
+
+[table_spaces.lua_bindgen.tables.lua_impl_block.receiver.no_value]
+
+[[table_spaces.lua_bindgen.tables.lua_impl_block]]
+attr = [
+    '#[doc = " Skips memory checks for some operations."]',
+    "#[doc(hidden)]",
+    '#[cfg(feature = "module")]',
+]
+is_async = false
+is_const = false
+is_unsafe = false
+name = "skip_memory_check"
+output = ""
+variant = "fn"
+vis = "pub"
+
+[[table_spaces.lua_bindgen.tables.lua_impl_block.inputs]]
+name = "skip"
+type_def = "bool"
+
+[table_spaces.lua_bindgen.tables.lua_impl_block.receiver]
+is_mutable = false
+is_ref = true
+
+[[table_spaces.lua_bindgen.tables.lua_impl_block]]
+attr = [
+    '#[doc = " Enables (or disables) sandbox mode on this Lua instance."]',
+    '#[doc = ""]',
+    '#[doc = " This method, in particular:"]',
+    '#[doc = " - Set all libraries to read-only"]',
+    '#[doc = " - Set all builtin metatables to read-only"]',
+    '#[doc = " - Set globals to read-only (and activates safeenv)"]',
+    """
+#[doc =
+" - Setup local environment table that performs writes locally and proxies reads to the global"]""",
+    '#[doc = "   environment."]',
+    '#[doc = ""]',
+    '#[doc = " # Examples"]',
+    '#[doc = ""]',
+    '#[doc = " ```"]',
+    '#[doc = " # use mlua::{Lua, Result};"]',
+    '#[doc = " # #[cfg(feature = \"luau\")]"]',
+    '#[doc = " # fn main() -> Result<()> {"]',
+    '#[doc = " let lua = Lua::new();"]',
+    '#[doc = ""]',
+    '#[doc = " lua.sandbox(true)?;"]',
+    '#[doc = " lua.load(\"var = 123\").exec()?;"]',
+    '#[doc = " assert_eq!(lua.globals().get::<u32>(\"var\")?, 123);"]',
+    '#[doc = ""]',
+    '#[doc = " // Restore the global environment (clear changes made in sandbox)"]',
+    '#[doc = " lua.sandbox(false)?;"]',
+    '#[doc = " assert_eq!(lua.globals().get::<Option<u32>>(\"var\")?, None);"]',
+    '#[doc = " # Ok(())"]',
+    '#[doc = " # }"]',
+    '#[doc = ""]',
+    '#[doc = " # #[cfg(not(feature = \"luau\"))]"]',
+    '#[doc = " # fn main() {}"]',
+    '#[doc = " ```"]',
+    '#[doc = ""]',
+    '#[doc = " Requires `feature = \"luau\"`"]',
+    '#[cfg(any(feature = "luau", doc))]',
+    '#[cfg_attr(docsrs, doc(cfg(feature = "luau")))]',
+]
+is_async = false
+is_const = false
+is_unsafe = false
+name = "sandbox"
+output = "Result < () >"
+variant = "fn"
+vis = "pub"
+
+[[table_spaces.lua_bindgen.tables.lua_impl_block.inputs]]
+name = "enabled"
+type_def = "bool"
+
+[table_spaces.lua_bindgen.tables.lua_impl_block.receiver]
+is_mutable = false
+is_ref = true
+
+[[table_spaces.lua_bindgen.tables.lua_impl_block]]
+attr = [
+    """
+#[doc =
+" Sets a hook function that will periodically be called as Lua code executes."]""",
+    '#[doc = ""]',
+    """
+#[doc =
+" When exactly the hook function is called depends on the contents of the `triggers`"]""",
+    '#[doc = " parameter, see [`HookTriggers`] for more details."]',
+    '#[doc = ""]',
+    """
+#[doc =
+" The provided hook function can error, and this error will be propagated through the Lua code"]""",
+    """
+#[doc =
+" that was executing at the time the hook was triggered. This can be used to implement a"]""",
+    """
+#[doc =
+" limited form of execution limits by setting [`HookTriggers.every_nth_instruction`] and"]""",
+    '#[doc = " erroring once an instruction limit has been reached."]',
+    '#[doc = ""]',
+    """
+#[doc =
+" This method sets a hook function for the current thread of this Lua instance."]""",
+    """
+#[doc =
+" If you want to set a hook function for another thread (coroutine), use"]""",
+    '#[doc = " [`Thread::set_hook`] instead."]',
+    '#[doc = ""]',
+    """
+#[doc =
+" Please note you cannot have more than one hook function set at a time for this Lua instance."]""",
+    '#[doc = ""]',
+    '#[doc = " # Example"]',
+    '#[doc = ""]',
+    """
+#[doc =
+" Shows each line number of code being executed by the Lua interpreter."]""",
+    '#[doc = ""]',
+    '#[doc = " ```"]',
+    '#[doc = " # use mlua::{Lua, HookTriggers, Result, VmState};"]',
+    '#[doc = " # fn main() -> Result<()> {"]',
+    '#[doc = " let lua = Lua::new();"]',
+    '#[doc = " lua.set_hook(HookTriggers::EVERY_LINE, |_lua, debug| {"]',
+    '#[doc = "     println!(\"line {}\", debug.curr_line());"]',
+    '#[doc = "     Ok(VmState::Continue)"]',
+    '#[doc = " });"]',
+    '#[doc = ""]',
+    '#[doc = " lua.load(r#\""]',
+    '#[doc = "     local x = 2 + 3"]',
+    '#[doc = "     local y = x * 63"]',
+    '#[doc = "     local z = string.len(x..\", \"..y)"]',
+    '#[doc = " \"#).exec()"]',
+    '#[doc = " # }"]',
+    '#[doc = " ```"]',
+    '#[doc = ""]',
+    """
+#[doc =
+" [`HookTriggers.every_nth_instruction`]: crate::HookTriggers::every_nth_instruction"]""",
+    '#[cfg(not(feature = "luau"))]',
+    '#[cfg_attr(docsrs, doc(cfg(not(feature = "luau"))))]',
+]
+is_async = false
+is_const = false
+is_unsafe = false
+name = "set_hook"
+output = ""
+variant = "fn"
+vis = "pub"
+
+[[table_spaces.lua_bindgen.tables.lua_impl_block.inputs]]
+name = "triggers"
+type_def = "HookTriggers"
+
+[[table_spaces.lua_bindgen.tables.lua_impl_block.inputs]]
+name = "callback"
+type_def = "F"
+
+[table_spaces.lua_bindgen.tables.lua_impl_block.receiver]
+is_mutable = false
+is_ref = true
+
+[[table_spaces.lua_bindgen.tables.lua_impl_block]]
+attr = [
+    """
+#[doc =
+" Removes any hook previously set by [`Lua::set_hook`] or [`Thread::set_hook`]."]""",
+    '#[doc = ""]',
+    '#[doc = " This function has no effect if a hook was not previously set."]',
+    '#[cfg(not(feature = "luau"))]',
+    '#[cfg_attr(docsrs, doc(cfg(not(feature = "luau"))))]',
+]
+inputs = []
+is_async = false
+is_const = false
+is_unsafe = false
+name = "remove_hook"
+output = ""
+variant = "fn"
+vis = "pub"
+
+[table_spaces.lua_bindgen.tables.lua_impl_block.receiver]
+is_mutable = false
+is_ref = true
+
+[[table_spaces.lua_bindgen.tables.lua_impl_block]]
+attr = [
+    """
+#[doc =
+" Sets an interrupt function that will periodically be called by Luau VM."]""",
+    '#[doc = ""]',
+    '#[doc = " Any Luau code is guaranteed to call this handler \"eventually\""]',
+    """
+#[doc =
+" (in practice this can happen at any function call or at any loop iteration)."]""",
+    '#[doc = ""]',
+    """
+#[doc =
+" The provided interrupt function can error, and this error will be propagated through"]""",
+    """
+#[doc =
+" the Luau code that was executing at the time the interrupt was triggered."]""",
+    """
+#[doc =
+" Also this can be used to implement continuous execution limits by instructing Luau VM to"]""",
+    '#[doc = " yield by returning [`VmState::Yield`]."]',
+    '#[doc = ""]',
+    '#[doc = " This is similar to [`Lua::set_hook`] but in more simplified form."]',
+    '#[doc = ""]',
+    '#[doc = " # Example"]',
+    '#[doc = ""]',
+    '#[doc = " Periodically yield Luau VM to suspend execution."]',
+    '#[doc = ""]',
+    '#[doc = " ```"]',
+    '#[doc = " # use std::sync::{Arc, atomic::{AtomicU64, Ordering}};"]',
+    '#[doc = " # use mlua::{Lua, Result, ThreadStatus, VmState};"]',
+    '#[doc = " # #[cfg(feature = \"luau\")]"]',
+    '#[doc = " # fn main() -> Result<()> {"]',
+    '#[doc = " let lua = Lua::new();"]',
+    '#[doc = " let count = Arc::new(AtomicU64::new(0));"]',
+    '#[doc = " lua.set_interrupt(move |_| {"]',
+    '#[doc = "     if count.fetch_add(1, Ordering::Relaxed) % 2 == 0 {"]',
+    '#[doc = "         return Ok(VmState::Yield);"]',
+    '#[doc = "     }"]',
+    '#[doc = "     Ok(VmState::Continue)"]',
+    '#[doc = " });"]',
+    '#[doc = ""]',
+    '#[doc = " let co = lua.create_thread("]',
+    '#[doc = "     lua.load(r#\""]',
+    '#[doc = "         local b = 0"]',
+    '#[doc = "         for _, x in ipairs({1, 2, 3}) do b += x end"]',
+    '#[doc = "     \"#)"]',
+    '#[doc = "     .into_function()?,"]',
+    '#[doc = " )?;"]',
+    '#[doc = " while co.status() == ThreadStatus::Resumable {"]',
+    '#[doc = "     co.resume::<()>(())?;"]',
+    '#[doc = " }"]',
+    '#[doc = " # Ok(())"]',
+    '#[doc = " # }"]',
+    '#[doc = ""]',
+    '#[doc = " # #[cfg(not(feature = \"luau\"))]"]',
+    '#[doc = " # fn main() {}"]',
+    '#[doc = " ```"]',
+    '#[cfg(any(feature = "luau", doc))]',
+    '#[cfg_attr(docsrs, doc(cfg(feature = "luau")))]',
+]
+is_async = false
+is_const = false
+is_unsafe = false
+name = "set_interrupt"
+output = ""
+variant = "fn"
+vis = "pub"
+
+[[table_spaces.lua_bindgen.tables.lua_impl_block.inputs]]
+name = "callback"
+type_def = "F"
+
+[table_spaces.lua_bindgen.tables.lua_impl_block.receiver]
+is_mutable = false
+is_ref = true
+
+[[table_spaces.lua_bindgen.tables.lua_impl_block]]
+attr = [
+    '#[doc = " Removes any interrupt function previously set by `set_interrupt`."]',
+    '#[doc = ""]',
+    '''
+#[doc =
+" This function has no effect if an \'interrupt\' was not previously set."]''',
+    '#[cfg(any(feature = "luau", doc))]',
+    '#[cfg_attr(docsrs, doc(cfg(feature = "luau")))]',
+]
+inputs = []
+is_async = false
+is_const = false
+is_unsafe = false
+name = "remove_interrupt"
+output = ""
+variant = "fn"
+vis = "pub"
+
+[table_spaces.lua_bindgen.tables.lua_impl_block.receiver]
+is_mutable = false
+is_ref = true
+
+[[table_spaces.lua_bindgen.tables.lua_impl_block]]
+attr = [
+    '#[doc = " Sets the warning function to be used by Lua to emit warnings."]',
+    '#[doc = ""]',
+    '#[doc = " Requires `feature = \"lua54\"`"]',
+    '#[cfg(feature = "lua54")]',
+    '#[cfg_attr(docsrs, doc(cfg(feature = "lua54")))]',
+]
+is_async = false
+is_const = false
+is_unsafe = false
+name = "set_warning_function"
+output = ""
+variant = "fn"
+vis = "pub"
+
+[[table_spaces.lua_bindgen.tables.lua_impl_block.inputs]]
+name = "callback"
+type_def = "F"
+
+[table_spaces.lua_bindgen.tables.lua_impl_block.receiver]
+is_mutable = false
+is_ref = true
+
+[[table_spaces.lua_bindgen.tables.lua_impl_block]]
+attr = [
+    '#[doc = " Removes warning function previously set by `set_warning_function`."]',
+    '#[doc = ""]',
+    """
+#[doc =
+" This function has no effect if a warning function was not previously set."]""",
+    '#[doc = ""]',
+    '#[doc = " Requires `feature = \"lua54\"`"]',
+    '#[cfg(feature = "lua54")]',
+    '#[cfg_attr(docsrs, doc(cfg(feature = "lua54")))]',
+]
+inputs = []
+is_async = false
+is_const = false
+is_unsafe = false
+name = "remove_warning_function"
+output = ""
+variant = "fn"
+vis = "pub"
+
+[table_spaces.lua_bindgen.tables.lua_impl_block.receiver]
+is_mutable = false
+is_ref = true
+
+[[table_spaces.lua_bindgen.tables.lua_impl_block]]
+attr = [
+    '#[doc = " Emits a warning with the given message."]',
+    '#[doc = ""]',
+    """
+#[doc =
+" A message in a call with `incomplete` set to `true` should be continued in"]""",
+    '#[doc = " another call to this function."]',
+    '#[doc = ""]',
+    '#[doc = " Requires `feature = \"lua54\"`"]',
+    '#[cfg(feature = "lua54")]',
+    '#[cfg_attr(docsrs, doc(cfg(feature = "lua54")))]',
+]
+is_async = false
+is_const = false
+is_unsafe = false
+name = "warning"
+output = ""
+variant = "fn"
+vis = "pub"
+
+[[table_spaces.lua_bindgen.tables.lua_impl_block.inputs]]
+name = "msg"
+type_def = "impl AsRef < str >"
+
+[[table_spaces.lua_bindgen.tables.lua_impl_block.inputs]]
+name = "incomplete"
+type_def = "bool"
+
+[table_spaces.lua_bindgen.tables.lua_impl_block.receiver]
+is_mutable = false
+is_ref = true
+
+[[table_spaces.lua_bindgen.tables.lua_impl_block]]
+attr = [
+    '#[doc = " Gets information about the interpreter runtime stack."]',
+    '#[doc = ""]',
+    """
+#[doc =
+" This function returns [`Debug`] structure that can be used to get information about the"]""",
+    """
+#[doc =
+" function executing at a given level. Level `0` is the current running function, whereas"]""",
+    """
+#[doc =
+" level `n+1` is the function that has called level `n` (except for tail calls, which do"]""",
+    '#[doc = " not count in the stack)."]',
+    '#[doc = ""]',
+    '#[doc = " [`Debug`]: crate::hook::Debug"]',
+]
+is_async = false
+is_const = false
+is_unsafe = false
+name = "inspect_stack"
+output = "Option < Debug >"
+variant = "fn"
+vis = "pub"
+
+[[table_spaces.lua_bindgen.tables.lua_impl_block.inputs]]
+name = "level"
+type_def = "usize"
+
+[table_spaces.lua_bindgen.tables.lua_impl_block.receiver]
+is_mutable = false
+is_ref = true
+
+[[table_spaces.lua_bindgen.tables.lua_impl_block]]
+attr = ["""
+#[doc =
+" Returns the amount of memory (in bytes) currently used inside this Lua state."]"""]
+inputs = []
+is_async = false
+is_const = false
+is_unsafe = false
+name = "used_memory"
+output = "usize"
+variant = "fn"
+vis = "pub"
+
+[table_spaces.lua_bindgen.tables.lua_impl_block.receiver]
+is_mutable = false
+is_ref = true
+
+[[table_spaces.lua_bindgen.tables.lua_impl_block]]
+attr = [
+    '#[doc = " Sets a memory limit (in bytes) on this Lua state."]',
+    '#[doc = ""]',
+    """
+#[doc =
+" Once an allocation occurs that would pass this memory limit, a `Error::MemoryError` is"]""",
+    '#[doc = " generated instead."]',
+    '#[doc = " Returns previous limit (zero means no limit)."]',
+    '#[doc = ""]',
+    """
+#[doc =
+" Does not work in module mode where Lua state is managed externally."]""",
+]
+is_async = false
+is_const = false
+is_unsafe = false
+name = "set_memory_limit"
+output = "Result < usize >"
+variant = "fn"
+vis = "pub"
+
+[[table_spaces.lua_bindgen.tables.lua_impl_block.inputs]]
+name = "limit"
+type_def = "usize"
+
+[table_spaces.lua_bindgen.tables.lua_impl_block.receiver]
+is_mutable = false
+is_ref = true
+
+[[table_spaces.lua_bindgen.tables.lua_impl_block]]
+attr = [
+    """
+#[doc =
+" Returns `true` if the garbage collector is currently running automatically."]""",
+    '#[doc = ""]',
+    '#[doc = " Requires `feature = \"lua54/lua53/lua52/luau\"`"]',
+    """
+#[cfg(any(feature = "lua54", feature = "lua53", feature = "lua52", feature =
+"luau"))]""",
+]
+inputs = []
+is_async = false
+is_const = false
+is_unsafe = false
+name = "gc_is_running"
+output = "bool"
+variant = "fn"
+vis = "pub"
+
+[table_spaces.lua_bindgen.tables.lua_impl_block.receiver]
+is_mutable = false
+is_ref = true
+
+[[table_spaces.lua_bindgen.tables.lua_impl_block]]
+attr = ['#[doc = " Stop the Lua GC from running"]']
+inputs = []
+is_async = false
+is_const = false
+is_unsafe = false
+name = "gc_stop"
+output = ""
+variant = "fn"
+vis = "pub"
+
+[table_spaces.lua_bindgen.tables.lua_impl_block.receiver]
+is_mutable = false
+is_ref = true
+
+[[table_spaces.lua_bindgen.tables.lua_impl_block]]
+attr = ['#[doc = " Restarts the Lua GC if it is not running"]']
+inputs = []
+is_async = false
+is_const = false
+is_unsafe = false
+name = "gc_restart"
+output = ""
+variant = "fn"
+vis = "pub"
+
+[table_spaces.lua_bindgen.tables.lua_impl_block.receiver]
+is_mutable = false
+is_ref = true
+
+[[table_spaces.lua_bindgen.tables.lua_impl_block]]
+attr = [
+    '#[doc = " Perform a full garbage-collection cycle."]',
+    '#[doc = ""]',
+    """
+#[doc =
+" It may be necessary to call this function twice to collect all currently unreachable"]""",
+    """
+#[doc =
+" objects. Once to finish the current gc cycle, and once to start and finish the next cycle."]""",
+]
+inputs = []
+is_async = false
+is_const = false
+is_unsafe = false
+name = "gc_collect"
+output = "Result < () >"
+variant = "fn"
+vis = "pub"
+
+[table_spaces.lua_bindgen.tables.lua_impl_block.receiver]
+is_mutable = false
+is_ref = true
+
+[[table_spaces.lua_bindgen.tables.lua_impl_block]]
+attr = [
+    '#[doc = " Steps the garbage collector one indivisible step."]',
+    '#[doc = ""]',
+    '#[doc = " Returns `true` if this has finished a collection cycle."]',
+]
+inputs = []
+is_async = false
+is_const = false
+is_unsafe = false
+name = "gc_step"
+output = "Result < bool >"
+variant = "fn"
+vis = "pub"
+
+[table_spaces.lua_bindgen.tables.lua_impl_block.receiver]
+is_mutable = false
+is_ref = true
+
+[[table_spaces.lua_bindgen.tables.lua_impl_block]]
+attr = [
+    '#[doc = " Steps the garbage collector as though memory had been allocated."]',
+    '#[doc = ""]',
+    """
+#[doc =
+" if `kbytes` is 0, then this is the same as calling `gc_step`. Returns true if this step has"]""",
+    '#[doc = " finished a collection cycle."]',
+]
+is_async = false
+is_const = false
+is_unsafe = false
+name = "gc_step_kbytes"
+output = "Result < bool >"
+variant = "fn"
+vis = "pub"
+
+[[table_spaces.lua_bindgen.tables.lua_impl_block.inputs]]
+name = "kbytes"
+type_def = "c_int"
+
+[table_spaces.lua_bindgen.tables.lua_impl_block.receiver]
+is_mutable = false
+is_ref = true
+
+[[table_spaces.lua_bindgen.tables.lua_impl_block]]
+attr = [
+    '#[doc = " Sets the `pause` value of the collector."]',
+    '#[doc = ""]',
+    """
+#[doc =
+" Returns the previous value of `pause`. More information can be found in the Lua"]""",
+    '#[doc = " [documentation]."]',
+    '#[doc = ""]',
+    '#[doc = " For Luau this parameter sets GC goal"]',
+    '#[doc = ""]',
+    '#[doc = " [documentation]: https://www.lua.org/manual/5.4/manual.html#2.5"]',
+]
+is_async = false
+is_const = false
+is_unsafe = false
+name = "gc_set_pause"
+output = "c_int"
+variant = "fn"
+vis = "pub"
+
+[[table_spaces.lua_bindgen.tables.lua_impl_block.inputs]]
+name = "pause"
+type_def = "c_int"
+
+[table_spaces.lua_bindgen.tables.lua_impl_block.receiver]
+is_mutable = false
+is_ref = true
+
+[[table_spaces.lua_bindgen.tables.lua_impl_block]]
+attr = [
+    '#[doc = " Sets the `step multiplier` value of the collector."]',
+    '#[doc = ""]',
+    """
+#[doc =
+" Returns the previous value of the `step multiplier`. More information can be found in the"]""",
+    '#[doc = " Lua [documentation]."]',
+    '#[doc = ""]',
+    '#[doc = " [documentation]: https://www.lua.org/manual/5.4/manual.html#2.5"]',
+]
+is_async = false
+is_const = false
+is_unsafe = false
+name = "gc_set_step_multiplier"
+output = "c_int"
+variant = "fn"
+vis = "pub"
+
+[[table_spaces.lua_bindgen.tables.lua_impl_block.inputs]]
+name = "step_multiplier"
+type_def = "c_int"
+
+[table_spaces.lua_bindgen.tables.lua_impl_block.receiver]
+is_mutable = false
+is_ref = true
+
+[[table_spaces.lua_bindgen.tables.lua_impl_block]]
+attr = [
+    """
+#[doc =
+" Changes the collector to incremental mode with the given parameters."]""",
+    '#[doc = ""]',
+    """
+#[doc =
+" Returns the previous mode (always `GCMode::Incremental` in Lua < 5.4)."]""",
+    '#[doc = " More information can be found in the Lua [documentation]."]',
+    '#[doc = ""]',
+    '#[doc = " [documentation]: https://www.lua.org/manual/5.4/manual.html#2.5.1"]',
+]
+is_async = false
+is_const = false
+is_unsafe = false
+name = "gc_inc"
+output = "GCMode"
+variant = "fn"
+vis = "pub"
+
+[[table_spaces.lua_bindgen.tables.lua_impl_block.inputs]]
+name = "pause"
+type_def = "c_int"
+
+[[table_spaces.lua_bindgen.tables.lua_impl_block.inputs]]
+name = "step_multiplier"
+type_def = "c_int"
+
+[[table_spaces.lua_bindgen.tables.lua_impl_block.inputs]]
+name = "step_size"
+type_def = "c_int"
+
+[table_spaces.lua_bindgen.tables.lua_impl_block.receiver]
+is_mutable = false
+is_ref = true
+
+[[table_spaces.lua_bindgen.tables.lua_impl_block]]
+attr = [
+    """
+#[doc =
+" Changes the collector to generational mode with the given parameters."]""",
+    '#[doc = ""]',
+    """
+#[doc =
+" Returns the previous mode. More information about the generational GC"]""",
+    '#[doc = " can be found in the Lua 5.4 [documentation][lua_doc]."]',
+    '#[doc = ""]',
+    '#[doc = " Requires `feature = \"lua54\"`"]',
+    '#[doc = ""]',
+    '#[doc = " [lua_doc]: https://www.lua.org/manual/5.4/manual.html#2.5.2"]',
+    '#[cfg(feature = "lua54")]',
+    '#[cfg_attr(docsrs, doc(cfg(feature = "lua54")))]',
+]
+is_async = false
+is_const = false
+is_unsafe = false
+name = "gc_gen"
+output = "GCMode"
+variant = "fn"
+vis = "pub"
+
+[[table_spaces.lua_bindgen.tables.lua_impl_block.inputs]]
+name = "minor_multiplier"
+type_def = "c_int"
+
+[[table_spaces.lua_bindgen.tables.lua_impl_block.inputs]]
+name = "major_multiplier"
+type_def = "c_int"
+
+[table_spaces.lua_bindgen.tables.lua_impl_block.receiver]
+is_mutable = false
+is_ref = true
+
+[[table_spaces.lua_bindgen.tables.lua_impl_block]]
+attr = [
+    '#[doc = " Sets a default Luau compiler (with custom options)."]',
+    '#[doc = ""]',
+    '#[doc = " This compiler will be used by default to load all Lua chunks"]',
+    '#[doc = " including via `require` function."]',
+    '#[doc = ""]',
+    '#[doc = " See [`Compiler`] for details and possible options."]',
+    '#[doc = ""]',
+    '#[doc = " Requires `feature = \"luau\"`"]',
+    '#[cfg(any(feature = "luau", doc))]',
+    '#[cfg_attr(docsrs, doc(cfg(feature = "luau")))]',
+]
+is_async = false
+is_const = false
+is_unsafe = false
+name = "set_compiler"
+output = ""
+variant = "fn"
+vis = "pub"
+
+[[table_spaces.lua_bindgen.tables.lua_impl_block.inputs]]
+name = "compiler"
+type_def = "Compiler"
+
+[table_spaces.lua_bindgen.tables.lua_impl_block.receiver]
+is_mutable = false
+is_ref = true
+
+[[table_spaces.lua_bindgen.tables.lua_impl_block]]
+attr = [
+    '#[doc = " Toggles JIT compilation mode for new chunks of code."]',
+    '#[doc = ""]',
+    """
+#[doc =
+" By default JIT is enabled. Changing this option does not have any effect on"]""",
+    '#[doc = " already loaded functions."]',
+    '#[cfg(any(feature = "luau-jit", doc))]',
+    '#[cfg_attr(docsrs, doc(cfg(feature = "luau-jit")))]',
+]
+is_async = false
+is_const = false
+is_unsafe = false
+name = "enable_jit"
+output = ""
+variant = "fn"
+vis = "pub"
+
+[[table_spaces.lua_bindgen.tables.lua_impl_block.inputs]]
+name = "enable"
+type_def = "bool"
+
+[table_spaces.lua_bindgen.tables.lua_impl_block.receiver]
+is_mutable = false
+is_ref = true
+
+[[table_spaces.lua_bindgen.tables.lua_impl_block]]
+attr = [
+    '#[doc = " Sets Luau feature flag (global setting)."]',
+    '#[doc = ""]',
+    """
+#[doc =
+" See https://github.com/luau-lang/luau/blob/master/CONTRIBUTING.md#feature-flags for details."]""",
+    '#[cfg(feature = "luau")]',
+    "#[doc(hidden)]",
+    "#[allow(clippy::result_unit_err)]",
+]
+is_async = false
+is_const = false
+is_unsafe = false
+name = "set_fflag"
+output = "StdResult < (), () >"
+variant = "fn"
+vis = "pub"
+
+[[table_spaces.lua_bindgen.tables.lua_impl_block.inputs]]
+name = "name"
+type_def = "& str"
+
+[[table_spaces.lua_bindgen.tables.lua_impl_block.inputs]]
+name = "enabled"
+type_def = "bool"
+
+[table_spaces.lua_bindgen.tables.lua_impl_block.receiver.no_value]
+
+[[table_spaces.lua_bindgen.tables.lua_impl_block]]
+attr = [
+    '#[doc = " Returns Lua source code as a `Chunk` builder type."]',
+    '#[doc = ""]',
+    """
+#[doc =
+" In order to actually compile or run the resulting code, you must call [`Chunk::exec`] or"]""",
+    """
+#[doc =
+" similar on the returned builder. Code is not even parsed until one of these methods is"]""",
+    '#[doc = " called."]',
+    '#[doc = ""]',
+    '#[doc = " [`Chunk::exec`]: crate::Chunk::exec"]',
+    "#[track_caller]",
+]
+is_async = false
+is_const = false
+is_unsafe = false
+name = "load"
+output = "Chunk < 'a >"
+variant = "fn"
+vis = "pub"
+
+[[table_spaces.lua_bindgen.tables.lua_impl_block.inputs]]
+name = "chunk"
+type_def = "impl AsChunk < 'a >"
+
+[table_spaces.lua_bindgen.tables.lua_impl_block.receiver]
+is_mutable = false
+is_ref = true
+
+[[table_spaces.lua_bindgen.tables.lua_impl_block]]
+attr = []
+is_async = false
+is_const = false
+is_unsafe = false
+name = "load_with_location"
+output = "Chunk < 'a >"
+variant = "fn"
+vis = "pub(crate)"
+
+[[table_spaces.lua_bindgen.tables.lua_impl_block.inputs]]
+name = "chunk"
+type_def = "impl AsChunk < 'a >"
+
+[[table_spaces.lua_bindgen.tables.lua_impl_block.inputs]]
+name = "location"
+type_def = "& 'static Location < 'static >"
+
+[table_spaces.lua_bindgen.tables.lua_impl_block.receiver]
+is_mutable = false
+is_ref = true
+
+[[table_spaces.lua_bindgen.tables.lua_impl_block]]
+attr = [
+    '#[doc = " Create and return an interned Lua string."]',
+    '#[doc = ""]',
+    """
+#[doc =
+" Lua strings can be arbitrary `[u8]` data including embedded nulls, so in addition to `&str`"]""",
+    '#[doc = " and `&String`, you can also pass plain `&[u8]` here."]',
+    "#[inline]",
+]
+is_async = false
+is_const = false
+is_unsafe = false
+name = "create_string"
+output = "Result < String >"
+variant = "fn"
+vis = "pub"
+
+[[table_spaces.lua_bindgen.tables.lua_impl_block.inputs]]
+name = "s"
+type_def = "impl AsRef < [u8] >"
+
+[table_spaces.lua_bindgen.tables.lua_impl_block.receiver]
+is_mutable = false
+is_ref = true
+
+[[table_spaces.lua_bindgen.tables.lua_impl_block]]
+attr = [
+    """
+#[doc =
+" Create and return a Luau [buffer] object from a byte slice of data."]""",
+    '#[doc = ""]',
+    '#[doc = " Requires `feature = \"luau\"`"]',
+    '#[doc = ""]',
+    '#[doc = " [buffer]: https://luau.org/library#buffer-library"]',
+    '#[cfg(any(feature = "luau", doc))]',
+    '#[cfg_attr(docsrs, doc(cfg(feature = "luau")))]',
+]
+is_async = false
+is_const = false
+is_unsafe = false
+name = "create_buffer"
+output = "Result < Buffer >"
+variant = "fn"
+vis = "pub"
+
+[[table_spaces.lua_bindgen.tables.lua_impl_block.inputs]]
+name = "buf"
+type_def = "impl AsRef < [u8] >"
+
+[table_spaces.lua_bindgen.tables.lua_impl_block.receiver]
+is_mutable = false
+is_ref = true
+
+[[table_spaces.lua_bindgen.tables.lua_impl_block]]
+attr = [
+    '#[doc = " Creates and returns a new empty table."]',
+    "#[inline]",
+]
+inputs = []
+is_async = false
+is_const = false
+is_unsafe = false
+name = "create_table"
+output = "Result < Table >"
+variant = "fn"
+vis = "pub"
+
+[table_spaces.lua_bindgen.tables.lua_impl_block.receiver]
+is_mutable = false
+is_ref = true
+
+[[table_spaces.lua_bindgen.tables.lua_impl_block]]
+attr = [
+    """
+#[doc =
+" Creates and returns a new empty table, with the specified capacity."]""",
+    '#[doc = ""]',
+    """
+#[doc =
+" - `narr` is a hint for how many elements the table will have as a sequence."]""",
+    """
+#[doc =
+" - `nrec` is a hint for how many other elements the table will have."]""",
+    '#[doc = ""]',
+    '#[doc = " Lua may use these hints to preallocate memory for the new table."]',
+]
+is_async = false
+is_const = false
+is_unsafe = false
+name = "create_table_with_capacity"
+output = "Result < Table >"
+variant = "fn"
+vis = "pub"
+
+[[table_spaces.lua_bindgen.tables.lua_impl_block.inputs]]
+name = "narr"
+type_def = "usize"
+
+[[table_spaces.lua_bindgen.tables.lua_impl_block.inputs]]
+name = "nrec"
+type_def = "usize"
+
+[table_spaces.lua_bindgen.tables.lua_impl_block.receiver]
+is_mutable = false
+is_ref = true
+
+[[table_spaces.lua_bindgen.tables.lua_impl_block]]
+attr = ['#[doc = " Creates a table and fills it with values from an iterator."]']
+is_async = false
+is_const = false
+is_unsafe = false
+name = "create_table_from"
+output = "Result < Table >"
+variant = "fn"
+vis = "pub"
+
+[[table_spaces.lua_bindgen.tables.lua_impl_block.inputs]]
+name = "iter"
+type_def = "impl IntoIterator < Item = (K, V) >"
+
+[table_spaces.lua_bindgen.tables.lua_impl_block.receiver]
+is_mutable = false
+is_ref = true
+
+[[table_spaces.lua_bindgen.tables.lua_impl_block]]
+attr = ["""
+#[doc =
+" Creates a table from an iterator of values, using `1..` as the keys."]"""]
+is_async = false
+is_const = false
+is_unsafe = false
+name = "create_sequence_from"
+output = "Result < Table >"
+variant = "fn"
+vis = "pub"
+
+[[table_spaces.lua_bindgen.tables.lua_impl_block.inputs]]
+name = "iter"
+type_def = "impl IntoIterator < Item = T >"
+
+[table_spaces.lua_bindgen.tables.lua_impl_block.receiver]
+is_mutable = false
+is_ref = true
+
+[[table_spaces.lua_bindgen.tables.lua_impl_block]]
+attr = [
+    """
+#[doc =
+" Wraps a Rust function or closure, creating a callable Lua function handle to it."]""",
+    '#[doc = ""]',
+    '''
+#[doc =
+" The function\'s return value is always a `Result`: If the function returns `Err`, the error"]''',
+    """
+#[doc =
+" is raised as a Lua error, which can be caught using `(x)pcall` or bubble up to the Rust code"]""",
+    """
+#[doc =
+" that invoked the Lua code. This allows using the `?` operator to propagate errors through"]""",
+    '#[doc = " intermediate Lua code."]',
+    '#[doc = ""]',
+    """
+#[doc =
+" If the function returns `Ok`, the contained value will be converted to one or more Lua"]""",
+    """
+#[doc =
+" values. For details on Rust-to-Lua conversions, refer to the [`IntoLua`] and"]""",
+    '#[doc = " [`IntoLuaMulti`] traits."]',
+    '#[doc = ""]',
+    '#[doc = " # Examples"]',
+    '#[doc = ""]',
+    '#[doc = " Create a function which prints its argument:"]',
+    '#[doc = ""]',
+    '#[doc = " ```"]',
+    '#[doc = " # use mlua::{Lua, Result};"]',
+    '#[doc = " # fn main() -> Result<()> {"]',
+    '#[doc = " # let lua = Lua::new();"]',
+    '#[doc = " let greet = lua.create_function(|_, name: String| {"]',
+    '#[doc = "     println!(\"Hello, {}!\", name);"]',
+    '#[doc = "     Ok(())"]',
+    '#[doc = " });"]',
+    '#[doc = " # let _ = greet;    // used"]',
+    '#[doc = " # Ok(())"]',
+    '#[doc = " # }"]',
+    '#[doc = " ```"]',
+    '#[doc = ""]',
+    '#[doc = " Use tuples to accept multiple arguments:"]',
+    '#[doc = ""]',
+    '#[doc = " ```"]',
+    '#[doc = " # use mlua::{Lua, Result};"]',
+    '#[doc = " # fn main() -> Result<()> {"]',
+    '#[doc = " # let lua = Lua::new();"]',
+    """
+#[doc =
+" let print_person = lua.create_function(|_, (name, age): (String, u8)| {"]""",
+    '#[doc = "     println!(\"{} is {} years old!\", name, age);"]',
+    '#[doc = "     Ok(())"]',
+    '#[doc = " });"]',
+    '#[doc = " # let _ = print_person;    // used"]',
+    '#[doc = " # Ok(())"]',
+    '#[doc = " # }"]',
+    '#[doc = " ```"]',
+]
+is_async = false
+is_const = false
+is_unsafe = false
+name = "create_function"
+output = "Result < Function >"
+variant = "fn"
+vis = "pub"
+
+[[table_spaces.lua_bindgen.tables.lua_impl_block.inputs]]
+name = "func"
+type_def = "F"
+
+[table_spaces.lua_bindgen.tables.lua_impl_block.receiver]
+is_mutable = false
+is_ref = true
+
+[[table_spaces.lua_bindgen.tables.lua_impl_block]]
+attr = [
+    """
+#[doc =
+" Wraps a Rust mutable closure, creating a callable Lua function handle to it."]""",
+    '#[doc = ""]',
+    """
+#[doc =
+" This is a version of [`Lua::create_function`] that accepts a `FnMut` argument."]""",
+]
+is_async = false
+is_const = false
+is_unsafe = false
+name = "create_function_mut"
+output = "Result < Function >"
+variant = "fn"
+vis = "pub"
+
+[[table_spaces.lua_bindgen.tables.lua_impl_block.inputs]]
+name = "func"
+type_def = "F"
+
+[table_spaces.lua_bindgen.tables.lua_impl_block.receiver]
+is_mutable = false
+is_ref = true
+
+[[table_spaces.lua_bindgen.tables.lua_impl_block]]
+attr = [
+    '#[doc = " Wraps a C function, creating a callable Lua function handle to it."]',
+    '#[doc = ""]',
+    '#[doc = " # Safety"]',
+    """
+#[doc =
+" This function is unsafe because provides a way to execute unsafe C function."]""",
+]
+is_async = false
+is_const = false
+is_unsafe = true
+name = "create_c_function"
+output = "Result < Function >"
+variant = "fn"
+vis = "pub"
+
+[[table_spaces.lua_bindgen.tables.lua_impl_block.inputs]]
+name = "func"
+type_def = "ffi :: lua_CFunction"
+
+[table_spaces.lua_bindgen.tables.lua_impl_block.receiver]
+is_mutable = false
+is_ref = true
+
+[[table_spaces.lua_bindgen.tables.lua_impl_block]]
+attr = [
+    """
+#[doc =
+" Wraps a Rust async function or closure, creating a callable Lua function handle to it."]""",
+    '#[doc = ""]',
+    """
+#[doc =
+" While executing the function Rust will poll the Future and if the result is not ready,"]""",
+    """
+#[doc =
+" call `yield()` passing internal representation of a `Poll::Pending` value."]""",
+    '#[doc = ""]',
+    """
+#[doc =
+" The function must be called inside Lua coroutine ([`Thread`]) to be able to suspend its"]""",
+    """
+#[doc =
+" execution. An executor should be used to poll [`AsyncThread`] and mlua will take a provided"]""",
+    """
+#[doc =
+" Waker in that case. Otherwise noop waker will be used if try to call the function outside of"]""",
+    '#[doc = " Rust executors."]',
+    '#[doc = ""]',
+    """
+#[doc =
+" The family of `call_async()` functions takes care about creating [`Thread`]."]""",
+    '#[doc = ""]',
+    '#[doc = " Requires `feature = \"async\"`"]',
+    '#[doc = ""]',
+    '#[doc = " # Examples"]',
+    '#[doc = ""]',
+    '#[doc = " Non blocking sleep:"]',
+    '#[doc = ""]',
+    '#[doc = " ```"]',
+    '#[doc = " use std::time::Duration;"]',
+    '#[doc = " use mlua::{Lua, Result};"]',
+    '#[doc = ""]',
+    '''#[doc = " async fn sleep(_lua: Lua, n: u64) -> Result<&\'static str> {"]''',
+    '#[doc = "     tokio::time::sleep(Duration::from_millis(n)).await;"]',
+    '#[doc = "     Ok(\"done\")"]',
+    '#[doc = " }"]',
+    '#[doc = ""]',
+    '#[doc = " #[tokio::main]"]',
+    '#[doc = " async fn main() -> Result<()> {"]',
+    '#[doc = "     let lua = Lua::new();"]',
+    '''
+#[doc =
+"     lua.globals().set(\"sleep\", lua.create_async_function(sleep)?)?;"]''',
+    '''
+#[doc =
+"     let res: String = lua.load(\"return sleep(...)\").call_async(100).await?; // Sleep 100ms"]''',
+    '#[doc = "     assert_eq!(res, \"done\");"]',
+    '#[doc = "     Ok(())"]',
+    '#[doc = " }"]',
+    '#[doc = " ```"]',
+    '#[doc = ""]',
+    '#[doc = " [`AsyncThread`]: crate::AsyncThread"]',
+    '#[cfg(feature = "async")]',
+    '#[cfg_attr(docsrs, doc(cfg(feature = "async")))]',
+]
+is_async = false
+is_const = false
+is_unsafe = false
+name = "create_async_function"
+output = "Result < Function >"
+variant = "fn"
+vis = "pub"
+
+[[table_spaces.lua_bindgen.tables.lua_impl_block.inputs]]
+name = "func"
+type_def = "F"
+
+[table_spaces.lua_bindgen.tables.lua_impl_block.receiver]
+is_mutable = false
+is_ref = true
+
+[[table_spaces.lua_bindgen.tables.lua_impl_block]]
+attr = [
+    '#[doc = " Wraps a Lua function into a new thread (or coroutine)."]',
+    '#[doc = ""]',
+    '#[doc = " Equivalent to `coroutine.create`."]',
+]
+is_async = false
+is_const = false
+is_unsafe = false
+name = "create_thread"
+output = "Result < Thread >"
+variant = "fn"
+vis = "pub"
+
+[[table_spaces.lua_bindgen.tables.lua_impl_block.inputs]]
+name = "func"
+type_def = "Function"
+
+[table_spaces.lua_bindgen.tables.lua_impl_block.receiver]
+is_mutable = false
+is_ref = true
+
+[[table_spaces.lua_bindgen.tables.lua_impl_block]]
+attr = [
+    '#[doc = " Creates a Lua userdata object from a custom userdata type."]',
+    '#[doc = ""]',
+    """
+#[doc =
+" All userdata instances of the same type `T` shares the same metatable."]""",
+    "#[inline]",
+]
+is_async = false
+is_const = false
+is_unsafe = false
+name = "create_userdata"
+output = "Result < AnyUserData >"
+variant = "fn"
+vis = "pub"
+
+[[table_spaces.lua_bindgen.tables.lua_impl_block.inputs]]
+name = "data"
+type_def = "T"
+
+[table_spaces.lua_bindgen.tables.lua_impl_block.receiver]
+is_mutable = false
+is_ref = true
+
+[[table_spaces.lua_bindgen.tables.lua_impl_block]]
+attr = [
+    """
+#[doc =
+" Creates a Lua userdata object from a custom serializable userdata type."]""",
+    '#[doc = ""]',
+    '#[doc = " Requires `feature = \"serialize\"`"]',
+    '#[cfg(feature = "serialize")]',
+    '#[cfg_attr(docsrs, doc(cfg(feature = "serialize")))]',
+    "#[inline]",
+]
+is_async = false
+is_const = false
+is_unsafe = false
+name = "create_ser_userdata"
+output = "Result < AnyUserData >"
+variant = "fn"
+vis = "pub"
+
+[[table_spaces.lua_bindgen.tables.lua_impl_block.inputs]]
+name = "data"
+type_def = "T"
+
+[table_spaces.lua_bindgen.tables.lua_impl_block.receiver]
+is_mutable = false
+is_ref = true
+
+[[table_spaces.lua_bindgen.tables.lua_impl_block]]
+attr = [
+    '#[doc = " Creates a Lua userdata object from a custom Rust type."]',
+    '#[doc = ""]',
+    """
+#[doc =
+" You can register the type using [`Lua::register_userdata_type`] to add fields or methods"]""",
+    '#[doc = " _before_ calling this method."]',
+    '#[doc = " Otherwise, the userdata object will have an empty metatable."]',
+    '#[doc = ""]',
+    """
+#[doc =
+" All userdata instances of the same type `T` shares the same metatable."]""",
+    "#[inline]",
+]
+is_async = false
+is_const = false
+is_unsafe = false
+name = "create_any_userdata"
+output = "Result < AnyUserData >"
+variant = "fn"
+vis = "pub"
+
+[[table_spaces.lua_bindgen.tables.lua_impl_block.inputs]]
+name = "data"
+type_def = "T"
+
+[table_spaces.lua_bindgen.tables.lua_impl_block.receiver]
+is_mutable = false
+is_ref = true
+
+[[table_spaces.lua_bindgen.tables.lua_impl_block]]
+attr = [
+    """
+#[doc =
+" Creates a Lua userdata object from a custom serializable Rust type."]""",
+    '#[doc = ""]',
+    '#[doc = " See [`Lua::create_any_userdata`] for more details."]',
+    '#[doc = ""]',
+    '#[doc = " Requires `feature = \"serialize\"`"]',
+    '#[cfg(feature = "serialize")]',
+    '#[cfg_attr(docsrs, doc(cfg(feature = "serialize")))]',
+    "#[inline]",
+]
+is_async = false
+is_const = false
+is_unsafe = false
+name = "create_ser_any_userdata"
+output = "Result < AnyUserData >"
+variant = "fn"
+vis = "pub"
+
+[[table_spaces.lua_bindgen.tables.lua_impl_block.inputs]]
+name = "data"
+type_def = "T"
+
+[table_spaces.lua_bindgen.tables.lua_impl_block.receiver]
+is_mutable = false
+is_ref = true
+
+[[table_spaces.lua_bindgen.tables.lua_impl_block]]
+attr = [
+    '#[doc = " Registers a custom Rust type in Lua to use in userdata objects."]',
+    '#[doc = ""]',
+    """
+#[doc =
+" This methods provides a way to add fields or methods to userdata objects of a type `T`."]""",
+]
+is_async = false
+is_const = false
+is_unsafe = false
+name = "register_userdata_type"
+output = "Result < () >"
+variant = "fn"
+vis = "pub"
+
+[[table_spaces.lua_bindgen.tables.lua_impl_block.inputs]]
+name = "f"
+type_def = "impl FnOnce(& mut UserDataRegistry < T >)"
+
+[table_spaces.lua_bindgen.tables.lua_impl_block.receiver]
+is_mutable = false
+is_ref = true
+
+[[table_spaces.lua_bindgen.tables.lua_impl_block]]
+attr = [
+    '''
+#[doc =
+" Create a Lua userdata \"proxy\" object from a custom userdata type."]''',
+    '#[doc = ""]',
+    """
+#[doc =
+" Proxy object is an empty userdata object that has `T` metatable attached."]""",
+    """
+#[doc =
+" The main purpose of this object is to provide access to static fields and functions"]""",
+    '#[doc = " without creating an instance of type `T`."]',
+    '#[doc = ""]',
+    """
+#[doc =
+" You can get or set uservalues on this object but you cannot borrow any Rust type."]""",
+    '#[doc = ""]',
+    '#[doc = " # Examples"]',
+    '#[doc = ""]',
+    '#[doc = " ```"]',
+    """
+#[doc =
+" # use mlua::{Lua, Result, UserData, UserDataFields, UserDataMethods};"]""",
+    '#[doc = " # fn main() -> Result<()> {"]',
+    '#[doc = " # let lua = Lua::new();"]',
+    '#[doc = " struct MyUserData(i32);"]',
+    '#[doc = ""]',
+    '#[doc = " impl UserData for MyUserData {"]',
+    '#[doc = "     fn add_fields<F: UserDataFields<Self>>(fields: &mut F) {"]',
+    '''
+#[doc =
+"         fields.add_field_method_get(\"val\", |_, this| Ok(this.0));"]''',
+    '#[doc = "     }"]',
+    '#[doc = ""]',
+    '#[doc = "     fn add_methods<M: UserDataMethods<Self>>(methods: &mut M) {"]',
+    '''
+#[doc =
+"         methods.add_function(\"new\", |_, value: i32| Ok(MyUserData(value)));"]''',
+    '#[doc = "     }"]',
+    '#[doc = " }"]',
+    '#[doc = ""]',
+    '''
+#[doc =
+" lua.globals().set(\"MyUserData\", lua.create_proxy::<MyUserData>()?)?;"]''',
+    '#[doc = ""]',
+    '#[doc = " lua.load(\"assert(MyUserData.new(321).val == 321)\").exec()?;"]',
+    '#[doc = " # Ok(())"]',
+    '#[doc = " # }"]',
+    '#[doc = " ```"]',
+    "#[inline]",
+]
+inputs = []
+is_async = false
+is_const = false
+is_unsafe = false
+name = "create_proxy"
+output = "Result < AnyUserData >"
+variant = "fn"
+vis = "pub"
+
+[table_spaces.lua_bindgen.tables.lua_impl_block.receiver]
+is_mutable = false
+is_ref = true
+
+[[table_spaces.lua_bindgen.tables.lua_impl_block]]
+attr = [
+    '#[doc = " Sets the metatable for a Lua builtin type."]',
+    '#[doc = ""]',
+    '#[doc = " The metatable will be shared by all values of the given type."]',
+    '#[doc = ""]',
+    '#[doc = " # Examples"]',
+    '#[doc = ""]',
+    '#[doc = " Change metatable for Lua boolean type:"]',
+    '#[doc = ""]',
+    '#[doc = " ```"]',
+    '#[doc = " # use mlua::{Lua, Result, Function};"]',
+    '#[doc = " # fn main() -> Result<()> {"]',
+    '#[doc = " # let lua = Lua::new();"]',
+    '#[doc = " let mt = lua.create_table()?;"]',
+    '''
+#[doc =
+" mt.set(\"__tostring\", lua.create_function(|_, b: bool| Ok(if b { \"2\" } else { \"0\" }))?)?;"]''',
+    '#[doc = " lua.set_type_metatable::<bool>(Some(mt));"]',
+    '''#[doc = " lua.load(\"assert(tostring(true) == \'2\')\").exec()?;"]''',
+    '#[doc = " # Ok(())"]',
+    '#[doc = " # }"]',
+    '#[doc = " ```"]',
+    "#[allow(private_bounds)]",
+]
+is_async = false
+is_const = false
+is_unsafe = false
+name = "set_type_metatable"
+output = ""
+variant = "fn"
+vis = "pub"
+
+[[table_spaces.lua_bindgen.tables.lua_impl_block.inputs]]
+name = "metatable"
+type_def = "Option < Table >"
+
+[table_spaces.lua_bindgen.tables.lua_impl_block.receiver]
+is_mutable = false
+is_ref = true
+
+[[table_spaces.lua_bindgen.tables.lua_impl_block]]
+attr = ['#[doc = " Returns a handle to the global environment."]']
+inputs = []
+is_async = false
+is_const = false
+is_unsafe = false
+name = "globals"
+output = "Table"
+variant = "fn"
+vis = "pub"
+
+[table_spaces.lua_bindgen.tables.lua_impl_block.receiver]
+is_mutable = false
+is_ref = true
+
+[[table_spaces.lua_bindgen.tables.lua_impl_block]]
+attr = [
+    '#[doc = " Returns a handle to the active `Thread`."]',
+    '#[doc = ""]',
+    """
+#[doc =
+" For calls to `Lua` this will be the main Lua thread, for parameters given to a callback,"]""",
+    '#[doc = " this will be whatever Lua thread called the callback."]',
+]
+inputs = []
+is_async = false
+is_const = false
+is_unsafe = false
+name = "current_thread"
+output = "Thread"
+variant = "fn"
+vis = "pub"
+
+[table_spaces.lua_bindgen.tables.lua_impl_block.receiver]
+is_mutable = false
+is_ref = true
+
+[[table_spaces.lua_bindgen.tables.lua_impl_block]]
+attr = [
+    """
+#[doc =
+" Calls the given function with a [`Scope`] parameter, giving the function the ability to"]""",
+    '''
+#[doc =
+" create userdata and callbacks from Rust types that are `!Send` or non-`\'static`."]''',
+    '#[doc = ""]',
+    """
+#[doc =
+" The lifetime of any function or userdata created through [`Scope`] lasts only until the"]""",
+    """
+#[doc =
+" completion of this method call, on completion all such created values are automatically"]""",
+    """
+#[doc =
+" dropped and Lua references to them are invalidated. If a script accesses a value created"]""",
+    """
+#[doc =
+" through [`Scope`] outside of this method, a Lua error will result. Since we can ensure the"]""",
+    """
+#[doc =
+" lifetime of values created through [`Scope`], and we know that [`Lua`] cannot be sent to"]""",
+    """
+#[doc =
+" another thread while [`Scope`] is live, it is safe to allow `!Send` data types and whose"]""",
+    '#[doc = " lifetimes only outlive the scope lifetime."]',
+]
+is_async = false
+is_const = false
+is_unsafe = false
+name = "scope"
+output = "Result < R >"
+variant = "fn"
+vis = "pub"
+
+[[table_spaces.lua_bindgen.tables.lua_impl_block.inputs]]
+name = "f"
+type_def = """
+impl for < 'scope > FnOnce(& 'scope mut Scope < 'scope, 'env >) -> Result < R
+>"""
+
+[table_spaces.lua_bindgen.tables.lua_impl_block.receiver]
+is_mutable = false
+is_ref = true
+
+[[table_spaces.lua_bindgen.tables.lua_impl_block]]
+attr = [
+    '''
+#[doc =
+" Attempts to coerce a Lua value into a String in a manner consistent with Lua\'s internal"]''',
+    '#[doc = " behavior."]',
+    '#[doc = ""]',
+    """
+#[doc =
+" To succeed, the value must be a string (in which case this is a no-op), an integer, or a"]""",
+    '#[doc = " number."]',
+]
+is_async = false
+is_const = false
+is_unsafe = false
+name = "coerce_string"
+output = "Result < Option < String > >"
+variant = "fn"
+vis = "pub"
+
+[[table_spaces.lua_bindgen.tables.lua_impl_block.inputs]]
+name = "v"
+type_def = "Value"
+
+[table_spaces.lua_bindgen.tables.lua_impl_block.receiver]
+is_mutable = false
+is_ref = true
+
+[[table_spaces.lua_bindgen.tables.lua_impl_block]]
+attr = [
+    '''
+#[doc =
+" Attempts to coerce a Lua value into an integer in a manner consistent with Lua\'s internal"]''',
+    '#[doc = " behavior."]',
+    '#[doc = ""]',
+    """
+#[doc =
+" To succeed, the value must be an integer, a floating point number that has an exact"]""",
+    """
+#[doc =
+" representation as an integer, or a string that can be converted to an integer. Refer to the"]""",
+    '#[doc = " Lua manual for details."]',
+]
+is_async = false
+is_const = false
+is_unsafe = false
+name = "coerce_integer"
+output = "Result < Option < Integer > >"
+variant = "fn"
+vis = "pub"
+
+[[table_spaces.lua_bindgen.tables.lua_impl_block.inputs]]
+name = "v"
+type_def = "Value"
+
+[table_spaces.lua_bindgen.tables.lua_impl_block.receiver]
+is_mutable = false
+is_ref = true
+
+[[table_spaces.lua_bindgen.tables.lua_impl_block]]
+attr = [
+    '''
+#[doc =
+" Attempts to coerce a Lua value into a Number in a manner consistent with Lua\'s internal"]''',
+    '#[doc = " behavior."]',
+    '#[doc = ""]',
+    """
+#[doc =
+" To succeed, the value must be a number or a string that can be converted to a number. Refer"]""",
+    '#[doc = " to the Lua manual for details."]',
+]
+is_async = false
+is_const = false
+is_unsafe = false
+name = "coerce_number"
+output = "Result < Option < Number > >"
+variant = "fn"
+vis = "pub"
+
+[[table_spaces.lua_bindgen.tables.lua_impl_block.inputs]]
+name = "v"
+type_def = "Value"
+
+[table_spaces.lua_bindgen.tables.lua_impl_block.receiver]
+is_mutable = false
+is_ref = true
+
+[[table_spaces.lua_bindgen.tables.lua_impl_block]]
+attr = [
+    """
+#[doc =
+" Converts a value that implements [`IntoLua`] into a [`Value`] instance."]""",
+    "#[inline]",
+]
+is_async = false
+is_const = false
+is_unsafe = false
+name = "pack"
+output = "Result < Value >"
+variant = "fn"
+vis = "pub"
+
+[[table_spaces.lua_bindgen.tables.lua_impl_block.inputs]]
+name = "t"
+type_def = "impl IntoLua"
+
+[table_spaces.lua_bindgen.tables.lua_impl_block.receiver]
+is_mutable = false
+is_ref = true
+
+[[table_spaces.lua_bindgen.tables.lua_impl_block]]
+attr = [
+    """
+#[doc =
+" Converts a [`Value`] instance into a value that implements [`FromLua`]."]""",
+    "#[inline]",
+]
+is_async = false
+is_const = false
+is_unsafe = false
+name = "unpack"
+output = "Result < T >"
+variant = "fn"
+vis = "pub"
+
+[[table_spaces.lua_bindgen.tables.lua_impl_block.inputs]]
+name = "value"
+type_def = "Value"
+
+[table_spaces.lua_bindgen.tables.lua_impl_block.receiver]
+is_mutable = false
+is_ref = true
+
+[[table_spaces.lua_bindgen.tables.lua_impl_block]]
+attr = [
+    """
+#[doc =
+" Converts a value that implements [`IntoLua`] into a [`FromLua`] variant."]""",
+    "#[inline]",
+]
+is_async = false
+is_const = false
+is_unsafe = false
+name = "convert"
+output = "Result < U >"
+variant = "fn"
+vis = "pub"
+
+[[table_spaces.lua_bindgen.tables.lua_impl_block.inputs]]
+name = "value"
+type_def = "impl IntoLua"
+
+[table_spaces.lua_bindgen.tables.lua_impl_block.receiver]
+is_mutable = false
+is_ref = true
+
+[[table_spaces.lua_bindgen.tables.lua_impl_block]]
+attr = [
+    """
+#[doc =
+" Converts a value that implements [`IntoLuaMulti`] into a [`MultiValue`] instance."]""",
+    "#[inline]",
+]
+is_async = false
+is_const = false
+is_unsafe = false
+name = "pack_multi"
+output = "Result < MultiValue >"
+variant = "fn"
+vis = "pub"
+
+[[table_spaces.lua_bindgen.tables.lua_impl_block.inputs]]
+name = "t"
+type_def = "impl IntoLuaMulti"
+
+[table_spaces.lua_bindgen.tables.lua_impl_block.receiver]
+is_mutable = false
+is_ref = true
+
+[[table_spaces.lua_bindgen.tables.lua_impl_block]]
+attr = [
+    """
+#[doc =
+" Converts a [`MultiValue`] instance into a value that implements [`FromLuaMulti`]."]""",
+    "#[inline]",
+]
+is_async = false
+is_const = false
+is_unsafe = false
+name = "unpack_multi"
+output = "Result < T >"
+variant = "fn"
+vis = "pub"
+
+[[table_spaces.lua_bindgen.tables.lua_impl_block.inputs]]
+name = "value"
+type_def = "MultiValue"
+
+[table_spaces.lua_bindgen.tables.lua_impl_block.receiver]
+is_mutable = false
+is_ref = true
+
+[[table_spaces.lua_bindgen.tables.lua_impl_block]]
+attr = [
+    '#[doc = " Set a value in the Lua registry based on a string key."]',
+    '#[doc = ""]',
+    """
+#[doc =
+" This value will be available to Rust from all Lua instances which share the same main"]""",
+    '#[doc = " state."]',
+]
+is_async = false
+is_const = false
+is_unsafe = false
+name = "set_named_registry_value"
+output = "Result < () >"
+variant = "fn"
+vis = "pub"
+
+[[table_spaces.lua_bindgen.tables.lua_impl_block.inputs]]
+name = "key"
+type_def = "& str"
+
+[[table_spaces.lua_bindgen.tables.lua_impl_block.inputs]]
+name = "t"
+type_def = "impl IntoLua"
+
+[table_spaces.lua_bindgen.tables.lua_impl_block.receiver]
+is_mutable = false
+is_ref = true
+
+[[table_spaces.lua_bindgen.tables.lua_impl_block]]
+attr = [
+    '#[doc = " Get a value from the Lua registry based on a string key."]',
+    '#[doc = ""]',
+    """
+#[doc =
+" Any Lua instance which shares the underlying main state may call this method to"]""",
+    '#[doc = " get a value previously set by [`Lua::set_named_registry_value`]."]',
+]
+is_async = false
+is_const = false
+is_unsafe = false
+name = "named_registry_value"
+output = "Result < T >"
+variant = "fn"
+vis = "pub"
+
+[[table_spaces.lua_bindgen.tables.lua_impl_block.inputs]]
+name = "key"
+type_def = "& str"
+
+[table_spaces.lua_bindgen.tables.lua_impl_block.receiver]
+is_mutable = false
+is_ref = true
+
+[[table_spaces.lua_bindgen.tables.lua_impl_block]]
+attr = [
+    '#[doc = " Removes a named value in the Lua registry."]',
+    '#[doc = ""]',
+    """
+#[doc =
+" Equivalent to calling [`Lua::set_named_registry_value`] with a value of [`Nil`]."]""",
+    "#[inline]",
+]
+is_async = false
+is_const = false
+is_unsafe = false
+name = "unset_named_registry_value"
+output = "Result < () >"
+variant = "fn"
+vis = "pub"
+
+[[table_spaces.lua_bindgen.tables.lua_impl_block.inputs]]
+name = "key"
+type_def = "& str"
+
+[table_spaces.lua_bindgen.tables.lua_impl_block.receiver]
+is_mutable = false
+is_ref = true
+
+[[table_spaces.lua_bindgen.tables.lua_impl_block]]
+attr = [
+    '#[doc = " Place a value in the Lua registry with an auto-generated key."]',
+    '#[doc = ""]',
+    """
+#[doc =
+" This value will be available to Rust from all Lua instances which share the same main"]""",
+    '#[doc = " state."]',
+    '#[doc = ""]',
+    """
+#[doc =
+" Be warned, garbage collection of values held inside the registry is not automatic, see"]""",
+    '#[doc = " [`RegistryKey`] for more details."]',
+    """
+#[doc =
+" However, dropped [`RegistryKey`]s automatically reused to store new values."]""",
+]
+is_async = false
+is_const = false
+is_unsafe = false
+name = "create_registry_value"
+output = "Result < RegistryKey >"
+variant = "fn"
+vis = "pub"
+
+[[table_spaces.lua_bindgen.tables.lua_impl_block.inputs]]
+name = "t"
+type_def = "impl IntoLua"
+
+[table_spaces.lua_bindgen.tables.lua_impl_block.receiver]
+is_mutable = false
+is_ref = true
+
+[[table_spaces.lua_bindgen.tables.lua_impl_block]]
+attr = [
+    '#[doc = " Get a value from the Lua registry by its [`RegistryKey`]"]',
+    '#[doc = ""]',
+    """
+#[doc =
+" Any Lua instance which shares the underlying main state may call this method to get a value"]""",
+    '#[doc = " previously placed by [`Lua::create_registry_value`]."]',
+]
+is_async = false
+is_const = false
+is_unsafe = false
+name = "registry_value"
+output = "Result < T >"
+variant = "fn"
+vis = "pub"
+
+[[table_spaces.lua_bindgen.tables.lua_impl_block.inputs]]
+name = "key"
+type_def = "& RegistryKey"
+
+[table_spaces.lua_bindgen.tables.lua_impl_block.receiver]
+is_mutable = false
+is_ref = true
+
+[[table_spaces.lua_bindgen.tables.lua_impl_block]]
+attr = [
+    '#[doc = " Removes a value from the Lua registry."]',
+    '#[doc = ""]',
+    """
+#[doc =
+" You may call this function to manually remove a value placed in the registry with"]""",
+    """
+#[doc =
+" [`Lua::create_registry_value`]. In addition to manual [`RegistryKey`] removal, you can also"]""",
+    """
+#[doc =
+" call [`Lua::expire_registry_values`] to automatically remove values from the registry"]""",
+    '#[doc = " whose [`RegistryKey`]s have been dropped."]',
+]
+is_async = false
+is_const = false
+is_unsafe = false
+name = "remove_registry_value"
+output = "Result < () >"
+variant = "fn"
+vis = "pub"
+
+[[table_spaces.lua_bindgen.tables.lua_impl_block.inputs]]
+name = "key"
+type_def = "RegistryKey"
+
+[table_spaces.lua_bindgen.tables.lua_impl_block.receiver]
+is_mutable = false
+is_ref = true
+
+[[table_spaces.lua_bindgen.tables.lua_impl_block]]
+attr = [
+    '#[doc = " Replaces a value in the Lua registry by its [`RegistryKey`]."]',
+    '#[doc = ""]',
+    """
+#[doc =
+" An identifier used in [`RegistryKey`] may possibly be changed to a new value."]""",
+    '#[doc = ""]',
+    '#[doc = " See [`Lua::create_registry_value`] for more details."]',
+]
+is_async = false
+is_const = false
+is_unsafe = false
+name = "replace_registry_value"
+output = "Result < () >"
+variant = "fn"
+vis = "pub"
+
+[[table_spaces.lua_bindgen.tables.lua_impl_block.inputs]]
+name = "key"
+type_def = "& mut RegistryKey"
+
+[[table_spaces.lua_bindgen.tables.lua_impl_block.inputs]]
+name = "t"
+type_def = "impl IntoLua"
+
+[table_spaces.lua_bindgen.tables.lua_impl_block.receiver]
+is_mutable = false
+is_ref = true
+
+[[table_spaces.lua_bindgen.tables.lua_impl_block]]
+attr = [
+    """
+#[doc =
+" Returns true if the given [`RegistryKey`] was created by a Lua which shares the"]""",
+    '#[doc = " underlying main state with this Lua instance."]',
+    '#[doc = ""]',
+    '#[doc = " Other than this, methods that accept a [`RegistryKey`] will return"]',
+    """
+#[doc =
+" [`Error::MismatchedRegistryKey`] if passed a [`RegistryKey`] that was not created with a"]""",
+    '#[doc = " matching [`Lua`] state."]',
+    "#[inline]",
+]
+is_async = false
+is_const = false
+is_unsafe = false
+name = "owns_registry_value"
+output = "bool"
+variant = "fn"
+vis = "pub"
+
+[[table_spaces.lua_bindgen.tables.lua_impl_block.inputs]]
+name = "key"
+type_def = "& RegistryKey"
+
+[table_spaces.lua_bindgen.tables.lua_impl_block.receiver]
+is_mutable = false
+is_ref = true
+
+[[table_spaces.lua_bindgen.tables.lua_impl_block]]
+attr = [
+    """
+#[doc =
+" Remove any registry values whose [`RegistryKey`]s have all been dropped."]""",
+    '#[doc = ""]',
+    """
+#[doc =
+" Unlike normal handle values, [`RegistryKey`]s do not automatically remove themselves on"]""",
+    """
+#[doc =
+" Drop, but you can call this method to remove any unreachable registry values not"]""",
+    '#[doc = " manually removed by [`Lua::remove_registry_value`]."]',
+]
+inputs = []
+is_async = false
+is_const = false
+is_unsafe = false
+name = "expire_registry_values"
+output = ""
+variant = "fn"
+vis = "pub"
+
+[table_spaces.lua_bindgen.tables.lua_impl_block.receiver]
+is_mutable = false
+is_ref = true
+
+[[table_spaces.lua_bindgen.tables.lua_impl_block]]
+attr = [
+    '#[doc = " Sets or replaces an application data object of type `T`."]',
+    '#[doc = ""]',
+    """
+#[doc =
+" Application data could be accessed at any time by using [`Lua::app_data_ref`] or"]""",
+    '#[doc = " [`Lua::app_data_mut`] methods where `T` is the data type."]',
+    '#[doc = ""]',
+    '#[doc = " # Panics"]',
+    '#[doc = ""]',
+    '#[doc = " Panics if the app data container is currently borrowed."]',
+    '#[doc = ""]',
+    '#[doc = " # Examples"]',
+    '#[doc = ""]',
+    '#[doc = " ```"]',
+    '#[doc = " use mlua::{Lua, Result};"]',
+    '#[doc = ""]',
+    '#[doc = " fn hello(lua: &Lua, _: ()) -> Result<()> {"]',
+    '#[doc = "     let mut s = lua.app_data_mut::<&str>().unwrap();"]',
+    '#[doc = "     assert_eq!(*s, \"hello\");"]',
+    '#[doc = "     *s = \"world\";"]',
+    '#[doc = "     Ok(())"]',
+    '#[doc = " }"]',
+    '#[doc = ""]',
+    '#[doc = " fn main() -> Result<()> {"]',
+    '#[doc = "     let lua = Lua::new();"]',
+    '#[doc = "     lua.set_app_data(\"hello\");"]',
+    '#[doc = "     lua.create_function(hello)?.call::<()>(())?;"]',
+    '#[doc = "     let s = lua.app_data_ref::<&str>().unwrap();"]',
+    '#[doc = "     assert_eq!(*s, \"world\");"]',
+    '#[doc = "     Ok(())"]',
+    '#[doc = " }"]',
+    '#[doc = " ```"]',
+    "#[track_caller]",
+]
+is_async = false
+is_const = false
+is_unsafe = false
+name = "set_app_data"
+output = "Option < T >"
+variant = "fn"
+vis = "pub"
+
+[[table_spaces.lua_bindgen.tables.lua_impl_block.inputs]]
+name = "data"
+type_def = "T"
+
+[table_spaces.lua_bindgen.tables.lua_impl_block.receiver]
+is_mutable = false
+is_ref = true
+
+[[table_spaces.lua_bindgen.tables.lua_impl_block]]
+attr = [
+    '#[doc = " Tries to set or replace an application data object of type `T`."]',
+    '#[doc = ""]',
+    '#[doc = " Returns:"]',
+    """
+#[doc =
+" - `Ok(Some(old_data))` if the data object of type `T` was successfully replaced."]""",
+    """
+#[doc =
+" - `Ok(None)` if the data object of type `T` was successfully inserted."]""",
+    """
+#[doc =
+" - `Err(data)` if the data object of type `T` was not inserted because the container is"]""",
+    '#[doc = "   currently borrowed."]',
+    '#[doc = ""]',
+    '#[doc = " See [`Lua::set_app_data`] for examples."]',
+]
+is_async = false
+is_const = false
+is_unsafe = false
+name = "try_set_app_data"
+output = "StdResult < Option < T > , T >"
+variant = "fn"
+vis = "pub"
+
+[[table_spaces.lua_bindgen.tables.lua_impl_block.inputs]]
+name = "data"
+type_def = "T"
+
+[table_spaces.lua_bindgen.tables.lua_impl_block.receiver]
+is_mutable = false
+is_ref = true
+
+[[table_spaces.lua_bindgen.tables.lua_impl_block]]
+attr = [
+    """
+#[doc =
+" Gets a reference to an application data object stored by [`Lua::set_app_data`] of type"]""",
+    '#[doc = " `T`."]',
+    '#[doc = ""]',
+    '#[doc = " # Panics"]',
+    '#[doc = ""]',
+    """
+#[doc =
+" Panics if the data object of type `T` is currently mutably borrowed. Multiple immutable"]""",
+    '#[doc = " reads can be taken out at the same time."]',
+    "#[track_caller]",
+]
+inputs = []
+is_async = false
+is_const = false
+is_unsafe = false
+name = "app_data_ref"
+output = "Option < AppDataRef < T > >"
+variant = "fn"
+vis = "pub"
+
+[table_spaces.lua_bindgen.tables.lua_impl_block.receiver]
+is_mutable = false
+is_ref = true
+
+[[table_spaces.lua_bindgen.tables.lua_impl_block]]
+attr = [
+    """
+#[doc =
+" Tries to get a reference to an application data object stored by [`Lua::set_app_data`] of"]""",
+    '#[doc = " type `T`."]',
+]
+inputs = []
+is_async = false
+is_const = false
+is_unsafe = false
+name = "try_app_data_ref"
+output = "StdResult < Option < AppDataRef < T > > , BorrowError >"
+variant = "fn"
+vis = "pub"
+
+[table_spaces.lua_bindgen.tables.lua_impl_block.receiver]
+is_mutable = false
+is_ref = true
+
+[[table_spaces.lua_bindgen.tables.lua_impl_block]]
+attr = [
+    """
+#[doc =
+" Gets a mutable reference to an application data object stored by [`Lua::set_app_data`] of"]""",
+    '#[doc = " type `T`."]',
+    '#[doc = ""]',
+    '#[doc = " # Panics"]',
+    '#[doc = ""]',
+    '#[doc = " Panics if the data object of type `T` is currently borrowed."]',
+    "#[track_caller]",
+]
+inputs = []
+is_async = false
+is_const = false
+is_unsafe = false
+name = "app_data_mut"
+output = "Option < AppDataRefMut < T > >"
+variant = "fn"
+vis = "pub"
+
+[table_spaces.lua_bindgen.tables.lua_impl_block.receiver]
+is_mutable = false
+is_ref = true
+
+[[table_spaces.lua_bindgen.tables.lua_impl_block]]
+attr = [
+    """
+#[doc =
+" Tries to get a mutable reference to an application data object stored by"]""",
+    '#[doc = " [`Lua::set_app_data`] of type `T`."]',
+]
+inputs = []
+is_async = false
+is_const = false
+is_unsafe = false
+name = "try_app_data_mut"
+output = "StdResult < Option < AppDataRefMut < T > > , BorrowMutError >"
+variant = "fn"
+vis = "pub"
+
+[table_spaces.lua_bindgen.tables.lua_impl_block.receiver]
+is_mutable = false
+is_ref = true
+
+[[table_spaces.lua_bindgen.tables.lua_impl_block]]
+attr = [
+    '#[doc = " Removes an application data of type `T`."]',
+    '#[doc = ""]',
+    '#[doc = " # Panics"]',
+    '#[doc = ""]',
+    '#[doc = " Panics if the app data container is currently borrowed."]',
+    "#[track_caller]",
+]
+inputs = []
+is_async = false
+is_const = false
+is_unsafe = false
+name = "remove_app_data"
+output = "Option < T >"
+variant = "fn"
+vis = "pub"
+
+[table_spaces.lua_bindgen.tables.lua_impl_block.receiver]
+is_mutable = false
+is_ref = true
+
+[[table_spaces.lua_bindgen.tables.lua_impl_block]]
+attr = [
+    """
+#[doc =
+" Returns an internal `Poll::Pending` constant used for executing async callbacks."]""",
+    '#[doc = ""]',
+    """
+#[doc =
+" Every time when [`Future`] is Pending, Lua corotine is suspended with this constant."]""",
+    '#[cfg(feature = "async")]',
+    "#[doc(hidden)]",
+    "#[inline(always)]",
+]
+inputs = []
+is_async = false
+is_const = false
+is_unsafe = false
+name = "poll_pending"
+output = "LightUserData"
+variant = "fn"
+vis = "pub"
+
+[table_spaces.lua_bindgen.tables.lua_impl_block.receiver.no_value]
+
+[[table_spaces.lua_bindgen.tables.lua_impl_block]]
+attr = [
+    '#[doc = " Returns a weak reference to the Lua instance."]',
+    '#[doc = ""]',
+    """
+#[doc =
+" This is useful for creating a reference to the Lua instance that does not prevent it from"]""",
+    '#[doc = " being deallocated."]',
+    "#[inline(always)]",
+]
+inputs = []
+is_async = false
+is_const = false
+is_unsafe = false
+name = "weak"
+output = "WeakLua"
+variant = "fn"
+vis = "pub"
+
+[table_spaces.lua_bindgen.tables.lua_impl_block.receiver]
+is_mutable = false
+is_ref = true
+
+[[table_spaces.lua_bindgen.tables.lua_impl_block]]
+attr = ['#[cfg(not(feature = "luau"))]']
+inputs = []
+is_async = false
+is_const = false
+is_unsafe = false
+name = "disable_c_modules"
+output = "Result < () >"
+variant = "fn"
+vis = ""
+
+[table_spaces.lua_bindgen.tables.lua_impl_block.receiver]
+is_mutable = false
+is_ref = true
+
+[[table_spaces.lua_bindgen.tables.lua_impl_block]]
+attr = ["#[inline(always)]"]
+inputs = []
+is_async = false
+is_const = false
+is_unsafe = false
+name = "lock"
+output = "ReentrantMutexGuard < RawLua >"
+variant = "fn"
+vis = "pub(crate)"
+
+[table_spaces.lua_bindgen.tables.lua_impl_block.receiver]
+is_mutable = false
+is_ref = true
+
+[[table_spaces.lua_bindgen.tables.lua_impl_block]]
+attr = ["#[inline(always)]"]
+inputs = []
+is_async = false
+is_const = false
+is_unsafe = false
+name = "lock_arc"
+output = "LuaGuard"
+variant = "fn"
+vis = "pub(crate)"
+
+[table_spaces.lua_bindgen.tables.lua_impl_block.receiver]
+is_mutable = false
+is_ref = true
+
+[[table_spaces.lua_bindgen.tables.lua_impl_block]]
+attr = [
+    """
+#[doc =
+" Returns a handle to the unprotected Lua state without any synchronization."]""",
+    '#[doc = ""]',
+    """
+#[doc =
+" This is useful where we know that the lock is already held by the caller."]""",
+    '#[cfg(feature = "async")]',
+    "#[inline(always)]",
+]
+inputs = []
+is_async = false
+is_const = false
+is_unsafe = true
+name = "raw_lua"
+output = "& RawLua"
+variant = "fn"
+vis = "pub(crate)"
+
+[table_spaces.lua_bindgen.tables.lua_impl_block.receiver]
+is_mutable = false
+is_ref = true

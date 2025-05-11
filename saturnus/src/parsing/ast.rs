@@ -1,4 +1,4 @@
-use st_macros::{bitmask_impl, wrapper_enum};
+use macros::{bitmask_impl, wrapper_enum};
 
 #[derive(Debug, Clone)]
 pub enum Number {
@@ -326,7 +326,7 @@ impl Loop {
 }
 
 #[derive(Debug, Clone)]
-#[bitmask_impl(pub, static, partial)]
+#[bitmask_impl("pub", "static", "partial")]
 pub struct DefModifiers {
     mask: u8,
 }

@@ -14,3 +14,7 @@ macro_rules! saturnus_export {
         }
     };
 }
+
+pub mod internal {
+    pub use mlua::Lua as Vm;
+}

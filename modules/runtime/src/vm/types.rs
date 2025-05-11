@@ -1,5 +1,5 @@
+use macros::{IntoSaturnus, wrapper_enum};
 use mlua::{IntoLua, ObjectLike};
-use st_macros::{IntoSaturnus, wrapper_enum};
 
 use crate::mem::St;
 
@@ -160,6 +160,9 @@ impl ToString for Any {
     }
 }
 
+#[deprecated(
+    note = "As StVm is deprecated, this trait is too, as it will constitute a thin-wrapper to make IntoLua transparent."
+)]
 pub trait IntoSaturnus {
     fn into_saturnus(self) -> Any;
 }

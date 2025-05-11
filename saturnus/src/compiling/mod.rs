@@ -1,6 +1,6 @@
 use std::path::PathBuf;
 
-use saturnstd::Ir;
+use ststd::Ir;
 
 pub mod backends;
 

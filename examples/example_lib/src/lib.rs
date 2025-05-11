@@ -1,6 +1,6 @@
-use saturnus_rt::saturnus_export;
+use runtime::saturnus_export;
 
-use saturnus_rt::{
+use runtime::{
     mem::St,
     vm::{
         Result, StVm,

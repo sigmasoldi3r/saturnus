@@ -7,7 +7,7 @@ use std::{error::Error, fmt::Display, ops::Deref, sync::Arc};
 use lazy_static::lazy_static;
 use mlua::{ExternalError, IntoLua as _, Lua, MaybeSend};
 use program::Program;
-use saturnstd::Ir;
+use ststd::Ir;
 use tokio::{sync::Mutex, task::JoinHandle};
 use types::{Any, Function, IntoSaturnus, Str, Table};
 
@@ -81,6 +81,7 @@ lazy_static! {
 /// This is the backend that runs saturnus.
 ///
 /// Hosts creation and management of the native runtime.
+#[deprecated(note = "Moving to thin-wrappers. See `runtime::internal::Vm;`")]
 #[derive(Clone)]
 pub struct StVm {
     rt: Lua,

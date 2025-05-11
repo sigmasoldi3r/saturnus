@@ -1,5 +1,5 @@
 [package]
-name = "saturnus_rt"
+name = "runtime"
 version = "0.1.0"
 edition = "2024"
 
@@ -12,6 +12,7 @@ serde = "1.0.219"
 serde_json = "1.0.140"
 tokio = "1.44.2"
 toml = "0.8.22"
-st_macros = { path = "../st_macros" }
-saturnstd = { path = "../saturnstd" }
 lazy_static = "1.5.0"
+
+macros = { path = "../macros" }
+ststd = { path = "../ststd" }

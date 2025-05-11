@@ -9,11 +9,15 @@ let server = net::server('{ port }).start.{
         print("Incoming request");
         let inc = it.read();
         print("inc = ", inc);
+        it.write("HTTP/1.1 200 OK
+Content-Length: 12
+
+Hello world!");
     };
     loop {
         let [ok, msg] = [coroutine::resume(co)];
-        print("Status: ", ok, " msg: ", msg);
         if not ok {
+            print("Status: ", ok, " msg: ", msg);
             break;
         }
     }

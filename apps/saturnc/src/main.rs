@@ -11,12 +11,12 @@ use std::{
 use cli::{Args, CompileTarget};
 use colored::Colorize;
 use options::OptionsAdapter;
-use saturnus::compiling::{Compiler, CompilerOptions, CompilerSource, backends::LuaCompiler};
-use saturnus_rt::{
+use runtime::{
     mem::St,
     native, table_get, table_set,
     vm::{StVm, types::Any},
 };
+use saturnus::compiling::{Compiler, CompilerOptions, CompilerSource, backends::LuaCompiler};
 
 fn read_file_as_source(mut input: PathBuf) -> Result<CompilerSource, std::io::Error> {
     let mut source = String::new();
@@ -86,7 +86,7 @@ async fn run(
     let stdlib_ir = luac
         .compile(
             CompilerSource {
-                source: saturnstd::STDLIB_CODE.to_owned(),
+                source: ststd::STDLIB_CODE.to_owned(),
                 location: Some(PathBuf::from("std")),
             },
             options.clone(),
@@ -121,7 +121,7 @@ async fn run(
                             async move {
                                 let lib = lib.lock().await;
                                 let func: libloading::Symbol<
-                                    fn(StVm, Vec<Any>) -> saturnus_rt::vm::Result<Any>,
+                                    fn(StVm, Vec<Any>) -> runtime::vm::Result<Any>,
                                 > = lib.get(symbol.as_bytes()).unwrap();
                                 func(vm, args)
                             }

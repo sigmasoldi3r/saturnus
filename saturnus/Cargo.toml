@@ -8,8 +8,10 @@ lalrpop = "0.22.1"
 
 [dependencies]
 lalrpop-util = { version = "0.22.1", features = ["lexer", "unicode"] }
-st_macros = { path = "../st_macros" }
-saturnus_rt = { path = "../saturnus_rt" }
-saturnstd = { path = "../saturnstd" }
 regex = "1.11.1"
 lazy_static = "1.5.0"
+mlua = { version = "0.10", features = ["lua53", "vendored", "async", "send"] }
+
+macros = { path = "../modules/macros" }
+runtime = { path = "../modules/runtime" }
+ststd = { path = "../modules/ststd" }

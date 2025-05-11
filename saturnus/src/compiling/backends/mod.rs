@@ -283,7 +283,11 @@ impl LuaCompiler {
         Ok(())
     }
     fn compile_string(&mut self, expr: SatString) -> Result {
-        self.code.write("\"").write(expr.value).write("\"");
+        if expr.value.find("\n").is_some() {
+            self.code.write("[[").write(expr.value).write("]]");
+        } else {
+            self.code.write("\"").write(expr.value).write("\"");
+        }
         Ok(())
     }
     fn compile_boolean(&mut self, expr: Boolean) -> Result {
