@@ -343,14 +343,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "example_lib"
-version = "0.1.0"
-dependencies = [
- "macros",
- "runtime",
-]
-
-[[package]]
 name = "fastrand"
 version = "2.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -923,15 +915,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6877bb514081ee2a7ff5ef9de3281f14a4dd4bceac4c09388074a6b5df8a139a"
 
 [[package]]
-name = "minijinja"
-version = "2.10.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "dd72e8b4e42274540edabec853f607c015c73436159b06c39c7af85a20433155"
-dependencies = [
- "serde",
-]
-
-[[package]]
 name = "miniz_oxide"
 version = "0.8.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1279,23 +1262,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "runtime"
-version = "0.1.0"
-dependencies = [
- "lazy_static",
- "macros",
- "minijinja",
- "mlua",
- "regex",
- "reqwest",
- "serde",
- "serde_json",
- "ststd",
- "tokio",
- "toml",
-]
-
-[[package]]
 name = "rustc-demangle"
 version = "0.1.24"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1405,7 +1371,6 @@ dependencies = [
  "macros",
  "mlua",
  "regex",
- "runtime",
  "ststd",
 ]
 

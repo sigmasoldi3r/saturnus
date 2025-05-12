@@ -1,8 +1,6 @@
 use std::path::PathBuf;
 
-use ststd::Ir;
-
-pub mod backends;
+use crate::source::{SaturnusIR, SourceCode};
 
 #[derive(Debug, Clone)]
 pub enum CompilerError {
@@ -11,20 +9,17 @@ pub enum CompilerError {
     SystemError,
     ParsingError(String),
 }
-
-pub struct CompilerSource {
-    pub source: String,
-    pub location: Option<PathBuf>,
-}
-impl CompilerSource {
-    pub fn without_shebang(&self) -> String {
-        let source = self.source.clone();
-        if source.starts_with("#") {
-            return source.split("\n").skip(1).collect::<Vec<_>>().join("\n");
+impl std::fmt::Display for CompilerError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            CompilerError::SyntaxError(cause) => write!(f, "Syntax error: {cause}"),
+            CompilerError::MacroError => write!(f, "Macro expansion error: <not available>"),
+            CompilerError::SystemError => write!(f, "System error: <not available>"),
+            CompilerError::ParsingError(cause) => write!(f, "Parsing error: {cause}"),
         }
-        source
     }
 }
+impl std::error::Error for CompilerError {}
 
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub enum ModuleType {
@@ -61,9 +56,9 @@ impl Default for CompilerOptions {
 pub trait Compiler {
     fn compile(
         &mut self,
-        source: CompilerSource,
+        source: impl SourceCode,
         options: CompilerOptions,
-    ) -> std::result::Result<Box<dyn Ir>, CompilerError>;
+    ) -> std::result::Result<SaturnusIR, CompilerError>;
 }
 
 pub type Result = std::result::Result<(), CompilerError>;

@@ -1,4 +1,4 @@
-use saturnus::compiling::CompilerOptions;
+use saturnus::compiler::{CompilerOptions, ModuleType};
 
 use crate::cli::Args;
 
@@ -25,11 +25,9 @@ impl OptionsAdapter {
                 unit_interop: !*disable_unit_interop,
                 override_mod_path: mod_path.clone(),
                 module_type: match module_resolution {
-                    crate::cli::ModSys::Saturnus => saturnus::compiling::ModuleType::Saturnus,
-                    crate::cli::ModSys::Native => {
-                        saturnus::compiling::ModuleType::LocalModuleReturn
-                    }
-                    crate::cli::ModSys::Glboals => saturnus::compiling::ModuleType::PubAsGlobal,
+                    crate::cli::ModSys::Saturnus => ModuleType::Saturnus,
+                    crate::cli::ModSys::Native => ModuleType::LocalModuleReturn,
+                    crate::cli::ModSys::Glboals => ModuleType::PubAsGlobal,
                 },
             },
             Args::Run { .. } => Default::default(),

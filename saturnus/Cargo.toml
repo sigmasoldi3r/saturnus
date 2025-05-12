@@ -13,5 +13,4 @@ lazy_static = "1.5.0"
 mlua = { version = "0.10", features = ["lua53", "vendored", "async", "send"] }
 
 macros = { path = "../modules/macros" }
-runtime = { path = "../modules/runtime" }
 ststd = { path = "../modules/ststd" }

@@ -1,3 +1,9 @@
 [workspace]
 resolver = "2"
-members = [ "examples/example_lib", "saturnus", "apps/titan", "apps/saturnc", "modules/ststd", "modules/macros", "modules/runtime"]
+members = [
+    "saturnus",
+    "apps/titan",
+    "apps/saturnc",
+    "modules/ststd",
+    "modules/macros",
+]

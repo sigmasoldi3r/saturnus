@@ -11,20 +11,27 @@ use std::{
 use cli::{Args, CompileTarget};
 use colored::Colorize;
 use options::OptionsAdapter;
-use runtime::{
-    mem::St,
-    native, table_get, table_set,
-    vm::{StVm, types::Any},
-};
-use saturnus::compiling::{Compiler, CompilerOptions, CompilerSource, backends::LuaCompiler};
+use saturnus::{Saturnus, Table, compiler::CompilerOptions, source::SourceCode};
 
-fn read_file_as_source(mut input: PathBuf) -> Result<CompilerSource, std::io::Error> {
+fn read_file_as_source(mut input: PathBuf) -> Result<impl SourceCode, std::io::Error> {
     let mut source = String::new();
     File::open(&input)?.read_to_string(&mut source)?;
     input.set_extension("");
-    Ok(CompilerSource {
+    struct Src {
+        source: String,
+        location: PathBuf,
+    }
+    impl SourceCode for Src {
+        fn source(self) -> String {
+            self.source
+        }
+        fn location(&self) -> Option<PathBuf> {
+            Some(self.location.clone())
+        }
+    }
+    Ok(Src {
         source,
-        location: Some(input),
+        location: input,
     })
 }
 
@@ -43,9 +50,10 @@ fn compile(
         }
     };
     let source = read_file_as_source(input).unwrap();
-    let mut c = LuaCompiler::new();
+    let mut c = Saturnus::new();
+    c.options = options.clone();
     let out = match target {
-        CompileTarget::Lua => c.compile(source, options).unwrap(),
+        CompileTarget::Lua => c.compile(source).unwrap(),
     };
     let mut out_file = File::create(&output).unwrap();
     write!(out_file, "{}", out.to_string()).unwrap();
@@ -76,66 +84,44 @@ async fn run(
     dump_ir: bool,
 ) -> Result<(), ()> {
     let source_loc = input.clone().to_str().unwrap_or("").to_owned();
+    // TODO ^^^^^^ Handle this.
     let source = read_file_as_source(input).report_errors()?;
-    let mut luac = LuaCompiler::new();
-    let ir = luac.compile(source, options.clone()).report_errors()?;
+    let mut sat = Saturnus::new();
+    sat.options = options.clone();
+    let ir = sat.compile(source).report_errors()?;
     if dump_ir {
         println!("{}\n", format!("{}", ir.to_string()).dimmed());
     }
-    let vm = StVm::new();
-    let stdlib_ir = luac
-        .compile(
-            CompilerSource {
-                source: ststd::STDLIB_CODE.to_owned(),
-                location: Some(PathBuf::from("std")),
-            },
-            options.clone(),
-        )
-        .report_errors()?;
-    // Load the cross platform stdlib
-    vm.load_program(stdlib_ir).exec().report_errors()?;
-    // Now Saturnus-Platform only functions.
-    let mut globals = vm.get_globals();
-    let mut __modules__ = table_get!(vm; globals, "__modules__").unwrap_table();
-    table_set!(vm; __modules__, "net" => native::net::load_mod(&vm));
-    table_set!(vm; __modules__, "JSON" => native::json::load_mod(&vm));
-    // Loading native libraries
-    for lib_name in lib {
-        println!("Loading native module {lib_name:?}...");
-        unsafe {
-            let lib = St::new(libloading::Library::new(lib_name.clone()).report_errors()?);
-            let guard = lib.lock().await;
-            let get_symbol_table: libloading::Symbol<extern "C" fn() -> (String, Vec<String>)> =
-                guard.get(b"__saturnus_module_symbols__").report_errors()?;
-            let (id, symbols) = get_symbol_table();
-            let mut mod_table = vm.create_table().report_errors()?;
-            for symbol in symbols {
-                println!("Loading native wrapper {id}::{symbol}...");
-                let wrapper = vm
-                    .create_fn({
-                        let lib = lib.clone();
-                        let symbol = symbol.clone();
-                        move |vm, args| {
-                            let lib = lib.clone();
-                            let symbol = symbol.clone();
-                            async move {
-                                let lib = lib.lock().await;
-                                let func: libloading::Symbol<
-                                    fn(StVm, Vec<Any>) -> runtime::vm::Result<Any>,
-                                > = lib.get(symbol.as_bytes()).unwrap();
-                                func(vm, args)
-                            }
-                        }
-                    })
-                    .report_errors()?;
-                table_set!(vm; mod_table, symbol => wrapper);
-            }
-            table_set!(vm; __modules__, id => mod_table);
+    struct InPlace {
+        source: String,
+        location: PathBuf,
+    }
+    impl SourceCode for InPlace {
+        fn source(self) -> String {
+            self.source
+        }
+        fn location(&self) -> Option<PathBuf> {
+            Some(self.location.clone())
         }
     }
-    table_set!(vm; globals, "__modules__" => __modules__);
-    vm.load_program(ir).exec().report_errors()?;
-    vm.process_pending().await;
+    // Load the cross platform stdlib
+    sat.load(InPlace {
+        source: ststd::STDLIB_CODE.to_owned(),
+        location: PathBuf::from("std"),
+    })
+    .report_errors()?
+    .exec()
+    .report_errors()?;
+    // Now Saturnus-Platform only functions.
+    let globals = sat.globals();
+    let mut __modules__: Table = globals.get("__modules__").unwrap().into();
+    // Loading native libraries
+    // TODO
+    if !lib.is_empty() {
+        eprintln!("WARNING: Native library loading is not implemented.");
+    }
+    globals.set("__modules__", __modules__).unwrap();
+    sat.load_ir(ir).report_errors()?.exec().report_errors()?;
     Ok(())
 }
 

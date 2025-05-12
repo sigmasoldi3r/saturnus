@@ -3,6 +3,7 @@ use regex::Regex;
 
 use crate::{
     code::IndentedBuilder,
+    compiler::{Compiler, CompilerError, CompilerOptions, ModuleType, Result},
     parsing::{
         ast::{
             ArrayAccess, ArrayLiteral, Assignment, AssignmentTarget, Boolean, Bop, Call, ClassDef,
@@ -14,9 +15,8 @@ use crate::{
         builders::{AddArrayAccess, AddMember, LeafCollector},
         grammar::ProgramParser,
     },
+    source::{SaturnusIR, SourceCode},
 };
-
-use super::{Compiler, CompilerError, CompilerOptions, CompilerSource, Ir, ModuleType, Result};
 
 pub struct LuaCompiler {
     code: IndentedBuilder,
@@ -1119,26 +1119,19 @@ lazy_static! {
     static ref PATH_SEGMENT_START: Regex = Regex::new(r"^[^A-Za-z_]").unwrap();
 }
 
-struct LuaIr(String);
-impl ToString for LuaIr {
-    fn to_string(&self) -> String {
-        self.0.clone()
-    }
-}
-impl Ir for LuaIr {}
-
 impl Compiler for LuaCompiler {
     fn compile(
         &mut self,
-        mut source: CompilerSource,
+        source: impl SourceCode,
         options: CompilerOptions,
-    ) -> std::result::Result<Box<dyn Ir>, CompilerError> {
+    ) -> std::result::Result<SaturnusIR, CompilerError> {
         self.module_root_expr = Identifier::new("__modules__", false);
-        if let Some(mod_path) = &options.override_mod_path {
-            source.location = Some(mod_path.clone());
+        if let Some(_) = &options.override_mod_path {
+            todo!()
         }
         self.options = options;
-        let code = source.without_shebang();
+        let location = source.location();
+        let code = source.source();
         let parser = ProgramParser::new();
         let ast = match parser.parse(&code) {
             Ok(ast) => ast,
@@ -1153,7 +1146,7 @@ impl Compiler for LuaCompiler {
                 modules.clone().unwrap_identifier(),
             ))?;
             // Initialize this module, if not root.
-            if let Some(path) = source.location {
+            if let Some(path) = location {
                 let mut out = self.module_root_expr.clone();
                 for rest in path.iter() {
                     let segment = rest
@@ -1177,6 +1170,6 @@ impl Compiler for LuaCompiler {
         };
         self.compile_program(ast)?;
         let output = std::mem::replace(&mut self.code, IndentedBuilder::new()).unwrap();
-        Ok(Box::new(LuaIr(output)))
+        Ok(SaturnusIR::from(output))
     }
 }
