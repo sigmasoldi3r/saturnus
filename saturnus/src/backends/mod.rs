@@ -762,7 +762,15 @@ impl LuaCompiler {
         // Declare the class table
         self.process_pub_symbol(&modifiers)?;
         self.compile_identifier(name.clone())?;
-        self.code.write(" = {};").line();
+        self.code
+            .write(" = {};")
+            .line()
+            .write("do")
+            .push()
+            .line()
+            .write("local Self = ");
+        self.compile_identifier(name.clone())?;
+        self.code.write(";").line();
         // Filter out field initializers:
         let methods = fields
             .iter()
@@ -975,6 +983,7 @@ impl LuaCompiler {
         )?;
         self.code.write(";").line();
         self.export_symbol(&modifiers, name)?;
+        self.code.pop().line().write("end");
         Ok(())
     }
     fn export_symbol(&mut self, modifiers: &DefModifiers, name: Identifier) -> Result {
