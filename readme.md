@@ -21,16 +21,29 @@ a direct replacement of _Lua_ scripts.
 Clone the repository, then run inside:
 
 ```sh
-cargo run --bin saturnc -- run -i examples/simple_get.st
+cd examples
+cargo run --bin titan -- compile
 ```
 
 You should see something akin to:
 
 ```
-Starting request
-Done, response should arrive soon
-Entry [1] = 'delectus aut autem'
+titan warning: Dependency resolving is being worked on.
+titan info: Compiling objects...
+  Compiling src\example.st...
+    Compiled src\example.st
+  Compiling src\main.st...>                         ] 1/2                                                                                                                         
+    Compiled src\main.st
+ [=================================================>] 2/2                                                                                                                         
+titan info: Linking objects...
+      Linked target/objects\example.lua
+      Linked target/objects\main.lua                                                                                                                                              
+ [=================================================>] 2/2                                                                                                                         
+titan info: Building Test
+titan info: Done
 ```
+
+And a file called `Test.lua` in the `target/` folder.
 
 ## How does it look?
 
