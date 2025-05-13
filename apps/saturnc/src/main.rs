@@ -13,7 +13,10 @@ use colored::Colorize;
 use options::OptionsAdapter;
 use saturnus::{Saturnus, Table, compiler::CompilerOptions, source::SourceCode};
 
-fn read_file_as_source(mut input: PathBuf) -> Result<impl SourceCode, std::io::Error> {
+fn read_file_as_source(
+    mut input: PathBuf,
+    override_path: Option<PathBuf>,
+) -> Result<impl SourceCode, std::io::Error> {
     let mut source = String::new();
     File::open(&input)?.read_to_string(&mut source)?;
     input.set_extension("");
@@ -31,7 +34,7 @@ fn read_file_as_source(mut input: PathBuf) -> Result<impl SourceCode, std::io::E
     }
     Ok(Src {
         source,
-        location: input,
+        location: override_path.unwrap_or(input),
     })
 }
 
@@ -49,12 +52,24 @@ fn compile(
             input
         }
     };
-    let source = read_file_as_source(input).unwrap();
+    let source = match read_file_as_source(input.clone(), options.override_mod_path.clone()) {
+        Ok(val) => val,
+        Err(err) => {
+            panic!("Can't read {input:?} => {err}");
+        }
+    };
     let mut c = Saturnus::new();
     c.options = options.clone();
     let out = match target {
         CompileTarget::Lua => c.compile(source).unwrap(),
     };
+    let mut out_file = File::create(&output).unwrap();
+    write!(out_file, "{}", out.to_string()).unwrap();
+}
+
+fn produce_std(output: PathBuf) {
+    let c = Saturnus::new();
+    let out = c.compile(ststd::STDLIB_CODE).unwrap();
     let mut out_file = File::create(&output).unwrap();
     write!(out_file, "{}", out.to_string()).unwrap();
 }
@@ -85,7 +100,7 @@ async fn run(
 ) -> Result<(), ()> {
     let source_loc = input.clone().to_str().unwrap_or("").to_owned();
     // TODO ^^^^^^ Handle this.
-    let source = read_file_as_source(input).report_errors()?;
+    let source = read_file_as_source(input, options.override_mod_path.clone()).report_errors()?;
     let mut sat = Saturnus::new();
     sat.options = options.clone();
     let ir = sat.compile(source).report_errors()?;
@@ -147,6 +162,30 @@ async fn main() {
             match task.await.unwrap() {
                 Ok(()) => (),
                 Err(()) => exit(1),
+            }
+        }
+        Args::StdOutput { output, stdout } => {
+            if stdout && output.is_some() {
+                println!("Bad usage, --stdout and --output are mutually exclusive.");
+            } else if !stdout && output.is_none() {
+                println!("Specify one of --stdout or --output at least.");
+            } else if stdout {
+                struct OutLocal(String, PathBuf);
+                impl SourceCode for OutLocal {
+                    fn location(&self) -> Option<PathBuf> {
+                        Some(self.1.clone())
+                    }
+                    fn source(self) -> String {
+                        self.0
+                    }
+                }
+                let out = Saturnus::new()
+                    .compile(OutLocal(ststd::STDLIB_CODE.into(), PathBuf::from("std")))
+                    .unwrap()
+                    .to_string();
+                println!("{out}");
+            } else {
+                produce_std(output.unwrap());
             }
         }
     }

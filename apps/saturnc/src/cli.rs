@@ -75,4 +75,11 @@ pub enum Args {
         #[arg(long, short)]
         lib: Option<Vec<PathBuf>>,
     },
+    StdOutput {
+        #[arg(long, short)]
+        output: Option<PathBuf>,
+        /// Prints the library to the standard output.
+        #[arg(long)]
+        stdout: bool,
+    },
 }

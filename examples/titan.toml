@@ -1,0 +1,7 @@
+[package]
+name = "Test"
+
+[dependencies]
+test_one = { git = "https://github.com/console-rs/indicatif.git" }
+test_two = { git = "https://github.com/console-rs/indicatif.git" }
+test_three = { git = "https://github.com/console-rs/indicatif.git" }

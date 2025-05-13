@@ -1126,9 +1126,6 @@ impl Compiler for LuaCompiler {
         options: CompilerOptions,
     ) -> std::result::Result<SaturnusIR, CompilerError> {
         self.module_root_expr = Identifier::new("__modules__", false);
-        if let Some(_) = &options.override_mod_path {
-            todo!()
-        }
         self.options = options;
         let location = source.location();
         let code = source.source();

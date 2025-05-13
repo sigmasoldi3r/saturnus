@@ -31,6 +31,7 @@ impl OptionsAdapter {
                 },
             },
             Args::Run { .. } => Default::default(),
+            Args::StdOutput { .. } => Default::default(),
         }
     }
 }
