@@ -52,16 +52,23 @@ And a file called `Test.lua` in the `target/` folder.
 
 A simple, yet classy (No pun intended) hello world:
 
+_Extracted from [examples/hello_world.st example file](https://github.com/sigmasoldi3r/saturnus/blob/main/examples/hello_world.st)_
+
 ```js
 // Simple hello world with OOP
 class Greeter {
-    static fn new(name) = Greeter.'{ name };
+    // Self is available within the class context.
+    // References this class.
+    static fn new(name) = Self.'{ name };
     fn greet() = print("Hello " ++ self.name ++ "!");
+    // You could invoke new as:
+    static fn default() = Self::new "unnamed";
 }
 
 let world = Greeter::new "World";
 
 world.greet();
+
 ```
 
 > [!CAUTION]
