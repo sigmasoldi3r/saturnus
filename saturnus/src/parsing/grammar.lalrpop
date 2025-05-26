@@ -400,5 +400,5 @@ OpBinary: ast::Operator = {
     "<<<" => ast::Operator::LShiftRot,
 };
 OpCustom: ast::Operator = {
-    r"[\^+-/*.:~%&$!|?><]+" => ast::Operator::Custom(String::from(<>))
+   r"[\^+-/*.:~%&$!|?><]+" => ast::Operator::Custom(String::from(<>))
 };
