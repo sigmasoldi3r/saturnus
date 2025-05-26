@@ -232,7 +232,7 @@ Primary = {
 };
 
 LambdaExpr: ast::Expr = {
-    "{" <body:LambdaBody> "}" => ast::LambdaExpr::new(vec![ast::Param { name: ast::Identifier::new("it", false).unwrap_identifier(), type_def: None }], body),
+    "{" <body:LambdaBody> "}" => ast::LambdaExpr::new(vec![ast::Param { name: ast::Identifier::new("it", false).unwrap_identifier(), init: None, type_def: None }], body),
     "{" <params:ParamList> "=>" <body:LambdaBody> "}" => ast::LambdaExpr::new(params, body),
 };
 
@@ -251,8 +251,8 @@ ParamList: Vec<ast::Param> = {
 };
 
 ParamDef: ast::Param =
-    <name:Identifier> <type_def:TypeConstraint?>
-    => ast::Param { name: name.unwrap_identifier(), type_def };
+    <name:Identifier> <type_def:TypeConstraint?> <init:("<-" <Expr>)?>
+    => ast::Param { name: name.unwrap_identifier(), type_def, init };
 
 TypeConstraint = ":" <RawTypeDef>;
 

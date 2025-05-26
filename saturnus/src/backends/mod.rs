@@ -383,18 +383,49 @@ impl LuaCompiler {
         self.code.write(" }");
         Ok(())
     }
+    fn compile_param_initializers(
+        params: Vec<Param>,
+        body: Vec<Statement>,
+    ) -> std::result::Result<Vec<Statement>, CompilerError> {
+        let out = params
+            .into_iter()
+            .filter_map(|Param { name, init, .. }| {
+                init.map(move |init| {
+                    let condition = Bop::new(
+                        name.clone().into_expr(),
+                        Operator::Eq,
+                        Expr::TupleLiteral(TupleLiteral::unit()),
+                    );
+                    let body = vec![
+                        Assignment::new(AssignmentTarget::Identifier(name), None, init)
+                            .into_statement(),
+                    ];
+                    Statement::IfStatement(IfStatement {
+                        condition: Box::new(condition),
+                        body,
+                        else_if_blocks: vec![],
+                        else_block: None,
+                    })
+                })
+            })
+            .chain(body.into_iter())
+            .collect();
+        Ok(out)
+    }
     fn compile_lambda(&mut self, lambda_expr: LambdaExpr) -> Result {
         self.code.write("function(");
-        let mut iter = lambda_expr.params.into_iter();
+        let mut iter = lambda_expr.params.iter();
         if let Some(first) = iter.next() {
-            self.compile_identifier(first.name)?;
+            self.compile_identifier(first.name.clone())?;
         }
         for param in iter {
             self.code.write(", ");
-            self.compile_identifier(param.name)?;
+            self.compile_identifier(param.name.clone())?;
         }
         self.code.write(")").push();
-        self.compile_program(lambda_expr.body)?;
+        let body = lambda_expr.body;
+        let body = Self::compile_param_initializers(lambda_expr.params, body)?;
+        self.compile_program(body)?;
         self.code.pop().line().write("end");
         Ok(())
     }
@@ -808,7 +839,7 @@ impl LuaCompiler {
             }
             self.compile_identifier(method)?;
             self.code.write("(");
-            let mut iter = arguments.into_iter();
+            let mut iter = arguments.clone().into_iter();
             if let Some(param) = iter.next() {
                 let Param { name, .. } = param;
                 self.compile_identifier(name)?;
@@ -819,6 +850,8 @@ impl LuaCompiler {
                 self.compile_identifier(name)?;
             }
             self.code.write(")").push();
+            let body = body;
+            let body = Self::compile_param_initializers(arguments, body)?;
             self.compile_program(body)?;
             self.code.pop().line().write("end");
         }
@@ -882,10 +915,12 @@ impl LuaCompiler {
                         Param {
                             name: Identifier::new("self", false).unwrap_identifier(),
                             type_def: None,
+                            init: None,
                         },
                         Param {
                             name: Identifier::new("key", false).unwrap_identifier(),
                             type_def: None,
+                            init: None,
                         },
                     ],
                     index_body,
@@ -966,10 +1001,12 @@ impl LuaCompiler {
                         Param {
                             name: Identifier::new("Self", false).unwrap_identifier(),
                             type_def: None,
+                            init: None,
                         },
                         Param {
                             name: Identifier::new("values", false).unwrap_identifier(),
                             type_def: None,
+                            init: None,
                         },
                     ],
                     body: ctor_body,
@@ -1028,7 +1065,7 @@ impl LuaCompiler {
         self.code.write("function ");
         self.compile_identifier(name.clone())?;
         self.code.write("(");
-        let mut iter = arguments.into_iter();
+        let mut iter = arguments.clone().into_iter();
         if let Some(first) = iter.next() {
             self.compile_identifier(first.name)?;
         }
@@ -1037,6 +1074,8 @@ impl LuaCompiler {
             self.compile_identifier(item.name)?;
         }
         self.code.write(")").push();
+        let body = body;
+        let body = Self::compile_param_initializers(arguments, body)?;
         self.compile_program(body)?;
         self.code.pop().line().write("end");
         self.export_symbol(&modifiers, name)?;

@@ -248,6 +248,7 @@ impl LambdaExpr {
 pub struct Param {
     pub name: Identifier,
     pub type_def: Option<TypeDef>,
+    pub init: Option<Expr>,
 }
 
 #[derive(Debug, Clone)]
