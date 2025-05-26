@@ -195,7 +195,7 @@ fn main() {
     let args = Args::parse();
 
     let result = match args {
-        Args::Compile { project } => run(project),
+        Args::Build { project } => run(project),
         Args::Run { project } => compile(project),
         Args::New {} => todo!(),
         Args::Init {} => todo!(),

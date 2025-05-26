@@ -1,6 +1,9 @@
 pub mod ast;
 pub mod builders;
 
+#[cfg(test)]
+mod grammar_test;
+
 use lalrpop_util::lalrpop_mod;
 
 lalrpop_mod!(

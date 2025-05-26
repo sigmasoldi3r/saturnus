@@ -353,7 +353,7 @@ IntLit: i64 = r"[0-9]+" => i64::from_str(<>).unwrap();
 FloatLit: f64 = r"[0-9]+\.[0-9]+" => f64::from_str(<>).unwrap();
 
 String: ast::SatString =
-    <l:r#""(\\\\|\\"|[^"\\])*""#> => ast::SatString { value: l[1..l.len()-1].into() };
+    <l:r#""(\\[\\"nrxlt]|[^"\\]|\n)*""#> => ast::SatString { value: l[1..l.len()-1].into() };
 
 Identifier: ast::Expr = {
     r"[A-Za-z_][A-Za-z_0-9]*" => ast::Identifier::new(<>, false),

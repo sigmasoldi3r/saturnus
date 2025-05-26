@@ -171,7 +171,6 @@ impl LuaCompiler {
             Operator::BNot => format!("~"),
             Operator::LShift => format!("<<"),
             Operator::RShift => format!(">>"),
-            Operator::StrCat => format!(".."),
             Operator::Lt => format!("<"),
             Operator::LtEq => format!("<="),
             Operator::Gt => format!(">"),
@@ -232,6 +231,12 @@ impl LuaCompiler {
                     self.compile_custom_operator(">>>".into(), left, Some(right))?
                 }
                 Operator::Range => self.compile_custom_operator("..".into(), left, Some(right))?,
+                Operator::StrCat => {
+                    self.compile_expr(*left)?;
+                    self.code.write(" .. tostring(");
+                    self.compile_expr(*right)?;
+                    self.code.write(")");
+                }
                 Operator::Custom(value) => {
                     self.compile_custom_operator(value, left, Some(right))?
                 }
