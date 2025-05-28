@@ -24,7 +24,9 @@ impl<'a> mlua::AsChunk<'a> for SaturnusIR {
 
 pub trait SourceCode {
     fn source(self) -> String;
-    fn location(&self) -> Option<PathBuf>;
+    fn location(&self) -> Option<PathBuf> {
+        None
+    }
 }
 impl SourceCode for &'static str {
     fn source(self) -> String {

@@ -38,15 +38,39 @@ fn read_file_as_source(
     })
 }
 
-fn compile(
+enum OutputVariant {
+    Stdout,
+    File(PathBuf),
+    Nothing,
+}
+impl OutputVariant {
+    fn from_args(stdout: bool, output: Option<PathBuf>) -> Self {
+        if stdout && output.is_some() {
+            eprintln!("Bad usage! --stdout and -o/--output are incompatible.");
+            exit(1);
+        }
+        if stdout {
+            Self::Stdout
+        } else if let Some(file) = output {
+            Self::File(file)
+        } else {
+            Self::Nothing
+        }
+    }
+}
+
+fn compile_file(
     input: PathBuf,
     options: CompilerOptions,
     target: CompileTarget,
-    output: Option<PathBuf>,
+    output: OutputVariant,
 ) {
     let output = match output {
-        Some(output) => output,
-        None => {
+        OutputVariant::File(output) => output,
+        OutputVariant::Stdout => {
+            todo!()
+        }
+        OutputVariant::Nothing => {
             let mut input = input.clone();
             input.set_extension(target.ext());
             input
@@ -140,6 +164,29 @@ async fn run(
     Ok(())
 }
 
+fn compile_input(
+    input: impl SourceCode,
+    output: OutputVariant,
+    options: CompilerOptions,
+    target: CompileTarget,
+) {
+    let mut c = Saturnus::new();
+    c.options = options.clone();
+    let out = match target {
+        CompileTarget::Lua => c.compile(input).unwrap(),
+    };
+    match output {
+        OutputVariant::Stdout => {
+            println!("{}", out.to_string());
+        }
+        OutputVariant::File(output) => {
+            let mut out_file = File::create(&output).unwrap();
+            write!(out_file, "{}", out.to_string()).unwrap();
+        }
+        OutputVariant::Nothing => todo!(),
+    }
+}
+
 #[tokio::main]
 async fn main() {
     use clap::Parser as _;
@@ -151,8 +198,30 @@ async fn main() {
             input,
             target,
             output,
+            code,
+            stdout,
+            mod_path,
             ..
-        } => compile(input, options, target, output),
+        } => {
+            let output = OutputVariant::from_args(stdout, output);
+            if let Some(code) = code {
+                struct RawCode(String, Option<PathBuf>);
+                impl SourceCode for RawCode {
+                    fn location(&self) -> Option<PathBuf> {
+                        self.1.clone()
+                    }
+                    fn source(self) -> String {
+                        self.0
+                    }
+                }
+                println!("code := {code:?}");
+                compile_input(RawCode(code, mod_path), output, options, target);
+            } else if let Some(input) = input {
+                compile_file(input, options, target, output);
+            } else {
+                eprintln!("Specify either --input or --code!")
+            }
+        }
         Args::Run {
             input,
             dump_ir,

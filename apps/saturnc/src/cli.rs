@@ -30,7 +30,7 @@ pub enum Args {
     Compile {
         /// The input file to compile.
         #[arg(long, short)]
-        input: PathBuf,
+        input: Option<PathBuf>,
         /// Only processes the macro code and expands it, currently disabled (ignored).
         #[arg(long)]
         only_macros: bool,
@@ -58,6 +58,9 @@ pub enum Args {
         /// Output is ignored in favour of redirecting the output source code to the stdout.
         #[arg(long)]
         stdout: bool,
+        /// The compiler will read the standard input argument as a file stream.
+        #[arg(long)]
+        code: Option<String>,
         /// Instead of inferring the module path from the input, it uses the given module path.
         #[arg(long, short)]
         mod_path: Option<PathBuf>,

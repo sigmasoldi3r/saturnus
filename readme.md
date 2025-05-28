@@ -59,7 +59,7 @@ _Extracted from [examples/hello_world.st example file](https://github.com/sigmas
 class Greeter {
     // Self is available within the class context.
     // References this class.
-    static fn new(name) = Self.'{ name };
+    static fn new(name <- "Stranger") = Self.'{ name };
     fn greet() = print("Hello " ++ self.name ++ "!");
     // You could invoke new as:
     static fn default() = Self::new "unnamed";
@@ -86,10 +86,10 @@ _More syntax will be added to the docs as the project develops._
 > Is more or less ordered by priority.
 
 - **[ONGOING]**: Create a working toolset to compile and manage projects
-- Add coroutine sugar syntax `{ a, b ~> "This is a coroutine" }`
-- Fix basic missing features (Unary ops).
+- **[ONGOING]**: Fix basic missing features (Unary ops).
 - Parse process and compile macro declarations `macro! foo {...}`
 - Parse and compile macro calls `some!("macro")`
 - Parse and compile runtime decorators `@some("thing") class Foo {...}`
 - Parse and compile macro decorators `@some!("thing") class Foo {...}`
+- Add coroutine sugar syntax `{ a, b ~> "This is a coroutine" }`
 - Implement a robust runtime that can handle async programming and web services.
